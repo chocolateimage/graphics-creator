@@ -1,4 +1,5 @@
 #include "image_viewer.hpp"
+#include <QMatrix4x4>
 #include <QPaintEvent>
 #include <QPainter>
 
@@ -20,8 +21,6 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
 
     QRect fitRect = fittedRect().toRect();
     bool smooth = zoom < 1.5f;
-    painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, smooth);
-    painter.setRenderHint(QPainter::RenderHint::Antialiasing, smooth);
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(Qt::black);
@@ -52,8 +51,50 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     }
 
     // TODO: scale image using the pixmap scale maybe?
+    painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, smooth);
+    painter.setRenderHint(QPainter::RenderHint::Antialiasing, smooth);
     painter.drawImage(fitRect, image);
+
+    if (isPicking) {
+        painter.setRenderHint(QPainter::RenderHint::Antialiasing, false);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(255, 0, 0, 255));
+
+        painter.drawRect(QRectF(pickPosition.x() + fitRect.x(),
+                                pickPosition.y() + fitRect.y(), 1, 1));
+    }
+
     painter.resetTransform();
+
+    if (isPicking) {
+        painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(0, 0, 0, 180));
+
+        QFont font;
+        font.setWeight(QFont::Medium);
+        font.setPixelSize(18);
+        painter.setFont(font);
+
+        int rectWidth = 350;
+        int rectHeight = 64;
+        int rectX = width() / 2 - rectWidth / 2;
+        int rectY = 64;
+        painter.drawRoundedRect(rectX, rectY, rectWidth, rectHeight, 8, 8);
+        painter.setPen(Qt::white);
+        painter.setBrush(Qt::NoBrush);
+        painter.drawText(rectX, rectY, rectWidth, rectHeight / 2,
+                         Qt::AlignCenter, pickText);
+
+        QFont font2;
+        font2.setPixelSize(14);
+        painter.setFont(font2);
+
+        painter.drawText(
+            rectX, rectY + (rectHeight / 2), rectWidth, rectHeight / 2,
+            Qt::AlignCenter | Qt::TextWordWrap,
+            "Left click to confirm. Right click/escape to cancel.");
+    }
 }
 
 QRectF ImageViewer::fittedRect() {
@@ -75,17 +116,32 @@ QRectF ImageViewer::fittedRect() {
 }
 
 void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
+    QPointF current = event->position();
+
+    if (isPicking) {
+        QMatrix4x4 matrix;
+        matrix.translate(width() / 2.f, height() / 2.f);
+        matrix.scale(zoom, zoom);
+        matrix.translate(width() / -2.f, height() / -2.f);
+        matrix.translate(movePos.x(), movePos.y());
+        matrix = matrix.inverted();
+        QPointF point = event->position();
+        QPointF mapped = matrix.map(point) - fittedRect().topLeft();
+        pickPosition = {qRound(mapped.x() - 0.5f), qRound(mapped.y() - 0.5f)};
+        update();
+    }
+
     if (!dragging)
         return;
     if (zoom == 1)
         return;
-    QPointF current = event->position();
     QPointF diff = current - lastDragMousePos;
     movePos += diff / zoom;
 
     clampMovePos();
 
     lastDragMousePos = current;
+
     update();
 }
 
@@ -159,9 +215,9 @@ void ImageViewer::wheelEvent(QWheelEvent *event) {
     zoom = std::clamp(zoom * ((zoomScale * 0.2f) + 1), 1.f, 100.f);
     if (zoom == 1) {
         movePos = {0, 0};
-        setCursor(Qt::CursorShape::ArrowCursor);
+        updateCursor();
     } else {
-        setCursor(Qt::CursorShape::OpenHandCursor);
+        updateCursor();
         clampMovePos();
     }
     update();
@@ -171,4 +227,24 @@ void ImageViewer::resizeEvent(QResizeEvent *event) {
     clampMovePos();
     update();
     QWidget::resizeEvent(event);
+}
+
+void ImageViewer::beginPicking(const QString &infoText) {
+    isPicking = true;
+    pickText = infoText;
+    updateCursor();
+    update();
+}
+
+void ImageViewer::updateCursor() {
+    if (isPicking) {
+        setCursor(Qt::CursorShape::CrossCursor);
+        return;
+    }
+
+    if (zoom == 1) {
+        setCursor(Qt::CursorShape::ArrowCursor);
+    } else {
+        setCursor(Qt::CursorShape::OpenHandCursor);
+    }
 }

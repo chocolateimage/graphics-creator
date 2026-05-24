@@ -66,8 +66,18 @@ void Variant::pushLua(lua_State *L) const {
     case VariantTypeEnum::Double:
         lua_pushnumber(L, get<double>());
         break;
+    case VariantTypeEnum::Vector2DInt: {
+        Vector2DInt value = get<Vector2DInt>();
+        lua_newtable(L);
+        lua_pushstring(L, "x");
+        lua_pushnumber(L, value.x);
+        lua_settable(L, -3);
+        lua_pushstring(L, "y");
+        lua_pushnumber(L, value.y);
+        lua_settable(L, -3);
+        break;
+    }
     case VariantTypeEnum::Color: // TODO: implement
-    case VariantTypeEnum::Vector2DInt:
         lua_pushnil(L);
         break;
     };

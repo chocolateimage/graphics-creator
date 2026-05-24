@@ -192,7 +192,12 @@ void TestWindow::loadLate() {
             slider = true,
             min = 0,
             max = 1000,
-        }
+        },
+        {
+            id = "testPoint",
+            type = "vector2dint",
+            label = "Text position",
+        },
     }
 end
 
@@ -200,7 +205,7 @@ function draw(_frame)
     local text = createText(text, 0)
     local _,_,_,_,tw,th = getTextInfo(text, fontSize)
     local frame = ffi.cast("uint32_t*", _frame)
-    
+
     for y = fromY, toY do
         for x = fromX, toX do
             local red = 0
@@ -209,6 +214,7 @@ function draw(_frame)
             local alpha = 255
 
             -- put your draw code here!
+            --[[
             local move = seconds * 100
             local moveDist = 60
             local coordMove = - (move % (moveDist*2)) + moveDist
@@ -217,12 +223,17 @@ function draw(_frame)
             local isDifferent = (x2+y2) % 2
             local dist = distance((x % 60) + coordMove * isDifferent, y % 60 + coordMove * (1 - isDifferent), 30, 30)
             local value = saturate(smoothstep(30, 29, dist) + .4) * 255
-            local dist = saturate(1 - (distance(x, y, width / 2, height / 2) / 500))
+            local dist = saturate(1 - (distance(x, y, testPoint.x, testPoint.y) / 500))
 
             local textValue = smoothstep(-.05,.05, getPixel(text, fontSize, x - (width / 2 - tw / 2), y - (height / 2 - th / 2)))
             red = textValue * dist * value
             green = textValue * dist * value
             blue = textValue * dist * value
+
+    ]]
+            red = 255
+            green = x / width * 255
+            blue = 128
 
             frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
         end
@@ -456,14 +467,50 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
                     updateOption(optionId, Variant(value));
                 });
         widget = input;
+    } else if (optionType == VariantTypeEnum::Vector2DInt) {
+        widget = new QWidget(optionsWidget);
+        auto layout = new QHBoxLayout(widget);
+        layout->setContentsMargins(0, 0, 0, 0);
+
+        auto value = variant.get<Vector2DInt>();
+
+        auto inputX = new QSpinBox(optionsWidget);
+        inputX->setMinimum(min);
+        inputX->setMaximum(max);
+        inputX->setValue(value.x);
+
+        auto inputY = new QSpinBox(optionsWidget);
+        inputY->setMinimum(min);
+        inputY->setMaximum(max);
+        inputY->setValue(value.y);
+
+        auto pickButton = new QToolButton(optionsWidget);
+        pickButton->setIcon(QIcon::fromTheme("select"));
+
+        layout->addWidget(inputX);
+        layout->addWidget(inputY);
+        layout->addWidget(pickButton);
+
+        connect(inputX, &QSpinBox::valueChanged, this,
+                [this, optionId, inputY](int value) {
+                    updateOption(optionId, Variant((Vector2DInt){
+                                               value, inputY->value()}));
+                });
+        connect(inputY, &QSpinBox::valueChanged, this,
+                [this, optionId, inputX](int value) {
+                    updateOption(optionId, Variant((Vector2DInt){
+                                               inputX->value(), value}));
+                });
+        connect(pickButton, &QToolButton::clicked, this, [this, optionLabel]() {
+            previewWidget->beginPicking("Pick \"" + optionLabel + "\"");
+        });
     }
 
-    if (widget) {
-        optionsLayout->addRow(optionLabel, widget);
-    } else {
-        optionsLayout->addRow(optionLabel,
-                              new QLabel("<i>no widget</i>", optionsWidget));
+    if (!widget) {
+        widget = new QLabel("<i>no widget</i>", optionsWidget);
     }
+
+    optionsLayout->addRow(optionLabel + ":", widget);
 
     return true;
 }

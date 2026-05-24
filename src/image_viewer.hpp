@@ -6,6 +6,7 @@ class ImageViewer : public QWidget {
   public:
     explicit ImageViewer(QWidget *parent = nullptr);
     void updateImage(QImage img);
+    void beginPicking(const QString &infoText);
     QRectF fittedRect();
     QImage image;
 
@@ -15,6 +16,10 @@ class ImageViewer : public QWidget {
     QPointF lastDragMousePos;
     float zoom{1};
     bool dragging{false};
+    bool isPicking{false};
+    QString pickText;
+    QPoint pickPosition;
+    void updateCursor();
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
