@@ -411,13 +411,14 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
     }
 
     for (int y = startY; y < startY + renderHeight; y++) {
+        if (pixelFormat == AV_PIX_FMT_BGRA) {
+            memcpy(frame->data[0] + (y * frame->linesize[0] + startX * 4),
+                   (void *)(values + y * width + startX), renderWidth * 4);
+            continue;
+        }
+
         for (int x = startX; x < startX + renderWidth; x++) {
             uint32_t value = values[y * width + x];
-            if (pixelFormat == AV_PIX_FMT_BGRA) {
-                ((uint32_t *)(frame->data[0]))[y * (frame->linesize[0] / 4) +
-                                               x] = value;
-                continue;
-            }
 
             uint8_t blue = value & 0xff;
             uint8_t green = value >> 8 & 0xff;
