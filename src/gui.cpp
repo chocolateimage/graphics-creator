@@ -503,6 +503,7 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
 void TestWindow::pixelPicked(QString id, QPoint position) {
     updateOption(id.toStdString(),
                  Variant((Vector2DInt{position.x(), position.y()})));
+    recreateOptions();
 }
 
 void TestWindow::updateOption(const std::string &optionId, Variant variant) {
@@ -513,14 +514,7 @@ void TestWindow::updateOption(const std::string &optionId, Variant variant) {
     optionsUpdated();
 }
 
-void TestWindow::scriptUpdated() {
-    updateError("");
-
-    latestLuaMutex.lock();
-    latestLua = textDocument->text().toStdString();
-    latestLuaMutex.unlock();
-
-    // update options
+void TestWindow::recreateOptions() {
     while (optionsLayout->rowCount() > 0) {
         optionsLayout->removeRow(0);
     }
@@ -555,6 +549,16 @@ void TestWindow::scriptUpdated() {
     }
     lua_close(L);
     scriptOptionsMutex.unlock();
+}
+
+void TestWindow::scriptUpdated() {
+    updateError("");
+
+    latestLuaMutex.lock();
+    latestLua = textDocument->text().toStdString();
+    latestLuaMutex.unlock();
+
+    recreateOptions();
 
     // mark dirty on threads
     for (auto thread : threads) {

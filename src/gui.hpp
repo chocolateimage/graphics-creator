@@ -109,6 +109,7 @@ class TestWindow : public QMainWindow {
     void generate();
     void taskDone(FramePreviewTask task);
     void updateStatus();
+    void recreateOptions();
     void scriptUpdated();
     void optionsUpdated();
     void updateOption(const std::string &optionId, Variant variant);
