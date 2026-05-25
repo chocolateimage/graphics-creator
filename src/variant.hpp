@@ -38,8 +38,10 @@ struct Vector2DInt {
     int x, y;
 };
 
-using VariantType =
-    std::variant<std::monostate, std::string, int, double, Color, Vector2DInt>;
+struct Font {};
+
+using VariantType = std::variant<std::monostate, std::string, int, double,
+                                 Color, Vector2DInt, Font>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -49,6 +51,7 @@ struct VariantTypeEnum {
         Double,
         Color,
         Vector2DInt,
+        Font,
     };
 };
 

@@ -26,6 +26,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Color;
     } else if (type == "vector2dint") {
         return VariantTypeEnum::Vector2DInt;
+    } else if (type == "font") {
+        return VariantTypeEnum::Font;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -42,9 +44,11 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
     case VariantTypeEnum::Double:
         return Variant(0.0);
     case VariantTypeEnum::Color:
-        return Variant((Color){0, 0, 0, 255});
+        return Variant(Color{0, 0, 0, 255});
     case VariantTypeEnum::Vector2DInt:
-        return Variant((Vector2DInt){0, 0});
+        return Variant(Vector2DInt{0, 0});
+    case VariantTypeEnum::Font:
+        return Variant(Font{});
     }
 }
 
@@ -92,6 +96,10 @@ void Variant::pushLua(lua_State *L) const {
         lua_pushstring(L, "a");
         lua_pushnumber(L, value.a);
         lua_settable(L, -3);
+        break;
+    }
+    case VariantTypeEnum::Font: {
+        lua_pushnil(L); // TODO: lightuserdata or table
         break;
     }
     };

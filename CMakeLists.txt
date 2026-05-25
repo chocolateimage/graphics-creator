@@ -30,6 +30,7 @@ set(graphicscreator_SRCS
     src/image_viewer.cpp
     src/lua_state.cpp
     src/variant.cpp
+    src/fontcombobox.cpp
 )
 
 

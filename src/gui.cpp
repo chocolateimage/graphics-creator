@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "fontcombobox.hpp"
 #include "line.hpp"
 #include "lua.hpp"
 #include "lua_state.hpp"
@@ -184,6 +185,10 @@ void MainWindow::loadLate() {
     textDocument->setConfigValue("indent-pasted-text", "false");
     textDocument->setText(R"(function options()
     return {
+        {
+            id = "font",
+            type = "font",
+        },
         {
             id = "text",
             type = "string",
@@ -508,6 +513,13 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
                                         newColor.blue(), newColor.alpha()}));
                 });
         widget = colorButton;
+    } else if (optionType == VariantTypeEnum::Font) {
+        auto fontWidget = new FontComboBox(optionsWidget);
+        fontWidget->setSizePolicy(QSizePolicy::Policy::Expanding,
+                                  QSizePolicy::Policy::Fixed);
+        fontWidget->addItems({"Hello", "World"});
+
+        widget = fontWidget;
     }
 
     if (!widget) {
