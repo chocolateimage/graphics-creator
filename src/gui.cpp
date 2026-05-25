@@ -128,7 +128,8 @@ void TestWindow::loadLate() {
             &TestWindow::updateButtons);
 
     previewWidget = new ImageViewer(this);
-    // label->setFixedSize(800, 600);
+    connect(previewWidget, &ImageViewer::pixelPicked, this,
+            &TestWindow::pixelPicked);
     previewWidget->setMinimumSize(10, 10);
     videoContentLayout->addWidget(previewWidget);
 
@@ -202,38 +203,19 @@ void TestWindow::loadLate() {
 end
 
 function draw(_frame)
-    local text = createText(text, 0)
-    local _,_,_,_,tw,th = getTextInfo(text, fontSize)
     local frame = ffi.cast("uint32_t*", _frame)
-
     for y = fromY, toY do
         for x = fromX, toX do
             local red = 0
             local green = 0
-            local blue = 0
+            local blue = 255
             local alpha = 255
 
             -- put your draw code here!
-            --[[
-            local move = seconds * 100
-            local moveDist = 60
-            local coordMove = - (move % (moveDist*2)) + moveDist
-            local x2 = floor(x / 60)
-            local y2 = floor(y / 60)
-            local isDifferent = (x2+y2) % 2
-            local dist = distance((x % 60) + coordMove * isDifferent, y % 60 + coordMove * (1 - isDifferent), 30, 30)
-            local value = saturate(smoothstep(30, 29, dist) + .4) * 255
-            local dist = saturate(1 - (distance(x, y, testPoint.x, testPoint.y) / 500))
-
-            local textValue = smoothstep(-.05,.05, getPixel(text, fontSize, x - (width / 2 - tw / 2), y - (height / 2 - th / 2)))
-            red = textValue * dist * value
-            green = textValue * dist * value
-            blue = textValue * dist * value
-
-    ]]
-            red = 255
-            green = x / width * 255
-            blue = 128
+            
+            local dist = distance(x, y, testPoint.x, testPoint.y)
+            
+            red = (1 - saturate(dist / 100)) * 255
 
             frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
         end
@@ -501,9 +483,12 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
                     updateOption(optionId, Variant((Vector2DInt){
                                                inputX->value(), value}));
                 });
-        connect(pickButton, &QToolButton::clicked, this, [this, optionLabel]() {
-            previewWidget->beginPicking("Pick \"" + optionLabel + "\"");
-        });
+        connect(pickButton, &QToolButton::clicked, this,
+                [this, optionId, optionLabel]() {
+                    previewWidget->beginPicking(
+                        QString::fromStdString(optionId),
+                        "Pick \"" + optionLabel + "\"");
+                });
     }
 
     if (!widget) {
@@ -513,6 +498,11 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
     optionsLayout->addRow(optionLabel + ":", widget);
 
     return true;
+}
+
+void TestWindow::pixelPicked(QString id, QPoint position) {
+    updateOption(id.toStdString(),
+                 Variant((Vector2DInt{position.x(), position.y()})));
 }
 
 void TestWindow::updateOption(const std::string &optionId, Variant variant) {

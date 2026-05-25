@@ -19,7 +19,7 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         return;
     }
 
-    QRect fitRect = fittedRect().toRect();
+    QRectF fitRect = fittedRect();
     bool smooth = zoom < 1.5f;
 
     painter.setPen(Qt::NoPen);
@@ -35,8 +35,8 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     painter.setBrush(QColor(255, 255, 255));
     painter.drawRect(fitRect);
     constexpr int checkerboardSize = 8;
-    for (int y = 0; y < fitRect.height(); y += checkerboardSize) {
-        for (int x = 0; x < fitRect.width(); x += checkerboardSize) {
+    for (qreal y = 0; y < fitRect.height(); y += checkerboardSize) {
+        for (qreal x = 0; x < fitRect.width(); x += checkerboardSize) {
             int x2 = x / checkerboardSize;
             int y2 = y / checkerboardSize;
             bool isChecked = (x2 + y2) % 2 == 0;
@@ -53,15 +53,20 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     // TODO: scale image using the pixmap scale maybe?
     painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, smooth);
     painter.setRenderHint(QPainter::RenderHint::Antialiasing, smooth);
-    painter.drawImage(fitRect, image);
+    painter.drawImage(fittedRect(), image);
 
     if (isPicking) {
         painter.setRenderHint(QPainter::RenderHint::Antialiasing, false);
         painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(255, 0, 0, 255));
+        painter.setBrush(QColor(255, 0, 0, 200));
 
-        painter.drawRect(QRectF(pickPosition.x() + fitRect.x(),
-                                pickPosition.y() + fitRect.y(), 1, 1));
+        painter.drawRect(QRectF(
+            ((float)pickPosition.x() / image.width() * fitRect.width()) +
+                fitRect.x(),
+            ((float)pickPosition.y() / image.height() * fitRect.height()) +
+                fitRect.y(),
+            (float)fitRect.width() / image.width(),
+            (float)fitRect.height() / image.height()));
     }
 
     painter.resetTransform();
@@ -90,10 +95,9 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         font2.setPixelSize(14);
         painter.setFont(font2);
 
-        painter.drawText(
-            rectX, rectY + (rectHeight / 2), rectWidth, rectHeight / 2,
-            Qt::AlignCenter | Qt::TextWordWrap,
-            "Left click to confirm. Right click/escape to cancel.");
+        painter.drawText(rectX, rectY + (rectHeight / 2), rectWidth,
+                         rectHeight / 2, Qt::AlignCenter | Qt::TextWordWrap,
+                         "Left click to confirm. Right click to cancel.");
     }
 }
 
@@ -119,15 +123,17 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     QPointF current = event->position();
 
     if (isPicking) {
-        QMatrix4x4 matrix;
-        matrix.translate(width() / 2.f, height() / 2.f);
-        matrix.scale(zoom, zoom);
-        matrix.translate(width() / -2.f, height() / -2.f);
-        matrix.translate(movePos.x(), movePos.y());
-        matrix = matrix.inverted();
-        QPointF point = event->position();
-        QPointF mapped = matrix.map(point) - fittedRect().topLeft();
-        pickPosition = {qRound(mapped.x() - 0.5f), qRound(mapped.y() - 0.5f)};
+        QRectF fitRect = fittedRect();
+        QPointF pos = current;
+        pos -= {width() / 2.f, height() / 2.f};
+        pos /= zoom;
+        pos -= {width() / -2.f, height() / -2.f};
+        pos -= movePos;
+        pos -= fitRect.topLeft();
+        pos = QPointF(pos.x() / fitRect.width() * image.width(),
+                      pos.y() / fitRect.height() * image.height());
+        pickPosition = {qFloor(pos.x()), qFloor(pos.y())};
+
         update();
     }
 
@@ -178,6 +184,18 @@ void ImageViewer::clampMovePos() {
 }
 
 void ImageViewer::mousePressEvent(QMouseEvent *event) {
+
+    if (isPicking && (event->button() == Qt::LeftButton ||
+                      event->button() == Qt::RightButton)) {
+        isPicking = false;
+        update();
+        updateCursor();
+        if (event->button() == Qt::LeftButton) {
+            emit pixelPicked(pickId, pickPosition);
+        }
+        return;
+    }
+
     if (event->button() == Qt::LeftButton ||
         event->button() == Qt::MiddleButton) {
         if (!dragging && zoom != 1) {
@@ -229,8 +247,9 @@ void ImageViewer::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
 }
 
-void ImageViewer::beginPicking(const QString &infoText) {
+void ImageViewer::beginPicking(const QString &id, const QString &infoText) {
     isPicking = true;
+    pickId = id;
     pickText = infoText;
     updateCursor();
     update();

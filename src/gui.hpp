@@ -114,6 +114,7 @@ class TestWindow : public QMainWindow {
     void updateOption(const std::string &optionId, Variant variant);
     void updateError(const QString &error);
     bool addOptionFromLua(lua_State *L);
+    void pixelPicked(QString id, QPoint position);
 
     ~TestWindow() {
         delete video;
