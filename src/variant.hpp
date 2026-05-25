@@ -31,7 +31,7 @@ std::variant for storing?
 */
 
 struct Color {
-    float r, g, b;
+    int r, g, b, a;
 };
 
 struct Vector2DInt {

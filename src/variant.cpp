@@ -42,7 +42,7 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
     case VariantTypeEnum::Double:
         return Variant(0.0);
     case VariantTypeEnum::Color:
-        return Variant((Color){0, 0, 0});
+        return Variant((Color){0, 0, 0, 255});
     case VariantTypeEnum::Vector2DInt:
         return Variant((Vector2DInt){0, 0});
     }
@@ -77,8 +77,22 @@ void Variant::pushLua(lua_State *L) const {
         lua_settable(L, -3);
         break;
     }
-    case VariantTypeEnum::Color: // TODO: implement
-        lua_pushnil(L);
+    case VariantTypeEnum::Color: {
+        Color value = get<Color>();
+        lua_newtable(L);
+        lua_pushstring(L, "r");
+        lua_pushnumber(L, value.r);
+        lua_settable(L, -3);
+        lua_pushstring(L, "g");
+        lua_pushnumber(L, value.g);
+        lua_settable(L, -3);
+        lua_pushstring(L, "b");
+        lua_pushnumber(L, value.b);
+        lua_settable(L, -3);
+        lua_pushstring(L, "a");
+        lua_pushnumber(L, value.a);
+        lua_settable(L, -3);
         break;
+    }
     };
 }

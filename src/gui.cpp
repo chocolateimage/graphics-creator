@@ -6,6 +6,7 @@
 #include "variant.hpp"
 #include <KActionCollection>
 #include <KActionMenu>
+#include <KColorButton>
 #include <KIconTheme>
 #include <KMessageWidget>
 #include <KStyleManager>
@@ -198,6 +199,10 @@ void TestWindow::loadLate() {
             id = "testPoint",
             type = "vector2dint",
             label = "Text position",
+        },
+        {
+            id = "borderColor",
+            type = "color",
         },
     }
 end
@@ -467,6 +472,7 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
         inputY->setValue(value.y);
 
         auto pickButton = new QToolButton(optionsWidget);
+        pickButton->setToolTip("Pick position from preview");
         pickButton->setIcon(QIcon::fromTheme("select"));
 
         layout->addWidget(inputX);
@@ -489,6 +495,19 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
                         QString::fromStdString(optionId),
                         "Pick \"" + optionLabel + "\"");
                 });
+    } else if (optionType == VariantTypeEnum::Color) {
+        auto colorButton = new KColorButton(optionsWidget);
+        colorButton->setAlphaChannelEnabled(true);
+        auto value = variant.get<Color>();
+        colorButton->setColor(QColor(value.r, value.g, value.b, value.a));
+        connect(colorButton, &KColorButton::changed, this,
+                [this, optionId](const QColor &newColor) {
+                    updateOption(
+                        optionId,
+                        Variant((Color){newColor.red(), newColor.green(),
+                                        newColor.blue(), newColor.alpha()}));
+                });
+        widget = colorButton;
     }
 
     if (!widget) {
