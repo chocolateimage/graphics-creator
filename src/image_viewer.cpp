@@ -32,23 +32,21 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     painter.translate(movePos);
 
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(255, 255, 255));
-    painter.drawRect(fitRect);
+
     constexpr int checkerboardSize = 8;
-    for (qreal y = 0; y < fitRect.height(); y += checkerboardSize) {
-        for (qreal x = 0; x < fitRect.width(); x += checkerboardSize) {
-            int x2 = x / checkerboardSize;
-            int y2 = y / checkerboardSize;
-            bool isChecked = (x2 + y2) % 2 == 0;
-            if (isChecked) {
-                painter.setBrush(QColor(200, 200, 200));
-                painter.drawRect(
-                    x + fitRect.x(), y + fitRect.y(),
-                    std::min(x + checkerboardSize, fitRect.width()) - x,
-                    std::min(y + checkerboardSize, fitRect.height()) - y);
-            }
-        }
-    }
+    QPixmap checkerboardPattern(checkerboardSize * 2, checkerboardSize * 2);
+    QPainter checkerboardPainter(&checkerboardPattern);
+    checkerboardPainter.fillRect(0, 0, checkerboardSize, checkerboardSize,
+                                 QColor(200, 200, 200));
+    checkerboardPainter.fillRect(checkerboardSize, checkerboardSize,
+                                 checkerboardSize, checkerboardSize,
+                                 QColor(200, 200, 200));
+    checkerboardPainter.fillRect(0, checkerboardSize, checkerboardSize,
+                                 checkerboardSize, Qt::white);
+    checkerboardPainter.fillRect(checkerboardSize, 0, checkerboardSize,
+                                 checkerboardSize, Qt::white);
+    checkerboardPainter.end();
+    painter.fillRect(fitRect, QBrush(checkerboardPattern));
 
     // TODO: scale image using the pixmap scale maybe?
     painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, smooth);
