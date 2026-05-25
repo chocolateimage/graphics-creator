@@ -48,7 +48,6 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     checkerboardPainter.end();
     painter.fillRect(fitRect, QBrush(checkerboardPattern));
 
-    // TODO: scale image using the pixmap scale maybe?
     painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, smooth);
     painter.setRenderHint(QPainter::RenderHint::Antialiasing, smooth);
     painter.drawImage(fittedRect(), image);

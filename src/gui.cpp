@@ -80,16 +80,16 @@ void FramePreviewThread::run() {
     }
 }
 
-TestWindow::TestWindow() : QMainWindow() {
+MainWindow::MainWindow() : QMainWindow() {
     QElapsedTimer measure;
     measure.start();
     this->setCursor(Qt::WaitCursor);
     this->resize(1200, 600);
-    QTimer::singleShot(4, this, &TestWindow::loadLate);
+    QTimer::singleShot(4, this, &MainWindow::loadLate);
     qDebug() << "init took" << measure.elapsed() << "ms";
 }
 
-void TestWindow::loadLate() {
+void MainWindow::loadLate() {
     QElapsedTimer measure;
     measure.start();
 
@@ -120,17 +120,17 @@ void TestWindow::loadLate() {
 
     videoControlButton = new QToolButton(this);
     connect(videoControlButton, &QToolButton::clicked, this,
-            &TestWindow::toggleTimer);
+            &MainWindow::toggleTimer);
 
     loopButton = new QToolButton(this);
     loopButton->setCheckable(true);
     loopButton->setChecked(true);
     connect(loopButton, &QToolButton::toggled, this,
-            &TestWindow::updateButtons);
+            &MainWindow::updateButtons);
 
     previewWidget = new ImageViewer(this);
     connect(previewWidget, &ImageViewer::pixelPicked, this,
-            &TestWindow::pixelPicked);
+            &MainWindow::pixelPicked);
     previewWidget->setMinimumSize(10, 10);
     videoContentLayout->addWidget(previewWidget);
 
@@ -148,9 +148,9 @@ void TestWindow::loadLate() {
     durationInput->setMaximum(INFINITY);
     durationInput->setSuffix(" s");
     connect(timeInput, &QDoubleSpinBox::valueChanged, this,
-            &TestWindow::updateTimeInput);
+            &MainWindow::updateTimeInput);
     connect(durationInput, &QDoubleSpinBox::valueChanged, this,
-            &TestWindow::updateDurationInput);
+            &MainWindow::updateDurationInput);
     bottomLayout->addWidget(videoControlButton);
     bottomLayout->addWidget(new QLabel("Time:", this));
     bottomLayout->addWidget(timeInput);
@@ -236,7 +236,7 @@ end
     textView->setContextMenu(
         textView->defaultContextMenu()); // what else should I use??
     connect(textDocument, &KTextEditor::Document::textChanged, this,
-            &TestWindow::scriptUpdated);
+            &MainWindow::scriptUpdated);
     rightSideLayout->addWidget(textView, 1);
 
     errorMessage = new KMessageWidget(this);
@@ -253,7 +253,7 @@ end
     timer->setInterval(
         std::chrono::microseconds((int)((1000.f * 1000.f) / video->frameRate)));
     timer->setTimerType(Qt::PreciseTimer);
-    connect(timer, &QChronoTimer::timeout, this, &TestWindow::generate);
+    connect(timer, &QChronoTimer::timeout, this, &MainWindow::generate);
 
     durationInput->setValue(video->duration);
     updateButtons();
@@ -269,17 +269,17 @@ end
     qDebug() << "late init took" << measure.elapsed() << "ms";
 }
 
-void TestWindow::updateTimeInput(double value) {
+void MainWindow::updateTimeInput(double value) {
     frameIndex = value * video->frameRate;
     updateStatus();
 }
 
-void TestWindow::updateDurationInput(double value) {
+void MainWindow::updateDurationInput(double value) {
     video->duration = value;
     timeInput->setMaximum(value);
 }
 
-void TestWindow::toggleTimer() {
+void MainWindow::toggleTimer() {
     if (timer->isActive()) {
         timer->stop();
     } else {
@@ -291,7 +291,7 @@ void TestWindow::toggleTimer() {
     updateButtons();
 }
 
-void TestWindow::updateButtons() {
+void MainWindow::updateButtons() {
     if (timer->isActive()) {
         videoControlButton->setIcon(QIcon::fromTheme("media-playback-pause"));
         videoControlButton->setToolTip("Pause");
@@ -309,7 +309,7 @@ void TestWindow::updateButtons() {
     }
 }
 
-bool TestWindow::addOptionFromLua(lua_State *L) {
+bool MainWindow::addOptionFromLua(lua_State *L) {
     if (!lua_isnumber(L, -2) || !lua_istable(L, -1)) {
         updateError("options: key must be number. value must be table");
         return false;
@@ -519,13 +519,13 @@ bool TestWindow::addOptionFromLua(lua_State *L) {
     return true;
 }
 
-void TestWindow::pixelPicked(QString id, QPoint position) {
+void MainWindow::pixelPicked(QString id, QPoint position) {
     updateOption(id.toStdString(),
                  Variant((Vector2DInt{position.x(), position.y()})));
     recreateOptions();
 }
 
-void TestWindow::updateOption(const std::string &optionId, Variant variant) {
+void MainWindow::updateOption(const std::string &optionId, Variant variant) {
     scriptOptionsMutex.lock();
     scriptOptions.erase(optionId);
     scriptOptions.emplace(optionId, std::move(variant));
@@ -533,7 +533,7 @@ void TestWindow::updateOption(const std::string &optionId, Variant variant) {
     optionsUpdated();
 }
 
-void TestWindow::recreateOptions() {
+void MainWindow::recreateOptions() {
     while (optionsLayout->rowCount() > 0) {
         optionsLayout->removeRow(0);
     }
@@ -570,7 +570,7 @@ void TestWindow::recreateOptions() {
     scriptOptionsMutex.unlock();
 }
 
-void TestWindow::scriptUpdated() {
+void MainWindow::scriptUpdated() {
     updateError("");
 
     latestLuaMutex.lock();
@@ -586,13 +586,13 @@ void TestWindow::scriptUpdated() {
     }
 }
 
-void TestWindow::optionsUpdated() {
+void MainWindow::optionsUpdated() {
     for (auto thread : threads) {
         thread->optionsDirty = true;
     }
 }
 
-void TestWindow::updateError(const QString &error) {
+void MainWindow::updateError(const QString &error) {
     if (error == lastSetError)
         return;
     lastSetError = error;
@@ -604,7 +604,7 @@ void TestWindow::updateError(const QString &error) {
     }
 }
 
-AVFrame *TestWindow::allocateFrame() {
+AVFrame *MainWindow::allocateFrame() {
     AVFrame *frame = video->allocateFrame();
     frame->format = AV_PIX_FMT_BGRA;
     av_frame_get_buffer(frame, 0);
@@ -613,14 +613,14 @@ AVFrame *TestWindow::allocateFrame() {
     return frame;
 }
 
-void TestWindow::createThread() {
+void MainWindow::createThread() {
     QPointer<FramePreviewThread> thread = new FramePreviewThread(this);
     thread->window = this;
 
     threads.append(thread);
     thread->start();
 
-    connect(thread, &FramePreviewThread::taskDone, this, &TestWindow::taskDone);
+    connect(thread, &FramePreviewThread::taskDone, this, &MainWindow::taskDone);
     connect(thread, &FramePreviewThread::errored, this,
             [this](QString error) { updateError(error); });
 
@@ -638,7 +638,7 @@ void TestWindow::createThread() {
     });
 }
 
-void TestWindow::generate() {
+void MainWindow::generate() {
     if (isClosing) {
         qInfo() << "Can't generate frame because is closing";
         return;
@@ -661,8 +661,7 @@ void TestWindow::generate() {
         }
     }
     tooSlow = false;
-    // qInfo() << "Generating";
-    PreviewFrame *frame = new PreviewFrame(); // TODO: leak!!!
+    PreviewFrame *frame = new PreviewFrame();
     frame->frame = allocateFrame();
     frame->frame->pts = atEnd ? frameIndex : frameIndex++;
     timeInput->blockSignals(true);
@@ -697,7 +696,7 @@ void TestWindow::generate() {
     updateStatus();
 }
 
-void TestWindow::taskDone(FramePreviewTask task) {
+void MainWindow::taskDone(FramePreviewTask task) {
     if (isClosing)
         return;
     PreviewFrame *frame = task.frame;
@@ -713,7 +712,6 @@ void TestWindow::taskDone(FramePreviewTask task) {
     av_frame_free(&frame->frame);
     delete task.frame;
     isGenerating = false;
-    // qInfo() << "Generated whole frame";
 
     updateStatus();
     if (tooSlow) {
@@ -722,7 +720,7 @@ void TestWindow::taskDone(FramePreviewTask task) {
     }
 }
 
-void TestWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *event) {
     if (forceClosing)
         return;
     if (isClosing) {
@@ -743,7 +741,7 @@ void TestWindow::closeEvent(QCloseEvent *event) {
     closingDialog->setValue(1);
 }
 
-void TestWindow::updateStatus() {
+void MainWindow::updateStatus() {
     if (isClosing)
         return;
     taskMutex.lock();
@@ -766,7 +764,7 @@ int main(int argc, char **argv) {
     QApplication application(argc, argv);
     qInfo() << "pid:" << application.applicationPid();
     KStyleManager::initStyle();
-    TestWindow widget;
+    MainWindow widget;
     widget.show();
     return application.exec();
 }

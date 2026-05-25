@@ -23,7 +23,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-class TestWindow;
+class MainWindow;
 
 class PreviewFrame {
   public:
@@ -45,7 +45,7 @@ class FramePreviewThread : public QThread {
     Q_OBJECT
   public:
     explicit FramePreviewThread(QObject *parent = nullptr) : QThread(parent) {}
-    TestWindow *window{nullptr};
+    MainWindow *window{nullptr};
     std::atomic<bool> luaDirty{false};
     std::atomic<bool> optionsDirty{false};
 
@@ -56,8 +56,7 @@ class FramePreviewThread : public QThread {
     void errored(QString error);
 };
 
-// TODO: not TestWindow
-class TestWindow : public QMainWindow {
+class MainWindow : public QMainWindow {
   public:
     int frameIndex = 0;
     ImageViewer *previewWidget;
@@ -96,7 +95,7 @@ class TestWindow : public QMainWindow {
     QMutex scriptOptionsMutex;
     std::map<std::string, Variant> scriptOptions;
 
-    TestWindow();
+    MainWindow();
     void loadLate();
 
     void updateButtons();
@@ -117,7 +116,7 @@ class TestWindow : public QMainWindow {
     bool addOptionFromLua(lua_State *L);
     void pixelPicked(QString id, QPoint position);
 
-    ~TestWindow() {
+    ~MainWindow() {
         delete video;
         qDebug() << "close took" << closeTimer.elapsed() << "ms";
     }
