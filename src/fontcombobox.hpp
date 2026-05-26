@@ -29,16 +29,21 @@ struct FontPopupStyle {
     int index;
     int weight;
     int slant;
+    std::string path;
 };
 
-struct FontPopupGroup {
-    std::string path;
+class FontPopupGroup {
+  public:
     std::string family;
     std::vector<FontPopupStyle> styles;
+
+    FontPopupStyle &getDefaultStyle();
 };
 
 class FontPopupFontWidget : public QPushButton {
     Q_OBJECT
   public:
-    explicit FontPopupFontWidget(QWidget *parent = nullptr);
+    explicit FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
+                                 QWidget *parent = nullptr);
+    std::shared_ptr<FontPopupGroup> group;
 };

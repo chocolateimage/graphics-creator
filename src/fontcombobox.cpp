@@ -3,6 +3,12 @@
 #include <QLineEdit>
 #include <QPainter>
 #include <fontconfig/fontconfig.h>
+#include <freetype/ftglyph.h>
+#include <ft2build.h>
+#include <string>
+#include FT_FREETYPE_H
+#include <hb-ft.h>
+#include <hb.h>
 
 FontComboBox::FontComboBox(QWidget *parent) : QComboBox(parent) {
     addItems({"Hello", "World"});
@@ -42,7 +48,6 @@ void FontComboBox::showPopup() {
             if (it == fontGroups.end()) {
                 group = std::make_shared<FontPopupGroup>();
                 group->family = family;
-                group->path = fileName;
                 fontGroups.emplace(family, group);
             } else {
                 group = it->second;
@@ -52,6 +57,7 @@ void FontComboBox::showPopup() {
             fontStyle.index = fontIndex;
             fontStyle.weight = weight;
             fontStyle.slant = slant;
+            fontStyle.path = fileName;
             group->styles.push_back(fontStyle);
         }
         FcFontSetDestroy(fontSet);
@@ -62,7 +68,8 @@ void FontComboBox::showPopup() {
         for (auto group : fontGroups) {
             std::sort(group.second->styles.begin(), group.second->styles.end(),
                       [](const FontPopupStyle &a, const FontPopupStyle &b) {
-                          return (a.weight + a.slant) < (b.weight + b.slant);
+                          return (a.weight * 10 + a.slant) <
+                                 (b.weight * 10 + b.slant);
                       });
             fontGroupsList.push_back(group.second);
         }
@@ -105,13 +112,7 @@ void FontComboBox::showPopup() {
         lay->setContentsMargins(0, 0, 0, 0);
         lay->setSpacing(0);
         for (auto group : fontGroupsList) {
-            auto button = new FontPopupFontWidget(content);
-            new QVBoxLayout(button);
-            button->setFlat(true);
-            auto buttonText =
-                new QLabel(QString::fromStdString(group->family), button);
-            button->layout()->addWidget(buttonText);
-            buttonText->setAlignment(Qt::AlignLeft);
+            auto button = new FontPopupFontWidget(group, content);
             lay->addWidget(button);
         }
 
@@ -133,5 +134,148 @@ void FontComboBox::hidePopup() {
     }
 }
 
-FontPopupFontWidget::FontPopupFontWidget(QWidget *parent)
-    : QPushButton(parent) {};
+FontPopupStyle &FontPopupGroup::getDefaultStyle() {
+    for (auto &style : styles) {
+        if (style.weight == FC_WEIGHT_REGULAR &&
+            style.slant == FC_SLANT_ROMAN) {
+            return style;
+        }
+    }
+    return styles[0];
+}
+
+FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
+                                         QWidget *parent)
+    : QPushButton(parent), group(group) {
+    auto lay = new QVBoxLayout(this);
+    setFlat(true);
+    auto buttonText = new QLabel(this);
+    FT_Library ftLibrary;
+
+    FT_Init_FreeType(&ftLibrary);
+
+    FT_Face ftFace;
+
+    FontPopupStyle &style = group->getDefaultStyle();
+
+    FT_New_Face(ftLibrary, style.path.c_str(), style.index, &ftFace);
+
+    FT_Set_Pixel_Sizes(ftFace, 0, 24);
+
+    hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
+
+    hb_buffer_t *hbBuffer = hb_buffer_create();
+    hb_buffer_add_utf8(hbBuffer, group->family.c_str(), -1, 0, -1);
+    hb_buffer_guess_segment_properties(hbBuffer);
+    hb_shape(hbFont, hbBuffer, nullptr, 0);
+
+    // TODO: lazy load
+
+    //
+
+    uint32_t glyphCount;
+    hb_glyph_info_t *glyphInfo =
+        hb_buffer_get_glyph_infos(hbBuffer, &glyphCount);
+    hb_glyph_position_t *glyphPositions =
+        hb_buffer_get_glyph_positions(hbBuffer, &glyphCount);
+
+    std::unordered_map<hb_codepoint_t, FT_BitmapGlyph> glyphs;
+
+    int minX = INT_MAX;
+    int minY = INT_MAX;
+    int maxX = INT_MIN;
+    int maxY = INT_MIN;
+    int penX = 0;
+    int penY = 0;
+    unsigned int textImageWidth;
+    unsigned int textImageHeight;
+
+    for (uint32_t i = 0; i < glyphCount; i++) {
+        auto codepoint = glyphInfo[i].codepoint;
+        auto it = glyphs.find(codepoint);
+        FT_BitmapGlyph glyph;
+        if (it == glyphs.end()) {
+            FT_Glyph _glyph;
+            FT_Load_Glyph(ftFace, codepoint,
+                          FT_LOAD_RENDER | FT_LOAD_TARGET_LCD);
+            FT_Get_Glyph(ftFace->glyph, &_glyph);
+
+            glyph = (FT_BitmapGlyph)_glyph;
+            glyphs[codepoint] = glyph;
+        } else {
+            glyph = it->second;
+        }
+
+        auto glyphPos = glyphPositions[i];
+        int xOffset = glyphPos.x_offset >> 6;
+        int yOffset = glyphPos.y_offset >> 6;
+        int xAdvance = glyphPos.x_advance >> 6;
+        int yAdvance = glyphPos.y_advance >> 6;
+
+        int drawX = (penX + xOffset + glyph->left);
+        int drawY = (penY + yOffset - glyph->top);
+
+        minX = std::min(minX, drawX);
+        minY = std::min(minY, drawY);
+        maxX = std::max(maxX, (int)glyph->bitmap.width + drawX);
+        maxY = std::max(maxY, (int)glyph->bitmap.rows + drawY);
+
+        penX += xAdvance;
+        penY += yAdvance;
+    }
+
+    textImageWidth = maxX - minX;
+    textImageHeight = maxY - minY;
+
+    uint8_t *textImage = new uint8_t[textImageWidth * textImageHeight * 4];
+    memset(textImage, 0, textImageWidth * textImageHeight * 4);
+
+    penX = 0;
+    penY = 0;
+    for (uint32_t i = 0; i < glyphCount; i++) {
+        auto glyphPos = glyphPositions[i];
+        auto codepoint = glyphInfo[i].codepoint;
+        int xOffset = glyphPos.x_offset >> 6;
+        int yOffset = glyphPos.y_offset >> 6;
+        int xAdvance = glyphPos.x_advance >> 6;
+        int yAdvance = glyphPos.y_advance >> 6;
+        auto glyph = glyphs[glyphInfo[i].codepoint];
+
+        int drawX = (penX + xOffset + glyph->left) - minX;
+        int drawY = (penY + yOffset - glyph->top) - minY;
+
+        for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
+            for (unsigned int x = 0; x < glyph->bitmap.width / 3; x++) {
+                int targetX = drawX + x;
+                int targetY = drawY + y;
+                int targetIndex = (targetY * textImageWidth * 4 + targetX * 4);
+                textImage[targetIndex + 3] = 255;
+                for (int subPixel = 0; subPixel < 3; subPixel++) {
+                    int index = targetIndex + subPixel;
+                    textImage[index] = std::max(
+                        textImage[index],
+                        glyph->bitmap.buffer[(y * glyph->bitmap.pitch +
+                                              (x * 3) + (2 - subPixel))]);
+                }
+            }
+        }
+
+        penX += xAdvance;
+        penY += yAdvance;
+    }
+
+    //
+
+    hb_buffer_destroy(hbBuffer);
+
+    hb_font_destroy(hbFont);
+    FT_Done_Face(ftFace);
+    FT_Done_FreeType(ftLibrary);
+
+    QImage img(textImage, textImageWidth, textImageHeight, textImageWidth * 4,
+               QImage::Format::Format_RGB32);
+    buttonText->setPixmap(QPixmap::fromImage(img.copy()));
+
+    lay->addWidget(buttonText);
+    buttonText->setAlignment(Qt::AlignLeft);
+};
