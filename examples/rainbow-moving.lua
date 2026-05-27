@@ -20,15 +20,26 @@ function options()
             id = "borderColor",
             type = "color",
         },
+        {
+            id = "animationDuration",
+            type = "double",
+        },
+        {
+            id = "rainbowSpeed",
+            type = "double",
+        },
     }
 end
 
 function draw(_frame)
     local full = text
-    local t = createText(string.sub(full, 0, seconds * #full), 3)
+    local t = createText(full, 3)
     local ts = fontSize
     local minX, minY, maxX, maxY, tw, th = getTextInfo(t, ts)
     local frame = ffi.cast("uint32_t*", _frame)
+    local time = easeOutExpo(saturate(seconds / animationDuration))
+    local thisPosX = mix(-tw, textPos.x, time)
+    local thisPosY = mix(textPos.y, textPos.y, time)
     
     for y = fromY, toY do
         for x = fromX, toX do
@@ -36,12 +47,12 @@ function draw(_frame)
             local green = 255
             local blue = 255
             local alpha = 0
-            local textX = x - textPos.x - minX
-            local textY = y - textPos.y - minY
+            local textX = x - thisPosX - minX
+            local textY = y - thisPosY - minY
             local pixel = getPixel(t, ts, textX, textY)
             local innerValue = smoothstep(-0.05, 0.05, pixel)
 
-            local hr,hg,hb = hsvToRgb(((textX / tw) - seconds) * 360, 1, 1)
+            local hr,hg,hb = hsvToRgb(((textX / tw) - (seconds * rainbowSpeed)) * 360, 1, 1)
             red = mix(red, hr, innerValue)
             green = mix(green, hg, innerValue)
             blue = mix(blue, hb, innerValue)
