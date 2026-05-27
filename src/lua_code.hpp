@@ -296,4 +296,37 @@ end
 function isInRect(x, y, rectX, rectY, rectW, rectH)
     return x >= rectX and y >= rectY and x < rectX + rectW and y < rectY + rectH
 end
+
+function hsvToRgb(h,s,v)
+    h = h % 360
+
+    local c = v * s
+    local x = c * (1 - math.abs((h / 60) % 2 - 1))
+    local m = v - c
+
+    local r = 0
+    local g = 0
+    local b = 0
+    if h < 60 then
+        r = c
+        g = x
+    elseif h < 120 then
+        r = x
+        g = c
+    elseif h < 180 then
+        g = c
+        b = x
+    elseif h < 240 then
+        g = x
+        b = c
+    elseif h < 300 then
+        r = x
+        b = c
+    else
+        r = c
+        b = x
+    end
+
+    return (r+m)*255, (g+m)*255, (b+m)*255
+end
 )";

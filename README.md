@@ -44,6 +44,7 @@ Available functions:
 - `round(x)`: Rounds down and up to the nearest integer.
 - `wave(x)`: Sine wave but instead of -1 to 1, it goes from 0 to 1. When x is 0, it's the start of the wave. When x is 0.5, it's the peak of the wave, and when x is 1 it's back to the start of the wave.
 - `isInRect(x, y, rectX, rectY, rectW, rectH)`: Returns `true`/`false` when the coords are in the rectangle or not.
+- `hsvToRgb(hue, saturation, value)`: Hue is from 0 to 360. Saturation and value are from 0 to 1.
 - all `math.` functions are in global scope (`math.sin()` can be used just with `sin()`)
 - easing functions from [easings.net](https://easings.net). call it like `easeOutSine(x)`
 
