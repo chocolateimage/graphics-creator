@@ -7,6 +7,7 @@
 #include <ft2build.h>
 #include <string>
 #include FT_FREETYPE_H
+#include <QFontDatabase>
 #include <hb-ft.h>
 #include <hb.h>
 
@@ -116,6 +117,8 @@ void FontComboBox::showPopup() {
             lay->addWidget(button);
         }
 
+        lay->addStretch();
+
         lay1->addWidget(scroll);
     }
 
@@ -149,8 +152,13 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     : QPushButton(parent), group(group) {
     auto lay = new QVBoxLayout(this);
     setFlat(true);
+    auto familyText = new QLabel(this);
+    familyText->setEnabled(false);
+    lay->addWidget(familyText);
     auto buttonText = new QLabel(this);
     FT_Library ftLibrary;
+
+    setToolTip(QString::fromStdString(group->family));
 
     FT_Init_FreeType(&ftLibrary);
 
@@ -165,7 +173,36 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
 
     hb_buffer_t *hbBuffer = hb_buffer_create();
-    hb_buffer_add_utf8(hbBuffer, group->family.c_str(), -1, 0, -1);
+    QString text = QString::fromStdString(group->family);
+
+    auto systems =
+        QFontDatabase::writingSystems(QString::fromStdString(group->family));
+
+    familyText->setText(text);
+
+    while (FT_Get_Char_Index(ftFace, text.toStdU32String()[0]) == 0 &&
+           !systems.isEmpty()) {
+        auto sample = QFontDatabase::writingSystemSample(systems.takeFirst());
+        if (!sample.isEmpty()) {
+            text = sample;
+        }
+    }
+
+    if (FT_Get_Char_Index(ftFace, text.toStdU32String()[0]) == 0) {
+        std::u32string u32;
+        FT_UInt index;
+        FT_ULong character = FT_Get_First_Char(ftFace, &index);
+        while (u32.size() < 32) {
+            character = FT_Get_Next_Char(ftFace, character, &index);
+            if (!index)
+                break;
+            u32 = U" " + u32;
+            u32[0] = character;
+        }
+        text = QString::fromStdU32String(u32);
+    }
+
+    hb_buffer_add_utf8(hbBuffer, qPrintable(text), -1, 0, -1);
     hb_buffer_guess_segment_properties(hbBuffer);
     hb_shape(hbFont, hbBuffer, nullptr, 0);
 
@@ -249,13 +286,14 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
                 int targetX = drawX + x;
                 int targetY = drawY + y;
                 int targetIndex = (targetY * textImageWidth * 4 + targetX * 4);
-                textImage[targetIndex + 3] = 255;
                 for (int subPixel = 0; subPixel < 3; subPixel++) {
                     int index = targetIndex + subPixel;
-                    textImage[index] = std::max(
-                        textImage[index],
-                        glyph->bitmap.buffer[(y * glyph->bitmap.pitch +
-                                              (x * 3) + (2 - subPixel))]);
+                    // TODO: light mode (dark letters)
+                    uint8_t value = glyph->bitmap.buffer[(
+                        y * glyph->bitmap.pitch + (x * 3) + (2 - subPixel))];
+                    textImage[targetIndex + 3] =
+                        std::max(textImage[targetIndex + 3], value);
+                    textImage[index] = std::max(textImage[index], value);
                 }
             }
         }
@@ -273,8 +311,9 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     FT_Done_FreeType(ftLibrary);
 
     QImage img(textImage, textImageWidth, textImageHeight, textImageWidth * 4,
-               QImage::Format::Format_RGB32);
+               QImage::Format::Format_ARGB32_Premultiplied);
     buttonText->setPixmap(QPixmap::fromImage(img.copy()));
+    setSizePolicy(QSizePolicy::Policy::Ignored, QSizePolicy::Policy::Fixed);
 
     lay->addWidget(buttonText);
     buttonText->setAlignment(Qt::AlignLeft);

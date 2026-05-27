@@ -46,4 +46,7 @@ class FontPopupFontWidget : public QPushButton {
     explicit FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
                                  QWidget *parent = nullptr);
     std::shared_ptr<FontPopupGroup> group;
+
+    QSize sizeHint() const override { return QWidget::sizeHint(); }
+    QSize minimumSizeHint() const override { return QWidget::minimumSize(); }
 };
