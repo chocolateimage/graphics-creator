@@ -222,9 +222,9 @@ function draw(_frame)
             local alpha = 255
 
             -- put your draw code here!
-            
+
             local dist = distance(x, y, testPoint.x, testPoint.y)
-            
+
             red = (1 - saturate(dist / 100)) * 255
 
             frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)

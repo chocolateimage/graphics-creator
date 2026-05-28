@@ -1,4 +1,5 @@
 #include "fontcombobox.hpp"
+#include "math.hpp"
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
@@ -8,6 +9,7 @@
 #include <string>
 #include FT_FREETYPE_H
 #include <QFontDatabase>
+#include <QTimer>
 #include <hb-ft.h>
 #include <hb.h>
 
@@ -150,15 +152,32 @@ FontPopupStyle &FontPopupGroup::getDefaultStyle() {
 FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
                                          QWidget *parent)
     : QPushButton(parent), group(group) {
+
     auto lay = new QVBoxLayout(this);
     setFlat(true);
+
     auto familyText = new QLabel(this);
     familyText->setEnabled(false);
     lay->addWidget(familyText);
-    auto buttonText = new QLabel(this);
-    FT_Library ftLibrary;
 
-    setToolTip(QString::fromStdString(group->family));
+    QString family = QString::fromStdString(group->family);
+    setToolTip(family);
+    familyText->setText(family);
+
+    buttonText = new QLabel(this);
+    buttonText->setScaledContents(true);
+    setSizePolicy(QSizePolicy::Policy::Ignored, QSizePolicy::Policy::Fixed);
+
+    lay->addWidget(buttonText);
+    buttonText->setAlignment(Qt::AlignLeft);
+
+    // TODO: actual lazy load. also this could probably crash really easily
+    QTimer::singleShot(rand() % 50 + 10, this,
+                       &FontPopupFontWidget::createInside);
+}
+
+void FontPopupFontWidget::createInside() {
+    FT_Library ftLibrary;
 
     FT_Init_FreeType(&ftLibrary);
 
@@ -168,7 +187,9 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
 
     FT_New_Face(ftLibrary, style.path.c_str(), style.index, &ftFace);
 
-    FT_Set_Pixel_Sizes(ftFace, 0, 24);
+    float scale = devicePixelRatio();
+
+    FT_Set_Pixel_Sizes(ftFace, 0, 24 * scale);
 
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
 
@@ -177,8 +198,6 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
 
     auto systems =
         QFontDatabase::writingSystems(QString::fromStdString(group->family));
-
-    familyText->setText(text);
 
     while (FT_Get_Char_Index(ftFace, text.toStdU32String()[0]) == 0 &&
            !systems.isEmpty()) {
@@ -205,8 +224,6 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     hb_buffer_add_utf8(hbBuffer, qPrintable(text), -1, 0, -1);
     hb_buffer_guess_segment_properties(hbBuffer);
     hb_shape(hbFont, hbBuffer, nullptr, 0);
-
-    // TODO: lazy load
 
     //
 
@@ -267,6 +284,10 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     uint8_t *textImage = new uint8_t[textImageWidth * textImageHeight * 4];
     memset(textImage, 0, textImageWidth * textImageHeight * 4);
 
+    QColor textColor = palette().text().color();
+    int textColorParts[] = {textColor.blue(), textColor.green(),
+                            textColor.red()};
+
     penX = 0;
     penY = 0;
     for (uint32_t i = 0; i < glyphCount; i++) {
@@ -288,12 +309,13 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
                 int targetIndex = (targetY * textImageWidth * 4 + targetX * 4);
                 for (int subPixel = 0; subPixel < 3; subPixel++) {
                     int index = targetIndex + subPixel;
-                    // TODO: light mode (dark letters)
+
                     uint8_t value = glyph->bitmap.buffer[(
                         y * glyph->bitmap.pitch + (x * 3) + (2 - subPixel))];
                     textImage[targetIndex + 3] =
                         std::max(textImage[targetIndex + 3], value);
-                    textImage[index] = std::max(textImage[index], value);
+                    textImage[index] = mix(value / 255.f, textImage[index],
+                                           textColorParts[subPixel]);
                 }
             }
         }
@@ -313,8 +335,10 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     QImage img(textImage, textImageWidth, textImageHeight, textImageWidth * 4,
                QImage::Format::Format_ARGB32_Premultiplied);
     buttonText->setPixmap(QPixmap::fromImage(img.copy()));
-    setSizePolicy(QSizePolicy::Policy::Ignored, QSizePolicy::Policy::Fixed);
-
-    lay->addWidget(buttonText);
-    buttonText->setAlignment(Qt::AlignLeft);
+    buttonText->setFixedSize(textImageWidth / scale, textImageHeight / scale);
 };
+
+bool FontPopupFontWidget::event(QEvent *e) {
+    // qInfo() << e->type();
+    return QPushButton::event(e);
+}

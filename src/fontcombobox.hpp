@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QComboBox>
+#include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
@@ -47,6 +48,12 @@ class FontPopupFontWidget : public QPushButton {
                                  QWidget *parent = nullptr);
     std::shared_ptr<FontPopupGroup> group;
 
+    void createInside();
+    QLabel *buttonText;
+
     QSize sizeHint() const override { return QWidget::sizeHint(); }
     QSize minimumSizeHint() const override { return QWidget::minimumSize(); }
+
+  protected:
+    bool event(QEvent *e) override;
 };
