@@ -1,6 +1,7 @@
 #include "fontcombobox.hpp"
 #include "math.hpp"
 #include <QEvent>
+#include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
@@ -20,6 +21,10 @@ FontComboBox::FontComboBox(QWidget *parent) : QComboBox(parent) {
 
 void FontComboBox::showPopup() {
     qInfo() << "show";
+
+    if (!ftLibrary) {
+        FT_Init_FreeType(&ftLibrary);
+    }
 
     if (!popupWindow) {
         // TODO: reload properly
@@ -62,6 +67,7 @@ void FontComboBox::showPopup() {
             fontStyle.weight = weight;
             fontStyle.slant = slant;
             fontStyle.path = fileName;
+            fontStyle.displayName = style;
             group->styles.push_back(fontStyle);
         }
         FcFontSetDestroy(fontSet);
@@ -116,7 +122,7 @@ void FontComboBox::showPopup() {
         lay->setContentsMargins(0, 0, 0, 0);
         lay->setSpacing(0);
         for (auto group : fontGroupsList) {
-            auto button = new FontPopupFontWidget(group, content);
+            auto button = new FontPopupFontWidget(ftLibrary, group, content);
             lay->addWidget(button);
         }
 
@@ -137,6 +143,7 @@ void FontComboBox::hidePopup() {
     if (popupWindow) {
         popupWindow->close();
         delete popupWindow;
+        popupWindow = nullptr;
     }
 }
 
@@ -150,9 +157,17 @@ FontPopupStyle &FontPopupGroup::getDefaultStyle() {
     return styles[0];
 }
 
-FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
+FontComboBox::~FontComboBox() {
+    if (ftLibrary) {
+        FT_Done_FreeType(ftLibrary);
+        ftLibrary = nullptr;
+    }
+}
+
+FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
+                                         std::shared_ptr<FontPopupGroup> group,
                                          QWidget *parent)
-    : QPushButton(parent), group(group) {
+    : QPushButton(parent), group(group), ftLibrary(ftLibrary) {
 
     auto lay = new QVBoxLayout(this);
     setFlat(true);
@@ -165,23 +180,61 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
     setToolTip(family);
     familyText->setText(family);
 
-    buttonText = new QLabel(this);
+    buttonText = new FontPopupFontPreview(ftLibrary, group,
+                                          group->getDefaultStyle(), this);
     buttonText->setScaledContents(true);
     setSizePolicy(QSizePolicy::Policy::Ignored, QSizePolicy::Policy::Fixed);
 
     lay->addWidget(buttonText);
     buttonText->setAlignment(Qt::AlignLeft);
+
+    lay->addSpacing(8);
+
+    styleGroupBox = new QGroupBox(this);
+    styleGroupBox->setContentsMargins(0, 0, 0, 0);
+    styleGroupBox->setTitle("Styles");
+    styleGroupBox->hide();
+
+    auto tabLayout = new QVBoxLayout(styleGroupBox);
+    tabLayout->setSpacing(0);
+    tabLayout->setContentsMargins(0, 0, 0, 0);
+
+    for (const auto &style : group->styles) {
+        auto btn = new QPushButton(styleGroupBox);
+        btn->setFlat(true);
+        auto btnLay = new QHBoxLayout(btn);
+        auto lbl = new QLabel(QString::fromStdString(style.displayName), btn);
+
+        btnLay->addWidget(lbl, 1);
+
+        QLabel *btnIcon = new QLabel(btn);
+        btnIcon->setPixmap(QIcon::fromTheme("arrow-right").pixmap(24, 24));
+        btnLay->addWidget(btnIcon);
+
+        tabLayout->addWidget(btn);
+    }
+
+    lay->addWidget(styleGroupBox);
+
+    connect(this, &QPushButton::clicked, this,
+            &FontPopupFontWidget::buttonClicked);
 }
 
-void FontPopupFontWidget::createInside() {
+void FontPopupFontWidget::buttonClicked() {
+    setFlat(false);
+    styleGroupBox->show();
+}
+
+FontPopupFontPreview::FontPopupFontPreview(
+    FT_Library ftLibrary, std::shared_ptr<FontPopupGroup> group,
+    FontPopupStyle &style, QWidget *parent)
+    : QLabel(parent), ftLibrary(ftLibrary), group(group), style(style) {}
+
+void FontPopupFontPreview::createInside() {
     if (created)
         return;
 
     created = true;
-
-    FT_Library ftLibrary;
-
-    FT_Init_FreeType(&ftLibrary);
 
     FT_Face ftFace;
 
@@ -332,19 +385,18 @@ void FontPopupFontWidget::createInside() {
 
     hb_font_destroy(hbFont);
     FT_Done_Face(ftFace);
-    FT_Done_FreeType(ftLibrary);
 
     QImage img(textImage, textImageWidth, textImageHeight, textImageWidth * 4,
                QImage::Format::Format_ARGB32_Premultiplied);
     QPixmap pixmap = QPixmap::fromImage(img.copy());
     pixmap.setDevicePixelRatio(scale);
-    buttonText->setPixmap(pixmap);
-    buttonText->setFixedSize(textImageWidth / scale, textImageHeight / scale);
+    setPixmap(pixmap);
+    setFixedSize(textImageWidth / scale, textImageHeight / scale);
 };
 
-bool FontPopupFontWidget::event(QEvent *e) {
+bool FontPopupFontPreview::event(QEvent *e) {
     if (e->type() == QEvent::Paint) {
         createInside();
     }
-    return QPushButton::event(e);
+    return QLabel::event(e);
 }

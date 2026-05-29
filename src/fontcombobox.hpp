@@ -1,10 +1,13 @@
 #pragma once
 
 #include <QComboBox>
+#include <QGroupBox>
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <freetype/freetype.h>
+#include <qtmetamacros.h>
 
 class FontComboBoxPopup;
 
@@ -12,12 +15,13 @@ class FontComboBox : public QComboBox {
     Q_OBJECT
   public:
     explicit FontComboBox(QWidget *parent = nullptr);
+    ~FontComboBox();
     void showPopup() override;
     void hidePopup() override;
 
     FontComboBoxPopup *popupWindow{nullptr};
 
-  protected:
+    FT_Library ftLibrary{nullptr};
 };
 
 class FontComboBoxPopup : public QFrame {
@@ -31,6 +35,7 @@ struct FontPopupStyle {
     int weight;
     int slant;
     std::string path;
+    std::string displayName;
 };
 
 class FontPopupGroup {
@@ -44,16 +49,36 @@ class FontPopupGroup {
 class FontPopupFontWidget : public QPushButton {
     Q_OBJECT
   public:
-    explicit FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
+    explicit FontPopupFontWidget(FT_Library ftLibrary,
+                                 std::shared_ptr<FontPopupGroup> group,
                                  QWidget *parent = nullptr);
     std::shared_ptr<FontPopupGroup> group;
 
-    bool created{false};
-    void createInside();
     QLabel *buttonText;
 
     QSize sizeHint() const override { return QWidget::sizeHint(); }
     QSize minimumSizeHint() const override { return QWidget::minimumSize(); }
+
+    void buttonClicked();
+    QGroupBox *styleGroupBox;
+
+    FT_Library ftLibrary;
+};
+
+class FontPopupFontPreview : public QLabel {
+    Q_OBJECT
+  public:
+    explicit FontPopupFontPreview(FT_Library ftLibrary,
+                                  std::shared_ptr<FontPopupGroup> group,
+                                  FontPopupStyle &style,
+                                  QWidget *parent = nullptr);
+
+    bool created{false};
+    void createInside();
+
+    FT_Library ftLibrary;
+    std::shared_ptr<FontPopupGroup> group;
+    FontPopupStyle &style;
 
   protected:
     bool event(QEvent *e) override;
