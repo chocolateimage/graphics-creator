@@ -56,9 +56,6 @@ class FontPopupFontWidget : public QPushButton {
 
     QLabel *buttonText;
 
-    QSize sizeHint() const override { return QWidget::sizeHint(); }
-    QSize minimumSizeHint() const override { return QWidget::minimumSize(); }
-
     void buttonClicked();
     QGroupBox *styleGroupBox;
 

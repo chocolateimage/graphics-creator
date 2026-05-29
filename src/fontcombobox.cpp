@@ -170,6 +170,7 @@ FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
     : QPushButton(parent), group(group), ftLibrary(ftLibrary) {
 
     auto lay = new QVBoxLayout(this);
+    lay->setSizeConstraint(QLayout::SetMinimumSize);
     setFlat(true);
 
     auto familyText = new QLabel(this);
@@ -182,11 +183,9 @@ FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
 
     buttonText = new FontPopupFontPreview(ftLibrary, group,
                                           group->getDefaultStyle(), this);
-    buttonText->setScaledContents(true);
     setSizePolicy(QSizePolicy::Policy::Ignored, QSizePolicy::Policy::Fixed);
 
     lay->addWidget(buttonText);
-    buttonText->setAlignment(Qt::AlignLeft);
 
     lay->addSpacing(8);
 
@@ -199,17 +198,17 @@ FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
     tabLayout->setSpacing(0);
     tabLayout->setContentsMargins(0, 0, 0, 0);
 
-    for (const auto &style : group->styles) {
+    for (auto &style : group->styles) {
         auto btn = new QPushButton(styleGroupBox);
         btn->setFlat(true);
-        auto btnLay = new QHBoxLayout(btn);
+        auto btnLay = new QVBoxLayout(btn);
+        btnLay->setSizeConstraint(QLayout::SetMinimumSize);
+
         auto lbl = new QLabel(QString::fromStdString(style.displayName), btn);
+        btnLay->addWidget(lbl);
 
-        btnLay->addWidget(lbl, 1);
-
-        QLabel *btnIcon = new QLabel(btn);
-        btnIcon->setPixmap(QIcon::fromTheme("arrow-right").pixmap(24, 24));
-        btnLay->addWidget(btnIcon);
+        auto preview = new FontPopupFontPreview(ftLibrary, group, style, btn);
+        btnLay->addWidget(preview);
 
         tabLayout->addWidget(btn);
     }
@@ -237,8 +236,6 @@ void FontPopupFontPreview::createInside() {
     created = true;
 
     FT_Face ftFace;
-
-    FontPopupStyle &style = group->getDefaultStyle();
 
     FT_New_Face(ftLibrary, style.path.c_str(), style.index, &ftFace);
 
@@ -392,6 +389,8 @@ void FontPopupFontPreview::createInside() {
     pixmap.setDevicePixelRatio(scale);
     setPixmap(pixmap);
     setFixedSize(textImageWidth / scale, textImageHeight / scale);
+    setScaledContents(true);
+    setAlignment(Qt::AlignLeft);
 };
 
 bool FontPopupFontPreview::event(QEvent *e) {
