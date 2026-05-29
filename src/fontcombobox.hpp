@@ -48,6 +48,7 @@ class FontPopupFontWidget : public QPushButton {
                                  QWidget *parent = nullptr);
     std::shared_ptr<FontPopupGroup> group;
 
+    bool created{false};
     void createInside();
     QLabel *buttonText;
 

@@ -1,5 +1,6 @@
 #include "fontcombobox.hpp"
 #include "math.hpp"
+#include <QEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
@@ -170,13 +171,14 @@ FontPopupFontWidget::FontPopupFontWidget(std::shared_ptr<FontPopupGroup> group,
 
     lay->addWidget(buttonText);
     buttonText->setAlignment(Qt::AlignLeft);
-
-    // TODO: actual lazy load. also this could probably crash really easily
-    QTimer::singleShot(rand() % 50 + 10, this,
-                       &FontPopupFontWidget::createInside);
 }
 
 void FontPopupFontWidget::createInside() {
+    if (created)
+        return;
+
+    created = true;
+
     FT_Library ftLibrary;
 
     FT_Init_FreeType(&ftLibrary);
@@ -334,11 +336,15 @@ void FontPopupFontWidget::createInside() {
 
     QImage img(textImage, textImageWidth, textImageHeight, textImageWidth * 4,
                QImage::Format::Format_ARGB32_Premultiplied);
-    buttonText->setPixmap(QPixmap::fromImage(img.copy()));
+    QPixmap pixmap = QPixmap::fromImage(img.copy());
+    pixmap.setDevicePixelRatio(scale);
+    buttonText->setPixmap(pixmap);
     buttonText->setFixedSize(textImageWidth / scale, textImageHeight / scale);
 };
 
 bool FontPopupFontWidget::event(QEvent *e) {
-    // qInfo() << e->type();
+    if (e->type() == QEvent::Paint) {
+        createInside();
+    }
     return QPushButton::event(e);
 }
