@@ -170,7 +170,6 @@ FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
     : QPushButton(parent), group(group), ftLibrary(ftLibrary) {
 
     auto lay = new QVBoxLayout(this);
-    lay->setSizeConstraint(QLayout::SetMinimumSize);
     setFlat(true);
 
     auto familyText = new QLabel(this);

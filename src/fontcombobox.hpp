@@ -60,6 +60,9 @@ class FontPopupFontWidget : public QPushButton {
     QGroupBox *styleGroupBox;
 
     FT_Library ftLibrary;
+
+    QSize sizeHint() const override { return QWidget::sizeHint(); }
+    QSize minimumSizeHint() const override { return QWidget::minimumSize(); }
 };
 
 class FontPopupFontPreview : public QLabel {
