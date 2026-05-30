@@ -120,7 +120,12 @@ int TextClass_getPixel(lua_State *L) {
         return 0;
     }
 
-    Text *text = *((Text **)luaL_checkudata(L, 1, "TextClass"));
+    if (!lua_isuserdata(L, 1)) {
+        luaL_error(L, "getPixel(): invalid textInstance");
+        return 0;
+    }
+
+    Text *text = *((Text **)lua_touserdata(L, 1));
     float fontSize = lua_tonumber(L, 2);
     float x = lua_tonumber(L, 3);
     float y = lua_tonumber(L, 4);
@@ -253,21 +258,21 @@ float Text::getSmoothPixel(float fontSize, float x, float y) {
     float adjust = fontSize / fontInfo->pixelHeight;
     float targetX = x / adjust;
     float targetY = y / adjust;
-    int leftX = std::floor(targetX);
+    int leftX = (int)targetX;
     int rightX = leftX + 1;
-    int topY = std::floor(targetY);
+    int topY = (int)targetY;
     int bottomY = topY + 1;
-    float topLeft = (float)getPixel(leftX, topY) / 255 - 0.5;
-    float topRight = (float)getPixel(rightX, topY) / 255 - 0.5;
-    float bottomLeft = (float)getPixel(leftX, bottomY) / 255 - 0.5;
-    float bottomRight = (float)getPixel(rightX, bottomY) / 255 - 0.5;
+    float topLeft = (float)getPixel(leftX, topY);
+    float topRight = (float)getPixel(rightX, topY);
+    float bottomLeft = (float)getPixel(leftX, bottomY);
+    float bottomRight = (float)getPixel(rightX, bottomY);
 
     float xPercent = targetX - leftX;
     float yPercent = targetY - topY;
     float topValue = mix(xPercent, topLeft, topRight);
     float bottomValue = mix(xPercent, bottomLeft, bottomRight);
 
-    return mix(yPercent, topValue, bottomValue);
+    return mix(yPercent, topValue, bottomValue) / 255 - 0.5;
 }
 
 int Text::luaGetInfo(lua_State *L, float fontSize) {
