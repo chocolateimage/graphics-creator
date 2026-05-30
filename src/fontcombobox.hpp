@@ -40,10 +40,16 @@ class FontComboBox : public QComboBox {
 
     void setFontValue(Font font);
     Font fontValue();
+    void openFile(QString filePath);
+    void openFilePopup();
 
     FontComboBoxPopup *popupWindow{nullptr};
 
     FT_Library ftLibrary{nullptr};
+
+  protected:
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 };
 
 class FontComboBoxPopup : public QFrame {

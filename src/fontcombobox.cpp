@@ -1,11 +1,18 @@
 #include "fontcombobox.hpp"
 #include "math.hpp"
 #include "variant.hpp"
+#include <KMessageBox>
+#include <QDragEnterEvent>
 #include <QEvent>
+#include <QFileDialog>
 #include <QFontDatabase>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
+#include <QMessageBox>
+#include <QMimeData>
+#include <QMimeDatabase>
 #include <QPainter>
 #include <QPropertyAnimation>
 #include <QTimer>
@@ -17,7 +24,106 @@
 #include <hb-ft.h>
 #include <hb.h>
 
-FontComboBox::FontComboBox(QWidget *parent) : QComboBox(parent) {};
+FontComboBox::FontComboBox(QWidget *parent) : QComboBox(parent) {
+    setAcceptDrops(true);
+};
+
+void FontComboBox::dragEnterEvent(QDragEnterEvent *event) {
+    if (!event->mimeData()->hasUrls())
+        return;
+
+    QMimeDatabase db;
+
+    for (auto url : event->mimeData()->urls()) {
+        if (!url.isLocalFile())
+            continue;
+
+        QMimeType mime = db.mimeTypeForUrl(url);
+        if (mime.name().startsWith("font/")) {
+            event->acceptProposedAction();
+        }
+    }
+}
+
+void FontComboBox::dropEvent(QDropEvent *event) {
+    if (!event->mimeData()->hasUrls())
+        return;
+
+    auto filePath = event->mimeData()->urls().first().toLocalFile();
+    openFile(filePath);
+}
+
+void FontComboBox::openFile(QString filePath) {
+    QTimer::singleShot(0, [this, filePath]() {
+        if (!ftLibrary) {
+            FT_Init_FreeType(&ftLibrary);
+        }
+
+        FT_Face face;
+        int error = FT_New_Face(ftLibrary, qPrintable(filePath), -1, &face);
+        if (error != 0) {
+            auto errorMessage = FT_Error_String(error);
+            KMessageBox::error(this,
+                               "Error loading font: " + QString(errorMessage),
+                               "Error loading font");
+            return;
+        }
+
+        int numFaces = face->num_faces;
+
+        FT_Done_Face(face);
+
+        int targetFace = 0;
+        if (numFaces > 1) {
+            QMenu menu(this);
+
+            for (int i = 0; i < numFaces; i++) {
+                int error =
+                    FT_New_Face(ftLibrary, qPrintable(filePath), i, &face);
+                if (error != 0)
+                    continue;
+
+                QString styleName = QString(face->family_name) + " " +
+                                    QString(face->style_name);
+
+                QAction *action = new QAction();
+                action->setText(styleName);
+                action->setData(QVariant::fromValue(i));
+                menu.addAction(action);
+
+                FT_Done_Face(face);
+            }
+
+            QAction *target = menu.exec(QCursor::pos());
+            if (target == nullptr) {
+                return;
+            }
+
+            targetFace = target->data().toInt();
+        }
+
+        FT_New_Face(ftLibrary, qPrintable(filePath), targetFace, &face);
+        std::string familyName =
+            face->family_name == nullptr ? "?" : face->family_name;
+        std::string styleName =
+            face->style_name == nullptr ? "?" : face->style_name;
+        FT_Done_Face(face);
+
+        setFontValue(
+            {filePath.toStdString(), targetFace, familyName + " " + styleName});
+    });
+}
+
+void FontComboBox::openFilePopup() {
+    QString fileName = QFileDialog::getOpenFileName(
+        this, "Open Font File", "",
+        "Fonts (*.ttf *.otf *.ttc);;All files (*.*)");
+
+    if (fileName.isEmpty())
+        return;
+
+    openFile(fileName);
+}
 
 void FontComboBox::showPopup() {
     if (!ftLibrary) {
@@ -110,8 +216,12 @@ void FontComboBox::showPopup() {
         lay2->addWidget(popupWindow->searchInput);
 
         auto addButton = new QPushButton(popupWindow);
-        addButton->setText("Add…");
-        addButton->setIcon(QIcon::fromTheme("list-add"));
+        addButton->setText("Open file…");
+        addButton->setToolTip(
+            "Open a font file from your files instead of an installed font.");
+        addButton->setIcon(QIcon::fromTheme("document-open-data"));
+        connect(addButton, &QPushButton::clicked, this,
+                &FontComboBox::openFilePopup);
         lay2->addWidget(addButton);
 
         popupWindow->scrollArea = new QScrollArea(popupWindow);
@@ -184,6 +294,7 @@ FontPopupStyle &FontPopupGroup::getDefaultStyle() {
 }
 
 FontComboBox::~FontComboBox() {
+    hidePopup();
     if (ftLibrary) {
         FT_Done_FreeType(ftLibrary);
         ftLibrary = nullptr;
