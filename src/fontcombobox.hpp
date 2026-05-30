@@ -1,5 +1,6 @@
 #pragma once
 
+#include "variant.hpp"
 #include <QComboBox>
 #include <QGroupBox>
 #include <QLabel>
@@ -7,32 +8,9 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <freetype/freetype.h>
-#include <qtmetamacros.h>
 
 class FontComboBoxPopup;
 class FontPopupFontWidget;
-
-class FontComboBox : public QComboBox {
-    Q_OBJECT
-  public:
-    explicit FontComboBox(QWidget *parent = nullptr);
-    ~FontComboBox();
-    void showPopup() override;
-    void hidePopup() override;
-
-    FontComboBoxPopup *popupWindow{nullptr};
-
-    FT_Library ftLibrary{nullptr};
-};
-
-class FontComboBoxPopup : public QFrame {
-    Q_OBJECT
-  public:
-    QLineEdit *searchInput;
-    QScrollArea *scrollArea;
-    QList<FontPopupFontWidget *> buttons;
-    void closeAllButtons();
-};
 
 struct FontPopupStyle {
     int index;
@@ -48,6 +26,37 @@ class FontPopupGroup {
     std::vector<FontPopupStyle> styles;
 
     FontPopupStyle &getDefaultStyle();
+};
+
+class FontComboBox : public QComboBox {
+    Q_OBJECT
+  public:
+    explicit FontComboBox(QWidget *parent = nullptr);
+    ~FontComboBox();
+    void showPopup() override;
+    void hidePopup() override;
+    void selectStyle(std::shared_ptr<FontPopupGroup> group,
+                     FontPopupStyle &style);
+
+    void setFontValue(Font font);
+    Font fontValue();
+
+    FontComboBoxPopup *popupWindow{nullptr};
+
+    FT_Library ftLibrary{nullptr};
+};
+
+class FontComboBoxPopup : public QFrame {
+    Q_OBJECT
+  public:
+    explicit FontComboBoxPopup();
+
+    FontComboBox *comboBox;
+    int amountOfFonts;
+    QLineEdit *searchInput;
+    QScrollArea *scrollArea;
+    QList<FontPopupFontWidget *> buttons;
+    void closeAllButtons();
 };
 
 class FontPopupFontWidget : public QPushButton {

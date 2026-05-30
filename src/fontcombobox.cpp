@@ -1,5 +1,6 @@
 #include "fontcombobox.hpp"
 #include "math.hpp"
+#include "variant.hpp"
 #include <QEvent>
 #include <QFontDatabase>
 #include <QGroupBox>
@@ -16,24 +17,27 @@
 #include <hb-ft.h>
 #include <hb.h>
 
-FontComboBox::FontComboBox(QWidget *parent) : QComboBox(parent) {
-    addItems({"Hello", "World"});
-};
+FontComboBox::FontComboBox(QWidget *parent) : QComboBox(parent) {};
 
 void FontComboBox::showPopup() {
-    qInfo() << "show";
-
     if (!ftLibrary) {
         FT_Init_FreeType(&ftLibrary);
     }
 
+    FcConfigUptoDate(nullptr);
+    FcPattern *pattern = FcPatternCreate();
+    FcObjectSet *objectSet = FcObjectSetBuild(
+        FC_FILE, FC_INDEX, FC_FAMILY, FC_WEIGHT, FC_SLANT, FC_STYLE, NULL);
+    FcFontSet *fontSet = FcFontList(nullptr, pattern, objectSet);
+
+    if (popupWindow) {
+        if (popupWindow->amountOfFonts != fontSet->nfont) {
+            delete popupWindow;
+            popupWindow = nullptr;
+        }
+    }
+
     if (!popupWindow) {
-        // TODO: reload properly
-        FcConfigUptoDate(nullptr);
-        FcPattern *pattern = FcPatternCreate();
-        FcObjectSet *objectSet = FcObjectSetBuild(
-            FC_FILE, FC_INDEX, FC_FAMILY, FC_WEIGHT, FC_SLANT, FC_STYLE, NULL);
-        FcFontSet *fontSet = FcFontList(nullptr, pattern, objectSet);
         std::map<std::string, std::shared_ptr<FontPopupGroup>> fontGroups;
         for (int i = 0; i < fontSet->nfont; i++) {
             FcPattern *font = fontSet->fonts[i];
@@ -71,9 +75,6 @@ void FontComboBox::showPopup() {
             fontStyle.displayName = style;
             group->styles.push_back(fontStyle);
         }
-        FcFontSetDestroy(fontSet);
-        FcObjectSetDestroy(objectSet);
-        FcPatternDestroy(pattern);
 
         std::vector<std::shared_ptr<FontPopupGroup>> fontGroupsList;
         for (auto group : fontGroups) {
@@ -92,11 +93,8 @@ void FontComboBox::showPopup() {
                   });
 
         popupWindow = new FontComboBoxPopup();
-        popupWindow->setFrameShape(QFrame::Shape::StyledPanel);
-        popupWindow->setFrameShadow(QFrame::Shadow::Sunken);
-        popupWindow->setProperty("_breeze_force_frame", true);
-        popupWindow->setWindowFlag(Qt::WindowType::Popup);
-        popupWindow->setWindowFlag(Qt::WindowType::FramelessWindowHint);
+        popupWindow->comboBox = this;
+        popupWindow->amountOfFonts = fontSet->nfont;
 
         auto lay1 = new QVBoxLayout(popupWindow);
         lay1->setContentsMargins(0, 0, 0, 0);
@@ -134,6 +132,10 @@ void FontComboBox::showPopup() {
         lay1->addWidget(popupWindow->scrollArea);
     }
 
+    FcFontSetDestroy(fontSet);
+    FcObjectSetDestroy(objectSet);
+    FcPatternDestroy(pattern);
+
     popupWindow->move(mapToGlobal(rect().bottomLeft()));
     popupWindow->resize(width(), 500);
     popupWindow->show();
@@ -141,8 +143,27 @@ void FontComboBox::showPopup() {
     popupWindow->searchInput->selectAll();
 }
 
+void FontComboBox::selectStyle(std::shared_ptr<FontPopupGroup> group,
+                               FontPopupStyle &style) {
+    Font font;
+    font.path = style.path;
+    font.index = style.index;
+    font.displayName = group->family + " " + style.displayName;
+    setFontValue(font);
+    if (popupWindow) {
+        popupWindow->close();
+    }
+}
+
+void FontComboBox::setFontValue(Font font) {
+    addItem(QString::fromStdString(font.displayName),
+            QVariant::fromValue(font));
+    setCurrentIndex(count() - 1);
+}
+
+Font FontComboBox::fontValue() { return currentData().value<Font>(); }
+
 void FontComboBox::hidePopup() {
-    qInfo() << "hide";
     if (popupWindow) {
         popupWindow->close();
         delete popupWindow;
@@ -165,6 +186,14 @@ FontComboBox::~FontComboBox() {
         FT_Done_FreeType(ftLibrary);
         ftLibrary = nullptr;
     }
+}
+
+FontComboBoxPopup::FontComboBoxPopup() {
+    setFrameShape(QFrame::Shape::StyledPanel);
+    setFrameShadow(QFrame::Shadow::Sunken);
+    setProperty("_breeze_force_frame", true);
+    setWindowFlag(Qt::WindowType::Popup);
+    setWindowFlag(Qt::WindowType::FramelessWindowHint);
 }
 
 void FontComboBoxPopup::closeAllButtons() {
@@ -218,6 +247,10 @@ FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
         auto preview = new FontPopupFontPreview(ftLibrary, group, style, btn);
         btnLay->addWidget(preview);
 
+        connect(btn, &QPushButton::clicked, this, [this, &style]() {
+            comboBoxPopup->comboBox->selectStyle(this->group, style);
+        });
+
         tabLayout->addWidget(btn);
     }
 
@@ -265,7 +298,7 @@ void FontPopupFontPreview::createInside() {
 
     float scale = devicePixelRatio();
 
-    FT_Set_Pixel_Sizes(ftFace, 0, 24 * scale);
+    FT_Set_Pixel_Sizes(ftFace, 0, 20 * scale);
 
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
 

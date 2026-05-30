@@ -517,7 +517,14 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
         auto fontWidget = new FontComboBox(optionsWidget);
         fontWidget->setSizePolicy(QSizePolicy::Policy::Expanding,
                                   QSizePolicy::Policy::Fixed);
-        fontWidget->addItems({"Hello", "World"});
+        auto value = variant.get<Font>();
+        if (!value.path.empty()) {
+            fontWidget->setFontValue(value);
+        }
+        connect(fontWidget, &FontComboBox::currentTextChanged, this,
+                [this, optionId, fontWidget]() {
+                    updateOption(optionId, Variant(fontWidget->fontValue()));
+                });
 
         widget = fontWidget;
     }

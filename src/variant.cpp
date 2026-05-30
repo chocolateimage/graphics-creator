@@ -99,7 +99,8 @@ void Variant::pushLua(lua_State *L) const {
         break;
     }
     case VariantTypeEnum::Font: {
-        lua_pushnil(L); // TODO: lightuserdata or table
+        Font value = get<Font>();
+        lua_pushlightuserdata(L, &value);
         break;
     }
     };
