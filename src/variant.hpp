@@ -38,7 +38,11 @@ struct Vector2DInt {
     int x, y;
 };
 
-struct Font {};
+struct Font {
+    std::string path;
+    int index;
+    std::string displayName;
+};
 
 using VariantType = std::variant<std::monostate, std::string, int, double,
                                  Color, Vector2DInt, Font>;

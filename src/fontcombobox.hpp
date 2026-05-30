@@ -10,6 +10,7 @@
 #include <qtmetamacros.h>
 
 class FontComboBoxPopup;
+class FontPopupFontWidget;
 
 class FontComboBox : public QComboBox {
     Q_OBJECT
@@ -28,6 +29,9 @@ class FontComboBoxPopup : public QFrame {
     Q_OBJECT
   public:
     QLineEdit *searchInput;
+    QScrollArea *scrollArea;
+    QList<FontPopupFontWidget *> buttons;
+    void closeAllButtons();
 };
 
 struct FontPopupStyle {
@@ -54,8 +58,10 @@ class FontPopupFontWidget : public QPushButton {
                                  QWidget *parent = nullptr);
     std::shared_ptr<FontPopupGroup> group;
 
+    FontComboBoxPopup *comboBoxPopup;
     QLabel *buttonText;
 
+    void closeButton();
     void buttonClicked();
     QGroupBox *styleGroupBox;
 

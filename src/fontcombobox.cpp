@@ -1,17 +1,18 @@
 #include "fontcombobox.hpp"
 #include "math.hpp"
 #include <QEvent>
+#include <QFontDatabase>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
+#include <QPropertyAnimation>
+#include <QTimer>
 #include <fontconfig/fontconfig.h>
 #include <freetype/ftglyph.h>
 #include <ft2build.h>
 #include <string>
 #include FT_FREETYPE_H
-#include <QFontDatabase>
-#include <QTimer>
 #include <hb-ft.h>
 #include <hb.h>
 
@@ -113,22 +114,24 @@ void FontComboBox::showPopup() {
         addButton->setIcon(QIcon::fromTheme("list-add"));
         lay2->addWidget(addButton);
 
-        auto scroll = new QScrollArea(popupWindow);
-        scroll->setFrameShape(QFrame::Shape::NoFrame);
+        popupWindow->scrollArea = new QScrollArea(popupWindow);
+        popupWindow->scrollArea->setFrameShape(QFrame::Shape::NoFrame);
         auto content = new QWidget();
-        scroll->setWidget(content);
-        scroll->setWidgetResizable(true);
+        popupWindow->scrollArea->setWidget(content);
+        popupWindow->scrollArea->setWidgetResizable(true);
         auto lay = new QVBoxLayout(content);
         lay->setContentsMargins(0, 0, 0, 0);
         lay->setSpacing(0);
         for (auto group : fontGroupsList) {
             auto button = new FontPopupFontWidget(ftLibrary, group, content);
+            button->comboBoxPopup = popupWindow;
             lay->addWidget(button);
+            popupWindow->buttons.append(button);
         }
 
         lay->addStretch();
 
-        lay1->addWidget(scroll);
+        lay1->addWidget(popupWindow->scrollArea);
     }
 
     popupWindow->move(mapToGlobal(rect().bottomLeft()));
@@ -161,6 +164,12 @@ FontComboBox::~FontComboBox() {
     if (ftLibrary) {
         FT_Done_FreeType(ftLibrary);
         ftLibrary = nullptr;
+    }
+}
+
+void FontComboBoxPopup::closeAllButtons() {
+    for (auto btn : buttons) {
+        btn->closeButton();
     }
 }
 
@@ -218,9 +227,25 @@ FontPopupFontWidget::FontPopupFontWidget(FT_Library ftLibrary,
             &FontPopupFontWidget::buttonClicked);
 }
 
+void FontPopupFontWidget::closeButton() {
+    setFlat(true);
+    styleGroupBox->hide();
+}
+
 void FontPopupFontWidget::buttonClicked() {
+    if (!isFlat())
+        return;
+
+    comboBoxPopup->closeAllButtons();
     setFlat(false);
     styleGroupBox->show();
+    QPropertyAnimation *anim =
+        new QPropertyAnimation(styleGroupBox, "maximumHeight", this);
+    anim->setDuration(1000);
+    anim->setStartValue(0);
+    anim->setEndValue(5000);
+    anim->start();
+    comboBoxPopup->scrollArea->ensureWidgetVisible(this);
 }
 
 FontPopupFontPreview::FontPopupFontPreview(
