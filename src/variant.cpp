@@ -1,5 +1,9 @@
 #include "variant.hpp"
 
+std::string getFontHash(const Font &font) {
+    return font.path + ":" + std::to_string(font.index);
+}
+
 Variant::Variant(VariantType variant) : m_variant(variant) {}
 
 Variant::Variant(const Variant &variant) {
@@ -100,7 +104,13 @@ void Variant::pushLua(lua_State *L) const {
     }
     case VariantTypeEnum::Font: {
         Font value = get<Font>();
-        lua_pushlightuserdata(L, &value);
+        lua_newtable(L);
+        lua_pushstring(L, "i");
+        lua_pushnumber(L, value.index);
+        lua_settable(L, -3);
+        lua_pushstring(L, "p");
+        lua_pushstring(L, value.path.c_str());
+        lua_settable(L, -3);
         break;
     }
     };

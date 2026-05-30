@@ -17,11 +17,12 @@ extern "C" {
 
 class FontInfo {
   public:
-    FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight);
+    FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight, Font font);
     ~FontInfo();
 
     FT_BitmapGlyph getGlyph(hb_codepoint_t codepoint);
 
+    Font font;
     FT_Face face;
     hb_font_t *hb;
     int pixelHeight;
@@ -35,7 +36,7 @@ class RenderThread {
     bool drawImage(Video *video, AVFrame *frame, int startX, int startY,
                    int renderWidth, int renderHeight);
     void close();
-    FontInfo *getFont(const std::string &font);
+    FontInfo *getFont(const Font &font);
     std::string lastError;
     FT_Library ftLibrary{nullptr};
 
@@ -52,7 +53,7 @@ class RenderThread {
 
 class Text {
   public:
-    Text(RenderThread *renderThread, const char *text);
+    Text(RenderThread *renderThread, const char *text, const Font &font);
     uint8_t getPixel(int x, int y);
     float getSmoothPixel(float fontSize, float x, float y);
     int luaGetInfo(lua_State *L, float fontSize);
@@ -68,7 +69,7 @@ class Text {
     int width;
     int height;
     RenderThread *renderThread;
-    FontInfo *fontInfo;
+    FontInfo *fontInfo{nullptr};
     hb_buffer_t *hbBuffer;
     uint32_t glyphCount;
     hb_glyph_info_t *glyphInfo;

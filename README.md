@@ -3,7 +3,7 @@
 > [!WARNING]
 > this tool is **work in progress**. IT'S NOT READY!!!
 
-*Name is undecided.*
+_Name is undecided._
 
 Create titles and other visual effects with Lua.
 
@@ -36,7 +36,7 @@ Available variables:
 
 Available functions:
 
-- `createText(text, unused)`: Creates a TextClass instance. TODO: `unused` will later be the font options.
+- `createText(text, font)`: Creates a TextClass instance.
 - `getTextInfo(textClassInstance, fontSize)`: Returns `minX, minY, maxX, maxY, textWidth, textHeight`.
 - `getPixel(textClassInstance, fontSize, x, y)`: Returns a value from -0.5 to 0.5 of the SDF of the text with the font size. Usually used like `smoothstep(-0.05, 0.05, getPixel(text, 64, x - 100, y - 100)) * 255` to get a value from 0 to 255.
 - `mix(from, to, x)`/`lerp(from, to, x)`: Both do the same. Converts a value from x (0 to 1 range) to `from` - `to` range.
@@ -60,23 +60,23 @@ Functions you should define:
 
 - `draw(_frame)`: `_frame` is the raw frame userdata.
 
-    Basic example:
+  Basic example:
 
-    ```lua
-    function draw(_frame)
-        local frame = ffi.cast("uint32_t*", _frame)
-        
-        for y = fromY, toY do
-            for x = fromX, toX do
-                local red = 0
-                local green = 0
-                local blue = 0
-                local alpha = 255
+  ```lua
+  function draw(_frame)
+      local frame = ffi.cast("uint32_t*", _frame)
 
-                frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
-            end
-        end
-    end
-    ```
+      for y = fromY, toY do
+          for x = fromX, toX do
+              local red = 0
+              local green = 0
+              local blue = 0
+              local alpha = 255
+
+              frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
+          end
+      end
+  end
+  ```
 
 - `options()`: WIP

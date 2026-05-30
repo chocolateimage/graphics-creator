@@ -22,15 +22,15 @@ extern "C" {
 std::mutex glyphLoadingMutex;
 std::unordered_map<std::string, FT_BitmapGlyph> glyphMap;
 
-FontInfo::FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight)
-    : face(face), hb(hb), pixelHeight(pixelHeight) {};
+FontInfo::FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight, Font font)
+    : font(font), face(face), hb(hb), pixelHeight(pixelHeight) {};
 
 FontInfo::~FontInfo() {
     // TODO: glyphMap but in a better way. right now deleting a FontInfo causes
     // all glyphMaps of a font to get deleted
     glyphLoadingMutex.lock();
     for (auto it = glyphMap.begin(); it != glyphMap.end();) {
-        if (it->first.rfind(std::string(face->family_name) + ";", 0) == 0) {
+        if (it->first.rfind(getFontHash(font) + ";", 0) == 0) {
             FT_Done_Glyph((FT_Glyph)it->second);
             it = glyphMap.erase(it);
         } else {
@@ -44,8 +44,7 @@ FontInfo::~FontInfo() {
 
 FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
     // TODO: use better hash. this is terrible.
-    std::string hash =
-        std::string(face->family_name) + ";" + std::to_string(codepoint);
+    std::string hash = getFontHash(font) + ";" + std::to_string(codepoint);
 
     std::scoped_lock lock{glyphLoadingMutex};
 
@@ -80,7 +79,7 @@ int TextClass__gc(lua_State *L) {
 int TextClass_create(lua_State *L) {
     int arguments = lua_gettop(L);
     if (arguments != 2) {
-        luaL_error(L, "createText(): invalid argument count");
+        luaL_error(L, "createText(): invalid argument count (string, font)");
         return 0;
     }
     auto text = lua_tostring(L, 1);
@@ -88,9 +87,24 @@ int TextClass_create(lua_State *L) {
         luaL_error(L, "createText(): invalid text");
         return 0;
     }
+
+    if (!lua_istable(L, 2)) {
+        luaL_error(L, "createText(): invalid font");
+        return 0;
+    }
+
+    // TODO: a function in Variant that can convert lua to variant
+    lua_getfield(L, 2, "p");
+    const char *filePath = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    lua_getfield(L, 2, "i");
+    int fontIndex = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
     RenderThread *renderThread =
         (RenderThread *)lua_touserdata(L, lua_upvalueindex(1));
-    Text *textObject = new Text(renderThread, text);
+    Text *textObject =
+        new Text(renderThread, text, Font{filePath, fontIndex, ""});
     Text **newUserData = (Text **)lua_newuserdata(L, sizeof(Text *));
     *newUserData = textObject;
     luaL_getmetatable(L, "TextClass");
@@ -129,12 +143,18 @@ int TextClass_getTextInfo(lua_State *L) {
     return text->luaGetInfo(L, lua_tonumber(L, 2));
 }
 
-Text::Text(RenderThread *renderThread, const char *text)
+Text::Text(RenderThread *renderThread, const char *text, const Font &font)
     : renderThread(renderThread) {
-    fontInfo = renderThread->getFont(
-        "/usr/share/fonts/noto/NotoSans-Bold.ttf"); // TODO: dynamic font (with
-                                                    // options)
-
+    if (font.path.empty()) {
+        width = 0;
+        height = 0;
+        minX = 0;
+        minY = 0;
+        maxX = 0;
+        maxY = 0;
+        return;
+    }
+    fontInfo = renderThread->getFont(font);
     hbBuffer = hb_buffer_create();
     hb_buffer_add_utf8(hbBuffer, text, -1, 0, -1);
 
@@ -150,6 +170,9 @@ Text::Text(RenderThread *renderThread, const char *text)
 }
 
 void Text::calculateSize() {
+    if (fontInfo == nullptr)
+        return;
+
     int curX = 0;
     int curY = 0;
 
@@ -180,6 +203,9 @@ void Text::calculateSize() {
 }
 
 void Text::draw() {
+    if (fontInfo == nullptr)
+        return;
+
     int curX = 0;
     int curY = 0;
 
@@ -221,6 +247,9 @@ inline uint8_t Text::getPixel(int x, int y) {
 }
 
 float Text::getSmoothPixel(float fontSize, float x, float y) {
+    if (fontInfo == nullptr)
+        return -0.5f;
+
     float adjust = fontSize / fontInfo->pixelHeight;
     float targetX = x / adjust;
     float targetY = y / adjust;
@@ -242,7 +271,7 @@ float Text::getSmoothPixel(float fontSize, float x, float y) {
 }
 
 int Text::luaGetInfo(lua_State *L, float fontSize) {
-    float adjust = fontSize / fontInfo->pixelHeight;
+    float adjust = fontSize / (fontInfo == nullptr ? 1 : fontInfo->pixelHeight);
 
     lua_pushnumber(L, (float)minX * adjust);
     lua_pushnumber(L, (float)minY * adjust);
@@ -254,12 +283,14 @@ int Text::luaGetInfo(lua_State *L, float fontSize) {
 }
 
 Text::~Text() {
-    hb_buffer_destroy(hbBuffer);
-    delete[] image;
+    if (fontInfo != nullptr) {
+        hb_buffer_destroy(hbBuffer);
+        delete[] image;
+    }
 }
 
-FontInfo *RenderThread::getFont(const std::string &font) {
-    auto it = loadedFonts.find(font);
+FontInfo *RenderThread::getFont(const Font &font) {
+    auto it = loadedFonts.find(getFontHash(font));
     if (it != loadedFonts.end()) {
         return it->second;
     }
@@ -267,12 +298,12 @@ FontInfo *RenderThread::getFont(const std::string &font) {
     int pixelHeight = 128;
 
     FT_Face ftFace;
-    FT_New_Face(ftLibrary, font.c_str(), 0, &ftFace);
+    FT_New_Face(ftLibrary, font.path.c_str(), font.index, &ftFace);
     FT_Set_Pixel_Sizes(ftFace, 0, pixelHeight);
 
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
-    FontInfo *fontInfo = new FontInfo(ftFace, hbFont, pixelHeight);
-    loadedFonts.emplace(font, fontInfo);
+    FontInfo *fontInfo = new FontInfo(ftFace, hbFont, pixelHeight, font);
+    loadedFonts.emplace(getFontHash(font), fontInfo);
     return fontInfo;
 }
 

@@ -44,6 +44,8 @@ struct Font {
     std::string displayName;
 };
 
+std::string getFontHash(const Font &font);
+
 using VariantType = std::variant<std::monostate, std::string, int, double,
                                  Color, Vector2DInt, Font>;
 
