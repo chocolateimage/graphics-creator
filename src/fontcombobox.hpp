@@ -57,6 +57,8 @@ class FontComboBoxPopup : public QFrame {
     QScrollArea *scrollArea;
     QList<FontPopupFontWidget *> buttons;
     void closeAllButtons();
+
+    void searchChanged(const QString &value);
 };
 
 class FontPopupFontWidget : public QPushButton {

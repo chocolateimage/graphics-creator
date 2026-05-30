@@ -105,6 +105,8 @@ void FontComboBox::showPopup() {
 
         popupWindow->searchInput = new QLineEdit(popupWindow);
         popupWindow->searchInput->setPlaceholderText("Search fonts…");
+        connect(popupWindow->searchInput, &QLineEdit::textChanged, popupWindow,
+                &FontComboBoxPopup::searchChanged);
         lay2->addWidget(popupWindow->searchInput);
 
         auto addButton = new QPushButton(popupWindow);
@@ -194,6 +196,17 @@ FontComboBoxPopup::FontComboBoxPopup() {
     setProperty("_breeze_force_frame", true);
     setWindowFlag(Qt::WindowType::Popup);
     setWindowFlag(Qt::WindowType::FramelessWindowHint);
+}
+
+void FontComboBoxPopup::searchChanged(const QString &value) {
+    QString normalized = value.simplified().toLower();
+
+    for (auto btn : buttons) {
+        btn->setVisible(QString::fromStdString(btn->group->family)
+                            .simplified()
+                            .toLower()
+                            .contains(normalized));
+    }
 }
 
 void FontComboBoxPopup::closeAllButtons() {
