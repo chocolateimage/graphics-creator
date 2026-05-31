@@ -159,7 +159,7 @@ Text::Text(RenderThread *renderThread, const char *text, const Font &font)
         maxY = 0;
         return;
     }
-    fontInfo = renderThread->getFont(font);
+    fontInfo = this->renderThread->getFont(font);
     hbBuffer = hb_buffer_create();
     hb_buffer_add_utf8(hbBuffer, text, -1, 0, -1);
 
