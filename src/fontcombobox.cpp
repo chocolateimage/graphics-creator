@@ -572,6 +572,11 @@ void FontPopupFontPreview::createInside() {
     setFixedSize(textImageWidth / scale, textImageHeight / scale);
     setScaledContents(true);
     setAlignment(Qt::AlignLeft);
+
+    delete[] textImage;
+    for (auto glyph : glyphs) {
+        FT_Done_Glyph((FT_Glyph)glyph.second);
+    }
 };
 
 bool FontPopupFontPreview::event(QEvent *e) {
