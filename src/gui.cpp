@@ -17,6 +17,7 @@
 #include <QCloseEvent>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QFileDialog>
 #include <QFrame>
 #include <QLineEdit>
 #include <QMenu>
@@ -308,8 +309,12 @@ void MainWindow::loadLate() {
         updateTabs();
     });
     connect(renderAction, &QAction::triggered, this, [this]() {
+        if (timer->isActive()) {
+            toggleTimer();
+        }
         stackedWidget->setCurrentIndex(2);
         updateTabs();
+        resetRenderFilePathInput();
     });
 
     newAction->setCheckable(true);
@@ -507,23 +512,38 @@ end
 
     renderLayout->addWidget(new QLabel("Location:"));
 
+    auto locationLayout = new QHBoxLayout();
+    renderLayout->addLayout(locationLayout);
     renderFilePathInput = new QLineEdit(renderContent);
-    QDateTime now = QDateTime::currentDateTime();
-    renderFilePathInput->setText(
-        QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) +
-        QDir::separator() + "Graphics" + QDir::separator() +
-        now.toString("yyyy-MM-dd hh-mm-ss") + ".mov");
-    renderLayout->addWidget(renderFilePathInput);
 
-    renderLayout->addWidget(new QLabel("Video format:"));
-
-    renderVideoFormatComboBox = new QComboBox(renderContent);
-    QList<EncoderInfo> encoders = {
+    encoders = {
         {"prores_ks", ".mov (Apple ProRes) (Recommended)", ".mov"},
         {"libx264", ".mp4 (H264), no transparency", ".mp4"},
         {"h264_nvenc", ".mp4 (H264), no transparency, NVIDIA", ".mp4"},
         {"libsvtav1", ".webm (AV1)", ".webm"},
     };
+
+    locationLayout->addWidget(renderFilePathInput);
+
+    auto renderFilePathBrowse = new QToolButton(renderContent);
+    renderFilePathBrowse->setIcon(QIcon::fromTheme("document-open-data"));
+    renderFilePathBrowse->setToolTip("Browse…");
+    connect(renderFilePathBrowse, &QToolButton::clicked, this, [this]() {
+        QString extension =
+            encoders[renderVideoFormatComboBox->currentIndex()].fileExtension;
+        QString filePath = QFileDialog::getSaveFileName(
+            this, "Select video location", "",
+            extension + " format (*" + extension + ");;All files (*.*)");
+        if (filePath.isEmpty())
+            return;
+
+        renderFilePathInput->setText(filePath);
+    });
+    locationLayout->addWidget(renderFilePathBrowse);
+
+    renderLayout->addWidget(new QLabel("Video format:"));
+
+    renderVideoFormatComboBox = new QComboBox(renderContent);
 
     for (const auto &encoder : encoders) {
         const AVCodec *codec =
@@ -535,6 +555,19 @@ end
         renderVideoFormatComboBox->addItem(
             encoder.displayName, QVariant::fromValue(encoder.encoderName));
     }
+
+    resetRenderFilePathInput();
+
+    connect(renderVideoFormatComboBox, &QComboBox::currentIndexChanged, this,
+            [this](int index) {
+                auto splitted = renderFilePathInput->text().split(".");
+                if (splitted.size() > 1) {
+                    splitted.takeLast();
+                }
+                QString beginning = splitted.join(".");
+                QString final = beginning + encoders[index].fileExtension;
+                renderFilePathInput->setText(final);
+            });
 
     renderLayout->addWidget(renderVideoFormatComboBox);
 
@@ -563,6 +596,18 @@ end
     qDebug() << "late init took" << measure.elapsed() << "ms";
 }
 
+void MainWindow::resetRenderFilePathInput() {
+    QDateTime now = QDateTime::currentDateTime();
+    QString savedFolder =
+        QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) +
+        QDir::separator() + "Graphics";
+    QString fileName = now.toString("yyyy-MM-dd hh-mm-ss");
+    QString extension =
+        encoders[renderVideoFormatComboBox->currentIndex()].fileExtension;
+    renderFilePathInput->setText(savedFolder + QDir::separator() + fileName +
+                                 extension);
+}
+
 void MainWindow::renderVideoError(QString error) {
     qCritical() << error;
     KMessageBox::error(
@@ -573,6 +618,17 @@ void MainWindow::renderVideoError(QString error) {
 void MainWindow::renderButtonClicked() {
     QFileInfo fileInfo = QFileInfo(renderFilePathInput->text());
     QString encoder = renderVideoFormatComboBox->currentData().toString();
+
+    if (fileInfo.exists()) {
+        if (KMessageBox::warningTwoActions(
+                this,
+                "The file \"" + fileInfo.path() +
+                    "\" already exists. Do you want to overwrite it?",
+                "Overwrite file?", KStandardGuiItem::overwrite(),
+                KStandardGuiItem::cancel()) != KMessageBox::PrimaryAction) {
+            return;
+        }
+    }
 
     GuiRenderThread *thread = new GuiRenderThread(this);
     thread->window = this;

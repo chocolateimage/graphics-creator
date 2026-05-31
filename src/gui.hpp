@@ -151,6 +151,8 @@ class MainWindow : public QMainWindow {
     QComboBox *renderVideoFormatComboBox;
     QLineEdit *renderFilePathInput;
 
+    QList<EncoderInfo> encoders;
+
     MainWindow();
     void loadLate();
 
@@ -163,6 +165,7 @@ class MainWindow : public QMainWindow {
 
     void renderButtonClicked();
     void renderVideoError(QString error);
+    void resetRenderFilePathInput();
 
     AVFrame *allocateFrame();
     void createThread();
