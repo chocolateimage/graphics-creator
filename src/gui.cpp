@@ -30,18 +30,6 @@
 #include <QToolBar>
 #include <QToolButton>
 
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avassert.h>
-#include <libavutil/channel_layout.h>
-#include <libavutil/mathematics.h>
-#include <libavutil/opt.h>
-#include <libavutil/timestamp.h>
-#include <libswresample/swresample.h>
-#include <libswscale/swscale.h>
-}
-
 void FramePreviewThread::run() {
     RenderThread renderThread;
     renderThread.init();
@@ -98,10 +86,10 @@ void FramePreviewThread::run() {
 }
 
 void GuiRenderThread::run() {
+    qInfo() << "starting rendering";
     QString filePath = fileInfo.filePath();
     QDir().mkpath(fileInfo.absolutePath());
 
-    AVFormatContext *formatContext;
     avformat_alloc_output_context2(&formatContext, nullptr, nullptr,
                                    qPrintable(filePath));
     if (!formatContext) {
@@ -110,22 +98,22 @@ void GuiRenderThread::run() {
     }
 
     // add_stream()
-    const AVCodec *codec = avcodec_find_encoder_by_name(qPrintable(encoder));
+    codec = avcodec_find_encoder_by_name(qPrintable(encoder));
     if (!codec) {
         emit errored("codec not found");
         return;
     }
-    AVCodecContext *context = avcodec_alloc_context3(codec);
+    context = avcodec_alloc_context3(codec);
     if (!context) {
         emit errored("context could not be created");
         return;
     }
-    AVPacket *tempPacket = av_packet_alloc();
+    tempPacket = av_packet_alloc();
     if (!context) {
         emit errored("packet could not be created");
         return;
     }
-    AVStream *stream = avformat_new_stream(formatContext, nullptr);
+    stream = avformat_new_stream(formatContext, nullptr);
     if (!context) {
         emit errored("stream could not be created");
         return;
@@ -157,7 +145,6 @@ void GuiRenderThread::run() {
     }
 
     // open_video()
-    AVDictionary *opt = nullptr;
     int ret = avcodec_open2(context, codec, &opt);
     av_dict_free(&opt);
     if (ret < 0) {
@@ -191,7 +178,43 @@ void GuiRenderThread::run() {
         return;
     }
 
-    // TODO: writing
+    RenderThread renderThread;
+    renderThread.init();
+
+    window->latestLuaMutex.lock();
+    bool error = !renderThread.loadLua(window->latestLua);
+    window->latestLuaMutex.unlock();
+    if (error) {
+        emit errored(QString::fromStdString(renderThread.lastError));
+        return;
+    }
+
+    window->scriptOptionsMutex.lock();
+    renderThread.updateOptions(window->scriptOptions);
+    window->scriptOptionsMutex.unlock();
+
+    int frameCount = video->duration * video->frameRate;
+
+    AVFrame *frame = video->allocateFrame();
+    frame->format = context->pix_fmt;
+    av_frame_get_buffer(frame, 0);
+    av_frame_make_writable(frame);
+
+    for (int i = 0; i <= frameCount; i++) {
+        qInfo() << i;
+        frame->pts = i;
+        if (!renderThread.drawImage(video, frame, 0, 0, video->width,
+                                    video->height)) {
+            emit errored(QString::fromStdString(renderThread.lastError));
+            break;
+        }
+        if (!writeFrame(frame)) {
+            break;
+        }
+    }
+    writeFrame(nullptr);
+
+    renderThread.close();
 
     av_write_trailer(formatContext);
 
@@ -202,6 +225,38 @@ void GuiRenderThread::run() {
         avio_closep(&formatContext->pb);
     }
     avformat_free_context(formatContext);
+    qInfo() << "finished rendering";
+}
+
+bool GuiRenderThread::writeFrame(AVFrame *frame) {
+    int ret = avcodec_send_frame(context, frame);
+    if (ret < 0) {
+        emit errored(QStringLiteral("error sending frame to encoder: ") +
+                     av_err2str(ret));
+        return false;
+    }
+
+    while (ret >= 0) {
+        ret = avcodec_receive_packet(context, tempPacket);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+        } else if (ret < 0) {
+            emit errored(QStringLiteral("error encoding frame: ") +
+                         av_err2str(ret));
+            return false;
+        }
+
+        av_packet_rescale_ts(tempPacket, context->time_base, stream->time_base);
+        tempPacket->stream_index = stream->index;
+        ret = av_interleaved_write_frame(formatContext, tempPacket);
+        if (ret < 0) {
+            emit errored(QStringLiteral("error writing output packet: ") +
+                         av_err2str(ret));
+            return false;
+        }
+    }
+
+    return true;
 }
 
 MainWindow::MainWindow() : QMainWindow() {

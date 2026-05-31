@@ -26,6 +26,18 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avassert.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/opt.h>
+#include <libavutil/timestamp.h>
+#include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
+}
+
 class MainWindow;
 
 struct EncoderInfo {
@@ -76,6 +88,17 @@ class GuiRenderThread : public QThread {
 
   protected:
     void run() override;
+
+  private:
+    AVFormatContext *formatContext{nullptr};
+    AVDictionary *opt{nullptr};
+    const AVCodec *codec{nullptr};
+    AVCodecContext *context{nullptr};
+    AVPacket *tempPacket{nullptr};
+    AVStream *stream{nullptr};
+
+    bool writeFrame(AVFrame *frame);
+
   signals:
     void errored(QString error);
 };
