@@ -192,11 +192,13 @@ void MainWindow::loadLate() {
         {
             id = "text",
             type = "string",
+            default = "Hello world",
         },
         {
             id = "fontSize",
             type = "int",
             slider = true,
+            default = 128,
             min = 0,
             max = 1000,
         },
@@ -204,10 +206,12 @@ void MainWindow::loadLate() {
             id = "testPoint",
             type = "vector2dint",
             label = "Text position",
+            default = {x = 100, y = 500},
         },
         {
             id = "borderColor",
             type = "color",
+            default = {r = 255, g = 255, b = 0, a = 255},
         },
     }
 end
@@ -393,15 +397,20 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
     QWidget *widget{nullptr};
 
     auto variantIt = scriptOptions.find(optionId);
-    Variant variant = variantIt == scriptOptions.end()
-                          ? Variant::getDefault(optionType)
-                          : variantIt->second;
+    Variant defaultVariant = Variant::getDefault(optionType);
+    lua_getfield(L, -1, "default");
+    if (!lua_isnil(L, -1)) {
+        defaultVariant = Variant::getFromLua(optionType, L, -1);
+    }
+    lua_pop(L, 1);
+    Variant variant =
+        variantIt == scriptOptions.end() ? defaultVariant : variantIt->second;
     bool shouldUpdateInstantly = variantIt == scriptOptions.end();
 
     if (variant.type() != optionType) {
         qInfo() << "Variant is not the same (expected:" << optionType
                 << " actual:" << variant.type() << "). Changing to default.";
-        variant = Variant::getDefault(optionType);
+        variant = defaultVariant;
         shouldUpdateInstantly = true;
     }
 
@@ -562,26 +571,19 @@ void MainWindow::recreateOptions() {
     scriptOptionsMutex.lock();
     lua_State *L = createLuaState();
     addedScriptOptions.clear();
+    bool shouldRemove = false;
     if (luaL_dostring(L, latestLua.c_str()) == LUA_OK) {
         lua_getglobal(L, "options");
         if (lua_isfunction(L, -1)) {
             if (lua_pcall(L, 0, 1, 0) == LUA_OK) {
                 if (lua_istable(L, 1)) {
                     lua_pushnil(L);
+                    shouldRemove = true;
                     while (lua_next(L, 1) != 0) {
                         if (!addOptionFromLua(L)) {
-                            // TODO: i had plans... but i forgot... maybe stop?
+                            shouldRemove = false;
                         }
                         lua_pop(L, 1);
-                    }
-
-                    for (auto it = scriptOptions.begin();
-                         it != scriptOptions.end();) {
-                        if (!addedScriptOptions.contains(it->first)) {
-                            it = scriptOptions.erase(it);
-                        } else {
-                            it++;
-                        }
                     }
                 } else {
                     updateError("options: must be table");
@@ -596,6 +598,15 @@ void MainWindow::recreateOptions() {
         auto err = lua_tostring(L, -1);
         updateError(err);
         lua_pop(L, 1);
+    }
+    if (shouldRemove) {
+        for (auto it = scriptOptions.begin(); it != scriptOptions.end();) {
+            if (!addedScriptOptions.contains(it->first)) {
+                it = scriptOptions.erase(it);
+            } else {
+                it++;
+            }
+        }
     }
     lua_close(L);
     scriptOptionsMutex.unlock();

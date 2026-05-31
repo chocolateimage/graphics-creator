@@ -106,12 +106,65 @@ void Variant::pushLua(lua_State *L) const {
         Font value = get<Font>();
         lua_newtable(L);
         lua_pushstring(L, "i");
-        lua_pushnumber(L, value.index);
+        lua_pushinteger(L, value.index);
         lua_settable(L, -3);
         lua_pushstring(L, "p");
         lua_pushstring(L, value.path.c_str());
         lua_settable(L, -3);
         break;
+    }
+    };
+}
+
+Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
+                            int index) {
+    switch (type) {
+    case VariantTypeEnum::None:
+        return Variant(nullptr);
+    case VariantTypeEnum::String: {
+        const char *str = lua_tostring(L, index);
+        return Variant(std::string(str));
+    }
+    case VariantTypeEnum::Int: {
+        int value = lua_tointeger(L, index);
+        return Variant(value);
+    }
+    case VariantTypeEnum::Double: {
+        double value = lua_tonumber(L, index);
+        return Variant(value);
+    }
+    case VariantTypeEnum::Vector2DInt: {
+        lua_getfield(L, index, "x");
+        int x = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        lua_getfield(L, index, "y");
+        int y = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        return Variant(Vector2DInt{x, y});
+    }
+    case VariantTypeEnum::Color: {
+        lua_getfield(L, index, "r");
+        int r = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        lua_getfield(L, index, "g");
+        int g = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        lua_getfield(L, index, "b");
+        int b = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        lua_getfield(L, index, "a");
+        int a = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        return Variant(Color{r, g, b, a});
+    }
+    case VariantTypeEnum::Font: {
+        lua_getfield(L, index, "i");
+        int fontIndex = lua_tointeger(L, -1);
+        lua_pop(L, 1);
+        lua_getfield(L, index, "p");
+        const char *filePath = lua_tostring(L, -1);
+        lua_pop(L, 1);
+        return Variant(Font{filePath, fontIndex, ""});
     }
     };
 }

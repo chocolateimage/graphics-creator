@@ -93,18 +93,11 @@ int TextClass_create(lua_State *L) {
         return 0;
     }
 
-    // TODO: a function in Variant that can convert lua to variant
-    lua_getfield(L, 2, "p");
-    const char *filePath = lua_tostring(L, -1);
-    lua_pop(L, 1);
-    lua_getfield(L, 2, "i");
-    int fontIndex = lua_tonumber(L, -1);
-    lua_pop(L, 1);
+    auto fontVariant = Variant::getFromLua(VariantTypeEnum::Font, L, 2);
 
     RenderThread *renderThread =
         (RenderThread *)lua_touserdata(L, lua_upvalueindex(1));
-    Text *textObject =
-        new Text(renderThread, text, Font{filePath, fontIndex, ""});
+    Text *textObject = new Text(renderThread, text, fontVariant.get<Font>());
     Text **newUserData = (Text **)lua_newuserdata(L, sizeof(Text *));
     *newUserData = textObject;
     luaL_getmetatable(L, "TextClass");

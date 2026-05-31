@@ -76,6 +76,8 @@ class Variant {
 
     static VariantTypeEnum::Enum typeFromString(const std::string &type);
     static Variant getDefault(VariantTypeEnum::Enum type);
+    static Variant getFromLua(VariantTypeEnum::Enum type, lua_State *L,
+                              int index);
     static bool isValidType(const std::string &type);
 
   private:
