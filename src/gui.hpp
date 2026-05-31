@@ -17,6 +17,7 @@
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QQueue>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QThread>
 #include <QToolButton>
@@ -96,6 +97,11 @@ class MainWindow : public QMainWindow {
     std::map<std::string, Variant> scriptOptions;
     QList<std::string> addedScriptOptions;
 
+    QAction *newAction;
+    QAction *editAction;
+    QAction *renderAction;
+    QStackedWidget *stackedWidget;
+
     MainWindow();
     void loadLate();
 
@@ -103,6 +109,8 @@ class MainWindow : public QMainWindow {
     void updateTimeInput(double value);
     void updateDurationInput(double value);
     void toggleTimer();
+
+    void updateTabs();
 
     AVFrame *allocateFrame();
     void createThread();

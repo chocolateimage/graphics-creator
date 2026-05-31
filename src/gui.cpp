@@ -9,6 +9,7 @@
 #include <KActionMenu>
 #include <KColorButton>
 #include <KIconTheme>
+#include <KMessageBox>
 #include <KMessageWidget>
 #include <KStyleManager>
 #include <KTextEditor/View>
@@ -22,6 +23,7 @@
 #include <QProgressDialog>
 #include <QScrollArea>
 #include <QSlider>
+#include <QSpacerItem>
 #include <QSplitter>
 #include <QToolBar>
 #include <QToolButton>
@@ -85,7 +87,7 @@ MainWindow::MainWindow() : QMainWindow() {
     QElapsedTimer measure;
     measure.start();
     this->setCursor(Qt::WaitCursor);
-    this->resize(1200, 600);
+    this->resize(1200, 700);
     QTimer::singleShot(4, this, &MainWindow::loadLate);
     qDebug() << "init took" << measure.elapsed() << "ms";
 }
@@ -98,14 +100,64 @@ void MainWindow::loadLate() {
     // menuBar->addMenu("File")->addAction("Quit");
     // setMenuBar(menuBar);
 
-    // auto toolbar = addToolBar("Hello");
-    // toolbar->setMovable(false);
-    // toolbar->addAction(QIcon::fromTheme("media-record"), "Export video...");
-    // toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    auto toolbar = addToolBar("Toolbar");
+    toolbar->setMovable(false);
+    QWidget *spacing = new QWidget(toolbar);
+    spacing->setSizePolicy(QSizePolicy::Policy::MinimumExpanding,
+                           QSizePolicy::Policy::Fixed);
+    toolbar->addWidget(spacing);
+    newAction = toolbar->addAction(QIcon::fromTheme("list-add"), "New");
+    editAction = toolbar->addAction(QIcon::fromTheme("document-edit"), "Edit");
+    renderAction =
+        toolbar->addAction(QIcon::fromTheme("media-record"), "Render");
 
-    auto centralWidget = new QWidget(this);
-    setCentralWidget(centralWidget);
-    auto topLayout = new QVBoxLayout(centralWidget);
+    connect(newAction, &QAction::triggered, this, [this]() {
+        if (stackedWidget->currentIndex() != 0) {
+            if (KMessageBox::warningTwoActions(
+                    this,
+                    "Changing to the \"New\" tab will delete your current "
+                    "graphic. "
+                    "Discard your changes?",
+                    "Discard changes?", KStandardGuiItem::discard(),
+                    KStandardGuiItem::cancel()) != KMessageBox::PrimaryAction) {
+                updateTabs();
+                return;
+            }
+        }
+        stackedWidget->setCurrentIndex(0);
+        updateTabs();
+    });
+    connect(editAction, &QAction::triggered, this, [this]() {
+        stackedWidget->setCurrentIndex(1);
+        updateTabs();
+    });
+    connect(renderAction, &QAction::triggered, this, [this]() {
+        stackedWidget->setCurrentIndex(2);
+        updateTabs();
+    });
+
+    newAction->setCheckable(true);
+    editAction->setCheckable(true);
+    renderAction->setCheckable(true);
+
+    spacing = new QWidget(toolbar);
+    spacing->setSizePolicy(QSizePolicy::Policy::MinimumExpanding,
+                           QSizePolicy::Policy::Fixed);
+    toolbar->addWidget(spacing);
+
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    // No custom context menu set, but it still disables the right click
+    toolbar->setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
+
+    stackedWidget = new QStackedWidget(this);
+    setCentralWidget(stackedWidget);
+
+    stackedWidget->addWidget(new QLabel("new", stackedWidget));
+
+    auto editCentralWidget = new QWidget(stackedWidget);
+    stackedWidget->addWidget(editCentralWidget);
+    auto topLayout = new QVBoxLayout(editCentralWidget);
     topLayout->setContentsMargins(0, 0, 0, 0);
     auto splitter = new QSplitter(this);
     topLayout->addWidget(splitter, 1);
@@ -256,6 +308,8 @@ end
 
     splitter->setSizes({500, 400});
 
+    stackedWidget->addWidget(new QLabel("render", stackedWidget));
+
     // TODO: use QDateTime::currentMSecsSinceEpoch() or QElapsedTimer for better
     // precision instead of relying on microsecond timers
     timer = new QChronoTimer(this);
@@ -267,6 +321,9 @@ end
     durationInput->setValue(video->duration);
     updateButtons();
 
+    stackedWidget->setCurrentIndex(1);
+    updateTabs();
+
     // TODO: allow user to set their own thread count
     for (int i = 0; i < std::max(1, QThread::idealThreadCount() - 2); i++) {
         createThread();
@@ -276,6 +333,24 @@ end
     updateStatus();
     this->unsetCursor();
     qDebug() << "late init took" << measure.elapsed() << "ms";
+}
+
+void MainWindow::updateTabs() {
+    int currentIndex = stackedWidget->currentIndex();
+    newAction->blockSignals(true);
+    editAction->blockSignals(true);
+    renderAction->blockSignals(true);
+
+    newAction->setChecked(currentIndex == 0);
+    editAction->setChecked(currentIndex == 1);
+    renderAction->setChecked(currentIndex == 2);
+
+    renderAction->setDisabled(currentIndex == 0);
+    editAction->setDisabled(currentIndex == 0);
+
+    newAction->blockSignals(false);
+    editAction->blockSignals(false);
+    renderAction->blockSignals(false);
 }
 
 void MainWindow::updateTimeInput(double value) {
