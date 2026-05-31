@@ -94,6 +94,7 @@ class MainWindow : public QMainWindow {
 
     QMutex scriptOptionsMutex;
     std::map<std::string, Variant> scriptOptions;
+    QList<std::string> addedScriptOptions;
 
     MainWindow();
     void loadLate();

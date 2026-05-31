@@ -331,6 +331,8 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
 
     const std::string optionId = _optionId;
 
+    addedScriptOptions.append(optionId);
+
     lua_getfield(L, -1, "type");
     auto _optionType = lua_tostring(L, -1);
     lua_pop(L, 1);
@@ -559,6 +561,7 @@ void MainWindow::recreateOptions() {
 
     scriptOptionsMutex.lock();
     lua_State *L = createLuaState();
+    addedScriptOptions.clear();
     if (luaL_dostring(L, latestLua.c_str()) == LUA_OK) {
         lua_getglobal(L, "options");
         if (lua_isfunction(L, -1)) {
@@ -570,6 +573,15 @@ void MainWindow::recreateOptions() {
                             // TODO: i had plans... but i forgot... maybe stop?
                         }
                         lua_pop(L, 1);
+                    }
+
+                    for (auto it = scriptOptions.begin();
+                         it != scriptOptions.end();) {
+                        if (!addedScriptOptions.contains(it->first)) {
+                            it = scriptOptions.erase(it);
+                        } else {
+                            it++;
+                        }
                     }
                 } else {
                     updateError("options: must be table");
