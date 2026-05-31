@@ -7,8 +7,10 @@
 #include <KTextEditor/Editor>
 #include <KTextEditor/View>
 #include <QChronoTimer>
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QLabel>
 #include <QMainWindow>
@@ -25,6 +27,12 @@
 #include <QWidget>
 
 class MainWindow;
+
+struct EncoderInfo {
+    QString encoderName;
+    QString displayName;
+    QString fileExtension;
+};
 
 class PreviewFrame {
   public:
@@ -54,6 +62,21 @@ class FramePreviewThread : public QThread {
     void run() override;
   signals:
     void taskDone(FramePreviewTask task);
+    void errored(QString error);
+};
+
+class GuiRenderThread : public QThread {
+    Q_OBJECT
+  public:
+    explicit GuiRenderThread(QObject *parent = nullptr) : QThread(parent) {}
+    MainWindow *window{nullptr};
+    Video *video{nullptr};
+    QString encoder;
+    QFileInfo fileInfo;
+
+  protected:
+    void run() override;
+  signals:
     void errored(QString error);
 };
 
@@ -102,6 +125,9 @@ class MainWindow : public QMainWindow {
     QAction *renderAction;
     QStackedWidget *stackedWidget;
 
+    QComboBox *renderVideoFormatComboBox;
+    QLineEdit *renderFilePathInput;
+
     MainWindow();
     void loadLate();
 
@@ -111,6 +137,9 @@ class MainWindow : public QMainWindow {
     void toggleTimer();
 
     void updateTabs();
+
+    void renderButtonClicked();
+    void renderVideoError(QString error);
 
     AVFrame *allocateFrame();
     void createThread();

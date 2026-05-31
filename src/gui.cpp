@@ -15,6 +15,7 @@
 #include <KTextEditor/View>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QFrame>
 #include <QLineEdit>
@@ -25,8 +26,21 @@
 #include <QSlider>
 #include <QSpacerItem>
 #include <QSplitter>
+#include <QStandardPaths>
 #include <QToolBar>
 #include <QToolButton>
+
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avassert.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/opt.h>
+#include <libavutil/timestamp.h>
+#include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
+}
 
 void FramePreviewThread::run() {
     RenderThread renderThread;
@@ -81,6 +95,113 @@ void FramePreviewThread::run() {
 
         emit taskDone(std::move(task));
     }
+}
+
+void GuiRenderThread::run() {
+    QString filePath = fileInfo.filePath();
+    QDir().mkpath(fileInfo.absolutePath());
+
+    AVFormatContext *formatContext;
+    avformat_alloc_output_context2(&formatContext, nullptr, nullptr,
+                                   qPrintable(filePath));
+    if (!formatContext) {
+        emit errored("output context could not be created");
+        return;
+    }
+
+    // add_stream()
+    const AVCodec *codec = avcodec_find_encoder_by_name(qPrintable(encoder));
+    if (!codec) {
+        emit errored("codec not found");
+        return;
+    }
+    AVCodecContext *context = avcodec_alloc_context3(codec);
+    if (!context) {
+        emit errored("context could not be created");
+        return;
+    }
+    AVPacket *tempPacket = av_packet_alloc();
+    if (!context) {
+        emit errored("packet could not be created");
+        return;
+    }
+    AVStream *stream = avformat_new_stream(formatContext, nullptr);
+    if (!context) {
+        emit errored("stream could not be created");
+        return;
+    }
+
+    av_opt_set(context->priv_data, "crf", "30", 0);
+    av_opt_set(context->priv_data, "qp", "30", 0);
+
+    context->codec_id = codec->id;
+    context->width = video->width;
+    context->height = video->height;
+    stream->time_base = {1, (int)video->frameRate};
+    context->time_base = stream->time_base;
+    context->thread_count = 0;
+    context->gop_size = 20;
+    context->pix_fmt = AV_PIX_FMT_YUV420P;
+    if (context->codec_id == AV_CODEC_ID_QTRLE) {
+        context->pix_fmt = AV_PIX_FMT_ARGB;
+    } else if (context->codec_id == AV_CODEC_ID_PRORES) {
+        context->pix_fmt = AV_PIX_FMT_YUVA444P10LE;
+    } else if (context->codec_id == AV_CODEC_ID_UTVIDEO) {
+        context->pix_fmt = AV_PIX_FMT_GBRAP;
+    } else if (context->codec_id == AV_CODEC_ID_VP9) {
+        context->pix_fmt = AV_PIX_FMT_YUVA420P;
+    }
+
+    if (formatContext->oformat->flags & AVFMT_GLOBALHEADER) {
+        context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    }
+
+    // open_video()
+    AVDictionary *opt = nullptr;
+    int ret = avcodec_open2(context, codec, &opt);
+    av_dict_free(&opt);
+    if (ret < 0) {
+        emit errored(QStringLiteral("could not open video codec: ") +
+                     av_err2str(ret));
+        return;
+    }
+
+    ret = avcodec_parameters_from_context(stream->codecpar, context);
+    if (ret < 0) {
+        emit errored(QStringLiteral("could not copy stream params: ") +
+                     av_err2str(ret));
+        return;
+    }
+
+    // ---
+    if (!(formatContext->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&formatContext->pb, qPrintable(filePath),
+                        AVIO_FLAG_WRITE);
+        if (ret < 0) {
+            emit errored(QStringLiteral("could not open file: ") +
+                         av_err2str(ret));
+            return;
+        }
+    }
+
+    ret = avformat_write_header(formatContext, &opt);
+    if (ret < 0) {
+        emit errored(QStringLiteral("could not write header: ") +
+                     av_err2str(ret));
+        return;
+    }
+
+    // TODO: writing
+
+    av_write_trailer(formatContext);
+
+    avcodec_free_context(&context);
+    av_packet_free(&tempPacket);
+
+    if (!(formatContext->flags & AVFMT_NOFILE)) {
+        avio_closep(&formatContext->pb);
+    }
+    avformat_free_context(formatContext);
 }
 
 MainWindow::MainWindow() : QMainWindow() {
@@ -308,8 +429,6 @@ end
 
     splitter->setSizes({500, 400});
 
-    stackedWidget->addWidget(new QLabel("render", stackedWidget));
-
     // TODO: use QDateTime::currentMSecsSinceEpoch() or QElapsedTimer for better
     // precision instead of relying on microsecond timers
     timer = new QChronoTimer(this);
@@ -320,6 +439,60 @@ end
 
     durationInput->setValue(video->duration);
     updateButtons();
+
+    auto renderWidget = new QScrollArea(stackedWidget);
+    renderWidget->setAlignment(Qt::AlignmentFlag::AlignTop |
+                               Qt::AlignmentFlag::AlignHCenter);
+    auto renderContent = new QWidget(renderWidget);
+    renderContent->setMaximumWidth(700);
+    renderWidget->setWidgetResizable(true);
+    renderWidget->setWidget(renderContent);
+    auto renderLayout = new QVBoxLayout(renderContent);
+    renderLayout->setContentsMargins(8, 16, 8, 16);
+
+    renderLayout->addWidget(new QLabel("Location:"));
+
+    renderFilePathInput = new QLineEdit(renderContent);
+    QDateTime now = QDateTime::currentDateTime();
+    renderFilePathInput->setText(
+        QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) +
+        QDir::separator() + "Graphics" + QDir::separator() +
+        now.toString("yyyy-MM-dd hh-mm-ss") + ".mov");
+    renderLayout->addWidget(renderFilePathInput);
+
+    renderLayout->addWidget(new QLabel("Video format:"));
+
+    renderVideoFormatComboBox = new QComboBox(renderContent);
+    QList<EncoderInfo> encoders = {
+        {"prores_ks", ".mov (Apple ProRes) (Recommended)", ".mov"},
+        {"libx264", ".mp4 (H264), no transparency", ".mp4"},
+        {"h264_nvenc", ".mp4 (H264), no transparency, NVIDIA", ".mp4"},
+        {"libsvtav1", ".webm (AV1)", ".webm"},
+    };
+
+    for (const auto &encoder : encoders) {
+        const AVCodec *codec =
+            avcodec_find_encoder_by_name(qPrintable(encoder.encoderName));
+        if (!codec) {
+            continue;
+        }
+
+        renderVideoFormatComboBox->addItem(
+            encoder.displayName, QVariant::fromValue(encoder.encoderName));
+    }
+
+    renderLayout->addWidget(renderVideoFormatComboBox);
+
+    renderLayout->addSpacing(8);
+
+    auto renderButton = new QPushButton("Render", renderContent);
+    connect(renderButton, &QPushButton::clicked, this,
+            &MainWindow::renderButtonClicked);
+    renderLayout->addWidget(renderButton);
+
+    renderLayout->addStretch();
+
+    stackedWidget->addWidget(renderWidget);
 
     stackedWidget->setCurrentIndex(1);
     updateTabs();
@@ -333,6 +506,32 @@ end
     updateStatus();
     this->unsetCursor();
     qDebug() << "late init took" << measure.elapsed() << "ms";
+}
+
+void MainWindow::renderVideoError(QString error) {
+    qCritical() << error;
+    KMessageBox::error(
+        this, "An error occured while rendering the video.\n\n" + error,
+        "Render error");
+}
+
+void MainWindow::renderButtonClicked() {
+    QFileInfo fileInfo = QFileInfo(renderFilePathInput->text());
+    QString encoder = renderVideoFormatComboBox->currentData().toString();
+
+    GuiRenderThread *thread = new GuiRenderThread(this);
+    thread->window = this;
+    thread->video = video;
+    thread->fileInfo = fileInfo;
+    thread->encoder = encoder;
+
+    thread->start();
+
+    connect(thread, &GuiRenderThread::errored, this,
+            &MainWindow::renderVideoError);
+
+    connect(thread, &GuiRenderThread::finished, thread,
+            [thread]() { thread->deleteLater(); });
 }
 
 void MainWindow::updateTabs() {
@@ -880,6 +1079,7 @@ int main(int argc, char **argv) {
     KIconTheme::initTheme();
     QApplication application(argc, argv);
     qInfo() << "pid:" << application.applicationPid();
+    application.setApplicationDisplayName(QStringLiteral("Graphics Creator"));
     KStyleManager::initStyle();
     MainWindow widget;
     widget.show();
