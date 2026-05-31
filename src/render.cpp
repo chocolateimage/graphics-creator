@@ -401,6 +401,11 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
 
     float seconds = (float)frameIndex / video->frameRate;
 
+    for (const auto &option : options) {
+        option.second.pushLua(L);
+        lua_setglobal(L, option.first.c_str());
+    }
+
     lua_pushnumber(L, frameIndex);
     lua_setglobal(L, "frameIndex");
 
@@ -430,11 +435,6 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
 
     lua_pushnumber(L, startY + renderHeight - 1);
     lua_setglobal(L, "toY");
-
-    for (const auto &option : options) {
-        option.second.pushLua(L);
-        lua_setglobal(L, option.first.c_str());
-    }
 
     lua_getglobal(L, "draw");
     createPlanes(width, height);
