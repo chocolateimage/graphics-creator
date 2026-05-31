@@ -26,6 +26,7 @@ class FontInfo {
     FT_Face face;
     hb_font_t *hb;
     int pixelHeight;
+    int framesUnused{0};
 };
 
 class RenderThread {

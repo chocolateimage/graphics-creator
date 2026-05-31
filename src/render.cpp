@@ -290,7 +290,9 @@ Text::~Text() {
 FontInfo *RenderThread::getFont(const Font &font) {
     auto it = loadedFonts.find(getFontHash(font));
     if (it != loadedFonts.end()) {
-        return it->second;
+        FontInfo *fontInfo = it->second;
+        fontInfo->framesUnused = 0;
+        return fontInfo;
     }
 
     int pixelHeight = 128;
@@ -437,6 +439,16 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
         lastError = err;
         lua_pop(L, 1);
         return false;
+    }
+
+    for (auto it = loadedFonts.begin(); it != loadedFonts.end();) {
+        if (it->second->framesUnused > 30) {
+            delete it->second;
+            it = loadedFonts.erase(it);
+        } else {
+            it->second->framesUnused++;
+            it++;
+        }
     }
 
     for (int y = startY; y < startY + renderHeight; y++) {
