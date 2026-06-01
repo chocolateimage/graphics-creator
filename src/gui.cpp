@@ -422,47 +422,34 @@ void MainWindow::loadLate() {
             id = "font",
             type = "font",
         },
-        {
-            id = "text",
-            type = "string",
-            default = "Hello world",
-        },
-        {
-            id = "fontSize",
-            type = "int",
-            slider = true,
-            default = 128,
-            min = 0,
-            max = 1000,
-        },
-        {
-            id = "testPoint",
-            type = "vector2dint",
-            label = "Text position",
-            default = {x = 100, y = 500},
-        },
-        {
-            id = "borderColor",
-            type = "color",
-            default = {r = 255, g = 255, b = 0, a = 255},
-        },
     }
 end
 
 function draw(_frame)
     local frame = ffi.cast("uint32_t*", _frame)
+
+    local ti = createText("frame: " .. frameIndex, font)
+    local _,_,_,_,w,h = getTextInfo(ti, 128)
+
     for y = fromY, toY do
         for x = fromX, toX do
             local red = 0
             local green = 0
-            local blue = 255
+            local blue = 0
             local alpha = 255
 
             -- put your draw code here!
+            local tx = x - 100
+            local ty = y - 100
+            if tx >= 0 and ty >= 0 and tx < w and ty < h then
+                local value = smoothstep(-0.05, 0.05, getPixel(ti, 128, tx, ty)) * 255
+                red = value
+                green = value
+            end
 
-            local dist = distance(x, y, testPoint.x, testPoint.y)
-
-            red = (1 - saturate(dist / 100)) * 255
+            if x < seconds / duration * width then
+                blue = 255
+            end
 
             frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
         end
@@ -517,7 +504,9 @@ end
     renderFilePathInput = new QLineEdit(renderContent);
 
     encoders = {
-        {"prores_ks", ".mov (Apple ProRes) (Recommended)", ".mov"},
+        // prores_ks not used because it gives out of order frames and causes
+        // artifacts
+        {"prores", ".mov (Apple ProRes) (Recommended)", ".mov"},
         {"libx264", ".mp4 (H264), no transparency", ".mp4"},
         {"h264_nvenc", ".mp4 (H264), no transparency, NVIDIA", ".mp4"},
         {"libsvtav1", ".webm (AV1)", ".webm"},
