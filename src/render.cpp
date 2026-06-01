@@ -54,9 +54,8 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
     }
 
     FT_Glyph _glyph;
-    FT_Load_Glyph(face, codepoint,
-                  FT_LOAD_RENDER | FT_LOAD_NO_BITMAP |
-                      FT_LOAD_TARGET_(FT_RENDER_MODE_SDF));
+    FT_Load_Glyph(face, codepoint, FT_LOAD_RENDER | FT_LOAD_NO_BITMAP);
+    FT_Render_Glyph(face->glyph, FT_RENDER_MODE_SDF);
     FT_Get_Glyph(face->glyph, &_glyph);
 
     FT_BitmapGlyph glyph = (FT_BitmapGlyph)_glyph;
