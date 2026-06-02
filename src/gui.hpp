@@ -85,6 +85,10 @@ class GuiRenderThread : public QThread {
     Video *video{nullptr};
     QString encoder;
     QFileInfo fileInfo;
+    QMutex frameMutex;
+    std::unordered_map<int64_t, AVFrame *> frames;
+    int64_t currentFrameIndex{0};
+    int64_t lastFrameIndex{0};
 
   protected:
     void run() override;
@@ -98,6 +102,22 @@ class GuiRenderThread : public QThread {
     AVStream *stream{nullptr};
 
     bool writeFrame(AVFrame *frame);
+
+  signals:
+    void errored(QString error);
+};
+
+class GuiRenderDrawThread : public QThread {
+    Q_OBJECT
+  public:
+    explicit GuiRenderDrawThread(QObject *parent = nullptr) : QThread(parent) {}
+    GuiRenderThread *guiRenderThread{nullptr};
+    MainWindow *window{nullptr};
+    Video *video{nullptr};
+    int frameFormat;
+
+  protected:
+    void run() override;
 
   signals:
     void errored(QString error);

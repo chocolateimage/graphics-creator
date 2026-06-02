@@ -179,43 +179,55 @@ void GuiRenderThread::run() {
         return;
     }
 
-    RenderThread renderThread;
-    renderThread.init();
+    int64_t frameCount = video->duration * video->frameRate;
+    lastFrameIndex = frameCount;
 
-    window->latestLuaMutex.lock();
-    bool error = !renderThread.loadLua(window->latestLua);
-    window->latestLuaMutex.unlock();
-    if (error) {
-        emit errored(QString::fromStdString(renderThread.lastError));
-        return;
+    QList<GuiRenderDrawThread *> threads;
+
+    for (int i = 0; i < std::max(1, QThread::idealThreadCount() - 1); i++) {
+        GuiRenderDrawThread *thread = new GuiRenderDrawThread();
+        thread->guiRenderThread = this;
+        thread->window = window;
+        thread->video = video;
+        thread->frameFormat = context->pix_fmt;
+        connect(thread, &GuiRenderDrawThread::errored, this,
+                &GuiRenderThread::errored);
+        thread->start();
+        threads.append(thread);
     }
 
-    window->scriptOptionsMutex.lock();
-    renderThread.updateOptions(window->scriptOptions);
-    window->scriptOptionsMutex.unlock();
+    for (int64_t i = 0; i <= frameCount; i++) {
+        frameMutex.lock();
+        auto frame = frames.find(i);
+        if (frame == frames.end()) {
+            frameMutex.unlock();
+            QThread::usleep(500);
+            i--;
+            continue;
+        }
 
-    int frameCount = video->duration * video->frameRate;
+        AVFrame *avFrame = frame->second;
+        frames.erase(frame);
+        frameMutex.unlock();
 
-    AVFrame *frame = video->allocateFrame();
-    frame->format = context->pix_fmt;
-    av_frame_get_buffer(frame, 0);
-    av_frame_make_writable(frame);
-
-    for (int i = 0; i <= frameCount; i++) {
         qInfo() << i;
-        frame->pts = i;
-        if (!renderThread.drawImage(video, frame, 0, 0, video->width,
-                                    video->height)) {
-            emit errored(QString::fromStdString(renderThread.lastError));
+
+        bool continueRunning = false;
+
+        continueRunning = writeFrame(avFrame);
+
+        av_frame_free(&avFrame);
+
+        if (!continueRunning)
             break;
-        }
-        if (!writeFrame(frame)) {
-            break;
-        }
     }
     writeFrame(nullptr);
 
-    renderThread.close();
+    for (auto thread : threads) {
+        thread->wait();
+        delete thread;
+    }
+    threads.clear();
 
     av_write_trailer(formatContext);
 
@@ -258,6 +270,61 @@ bool GuiRenderThread::writeFrame(AVFrame *frame) {
     }
 
     return true;
+}
+
+void GuiRenderDrawThread::run() {
+    RenderThread renderThread;
+    renderThread.init();
+
+    window->latestLuaMutex.lock();
+    bool error = !renderThread.loadLua(window->latestLua);
+    window->latestLuaMutex.unlock();
+    if (error) {
+        emit errored(QString::fromStdString(renderThread.lastError));
+        return;
+    }
+
+    window->scriptOptionsMutex.lock();
+    renderThread.updateOptions(window->scriptOptions);
+    window->scriptOptionsMutex.unlock();
+
+    while (true) {
+        guiRenderThread->frameMutex.lock();
+
+        if (guiRenderThread->frames.size() > 300) {
+            guiRenderThread->frameMutex.unlock();
+            QThread::msleep(1);
+            continue;
+        }
+
+        if (guiRenderThread->currentFrameIndex >
+            guiRenderThread->lastFrameIndex) {
+            guiRenderThread->frameMutex.unlock();
+            break;
+        }
+
+        AVFrame *frame = video->allocateFrame();
+        frame->format = frameFormat;
+        av_frame_get_buffer(frame, 0);
+        av_frame_make_writable(frame);
+
+        int64_t curFrame = guiRenderThread->currentFrameIndex++;
+        guiRenderThread->frameMutex.unlock();
+
+        frame->pts = curFrame;
+
+        if (!renderThread.drawImage(video, frame, 0, 0, video->width,
+                                    video->height)) {
+            emit errored(QString::fromStdString(renderThread.lastError));
+            break;
+        }
+
+        guiRenderThread->frameMutex.lock();
+        guiRenderThread->frames[curFrame] = frame;
+        guiRenderThread->frameMutex.unlock();
+    }
+
+    renderThread.close();
 }
 
 MainWindow::MainWindow() : QMainWindow() {
