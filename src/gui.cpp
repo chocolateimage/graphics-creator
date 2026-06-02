@@ -195,6 +195,8 @@ void GuiRenderThread::run() {
         threads.append(thread);
     }
 
+    emit progressed(0, lastFrameIndex);
+
     for (int64_t i = 0; i <= frameCount; i++) {
         if (isCancelling)
             break;
@@ -207,6 +209,8 @@ void GuiRenderThread::run() {
             i--;
             continue;
         }
+
+        emit progressed(i, lastFrameIndex);
 
         AVFrame *avFrame = frame->second;
         frames.erase(frame);
@@ -638,12 +642,21 @@ end
 
     renderLayout->addSpacing(8);
 
-    auto renderButton = new QPushButton("Render", renderContent);
+    renderButton = new QPushButton("Render", renderContent);
     connect(renderButton, &QPushButton::clicked, this,
             &MainWindow::renderButtonClicked);
     renderLayout->addWidget(renderButton);
 
     renderLayout->addStretch();
+
+    renderProgressLabel = new QLabel(renderContent);
+    renderProgressLabel->hide();
+    renderLayout->addWidget(renderProgressLabel);
+
+    renderProgressBar = new QProgressBar(renderContent);
+    renderProgressBar->setRange(0, 0);
+    renderProgressBar->hide();
+    renderLayout->addWidget(renderProgressBar);
 
     stackedWidget->addWidget(renderWidget);
 
@@ -695,6 +708,12 @@ void MainWindow::renderButtonClicked() {
         }
     }
 
+    renderButton->setDisabled(true);
+    renderProgressLabel->setText("Preparing...");
+    renderProgressBar->setRange(0, 0);
+    renderProgressLabel->show();
+    renderProgressBar->show();
+
     GuiRenderThread *thread = new GuiRenderThread(this);
     thread->window = this;
     thread->video = video;
@@ -706,8 +725,21 @@ void MainWindow::renderButtonClicked() {
     connect(thread, &GuiRenderThread::errored, this,
             &MainWindow::renderVideoError);
 
-    connect(thread, &GuiRenderThread::finished, thread,
-            [thread]() { thread->deleteLater(); });
+    connect(thread, &GuiRenderThread::finished, thread, [this, thread]() {
+        thread->deleteLater();
+        renderButton->setDisabled(false);
+        renderProgressLabel->hide();
+        renderProgressBar->hide();
+    });
+
+    connect(thread, &GuiRenderThread::progressed, thread,
+            [this](int64_t frame, int64_t lastFrame) {
+                renderProgressLabel->setText("Rendering (frame " +
+                                             QString::number(frame) + "/" +
+                                             QString::number(lastFrame) + ")");
+                renderProgressBar->setRange(0, lastFrame);
+                renderProgressBar->setValue(frame);
+            });
 }
 
 void MainWindow::updateTabs() {

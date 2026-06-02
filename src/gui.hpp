@@ -16,6 +16,7 @@
 #include <QMainWindow>
 #include <QMutex>
 #include <QPointer>
+#include <QProgressBar>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QQueue>
@@ -109,6 +110,7 @@ class GuiRenderThread : public QThread {
 
   signals:
     void errored(QString error);
+    void progressed(int64_t frame, int64_t lastFrame);
 };
 
 class GuiRenderDrawThread : public QThread {
@@ -174,6 +176,9 @@ class MainWindow : public QMainWindow {
 
     QComboBox *renderVideoFormatComboBox;
     QLineEdit *renderFilePathInput;
+    QPushButton *renderButton;
+    QLabel *renderProgressLabel;
+    QProgressBar *renderProgressBar;
 
     QList<EncoderInfo> encoders;
 
