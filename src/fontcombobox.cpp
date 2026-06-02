@@ -186,8 +186,8 @@ void FontComboBox::showPopup() {
         for (auto group : fontGroups) {
             std::sort(group.second->styles.begin(), group.second->styles.end(),
                       [](const FontPopupStyle &a, const FontPopupStyle &b) {
-                          return (a.weight * 10 + a.slant) <
-                                 (b.weight * 10 + b.slant);
+                          return (a.weight * 1000 + a.slant) <
+                                 (b.weight * 1000 + b.slant);
                       });
             fontGroupsList.push_back(group.second);
         }
