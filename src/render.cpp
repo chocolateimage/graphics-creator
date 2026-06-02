@@ -46,8 +46,6 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
     // TODO: use better hash. this is terrible.
     std::string hash = getFontHash(font) + ";" + std::to_string(codepoint);
 
-    std::scoped_lock lock{glyphLoadingMutex};
-
     auto it = glyphMap.find(hash);
     if (it != glyphMap.end()) {
         return it->second;
@@ -170,6 +168,7 @@ void Text::calculateSize() {
     if (fontInfo == nullptr)
         return;
 
+    std::scoped_lock lock{glyphLoadingMutex};
     int curX = 0;
     int curY = 0;
 
@@ -203,6 +202,7 @@ void Text::draw() {
     if (fontInfo == nullptr)
         return;
 
+    std::scoped_lock lock{glyphLoadingMutex};
     int curX = 0;
     int curY = 0;
 
