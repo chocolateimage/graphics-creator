@@ -89,6 +89,7 @@ class GuiRenderThread : public QThread {
     std::unordered_map<int64_t, AVFrame *> frames;
     int64_t currentFrameIndex{0};
     int64_t lastFrameIndex{0};
+    std::atomic<bool> isCancelling{false};
 
   protected:
     void run() override;
@@ -102,6 +103,9 @@ class GuiRenderThread : public QThread {
     AVStream *stream{nullptr};
 
     bool writeFrame(AVFrame *frame);
+
+  public slots:
+    void doErrored(QString error);
 
   signals:
     void errored(QString error);

@@ -94,29 +94,29 @@ void GuiRenderThread::run() {
     avformat_alloc_output_context2(&formatContext, nullptr, nullptr,
                                    qPrintable(filePath));
     if (!formatContext) {
-        emit errored("output context could not be created");
+        doErrored("output context could not be created");
         return;
     }
 
     // add_stream()
     codec = avcodec_find_encoder_by_name(qPrintable(encoder));
     if (!codec) {
-        emit errored("codec not found");
+        doErrored("codec not found");
         return;
     }
     context = avcodec_alloc_context3(codec);
     if (!context) {
-        emit errored("context could not be created");
+        doErrored("context could not be created");
         return;
     }
     tempPacket = av_packet_alloc();
     if (!context) {
-        emit errored("packet could not be created");
+        doErrored("packet could not be created");
         return;
     }
     stream = avformat_new_stream(formatContext, nullptr);
     if (!context) {
-        emit errored("stream could not be created");
+        doErrored("stream could not be created");
         return;
     }
 
@@ -149,15 +149,15 @@ void GuiRenderThread::run() {
     int ret = avcodec_open2(context, codec, &opt);
     av_dict_free(&opt);
     if (ret < 0) {
-        emit errored(QStringLiteral("could not open video codec: ") +
-                     av_err2str(ret));
+        doErrored(QStringLiteral("could not open video codec: ") +
+                  av_err2str(ret));
         return;
     }
 
     ret = avcodec_parameters_from_context(stream->codecpar, context);
     if (ret < 0) {
-        emit errored(QStringLiteral("could not copy stream params: ") +
-                     av_err2str(ret));
+        doErrored(QStringLiteral("could not copy stream params: ") +
+                  av_err2str(ret));
         return;
     }
 
@@ -166,16 +166,15 @@ void GuiRenderThread::run() {
         ret = avio_open(&formatContext->pb, qPrintable(filePath),
                         AVIO_FLAG_WRITE);
         if (ret < 0) {
-            emit errored(QStringLiteral("could not open file: ") +
-                         av_err2str(ret));
+            doErrored(QStringLiteral("could not open file: ") +
+                      av_err2str(ret));
             return;
         }
     }
 
     ret = avformat_write_header(formatContext, &opt);
     if (ret < 0) {
-        emit errored(QStringLiteral("could not write header: ") +
-                     av_err2str(ret));
+        doErrored(QStringLiteral("could not write header: ") + av_err2str(ret));
         return;
     }
 
@@ -191,12 +190,15 @@ void GuiRenderThread::run() {
         thread->video = video;
         thread->frameFormat = context->pix_fmt;
         connect(thread, &GuiRenderDrawThread::errored, this,
-                &GuiRenderThread::errored);
+                &GuiRenderThread::doErrored);
         thread->start();
         threads.append(thread);
     }
 
     for (int64_t i = 0; i <= frameCount; i++) {
+        if (isCancelling)
+            break;
+
         frameMutex.lock();
         auto frame = frames.find(i);
         if (frame == frames.end()) {
@@ -244,8 +246,8 @@ void GuiRenderThread::run() {
 bool GuiRenderThread::writeFrame(AVFrame *frame) {
     int ret = avcodec_send_frame(context, frame);
     if (ret < 0) {
-        emit errored(QStringLiteral("error sending frame to encoder: ") +
-                     av_err2str(ret));
+        doErrored(QStringLiteral("error sending frame to encoder: ") +
+                  av_err2str(ret));
         return false;
     }
 
@@ -254,8 +256,8 @@ bool GuiRenderThread::writeFrame(AVFrame *frame) {
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             break;
         } else if (ret < 0) {
-            emit errored(QStringLiteral("error encoding frame: ") +
-                         av_err2str(ret));
+            doErrored(QStringLiteral("error encoding frame: ") +
+                      av_err2str(ret));
             return false;
         }
 
@@ -263,13 +265,20 @@ bool GuiRenderThread::writeFrame(AVFrame *frame) {
         tempPacket->stream_index = stream->index;
         ret = av_interleaved_write_frame(formatContext, tempPacket);
         if (ret < 0) {
-            emit errored(QStringLiteral("error writing output packet: ") +
-                         av_err2str(ret));
+            doErrored(QStringLiteral("error writing output packet: ") +
+                      av_err2str(ret));
             return false;
         }
     }
 
     return true;
+}
+
+void GuiRenderThread::doErrored(QString error) {
+    if (isCancelling)
+        return;
+    isCancelling = true;
+    emit errored(error);
 }
 
 void GuiRenderDrawThread::run() {
@@ -288,7 +297,7 @@ void GuiRenderDrawThread::run() {
     renderThread.updateOptions(window->scriptOptions);
     window->scriptOptionsMutex.unlock();
 
-    while (true) {
+    while (!guiRenderThread->isCancelling) {
         guiRenderThread->frameMutex.lock();
 
         if (guiRenderThread->frames.size() > 300) {
