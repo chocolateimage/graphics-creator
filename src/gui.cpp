@@ -687,7 +687,7 @@ void MainWindow::renderButtonClicked() {
     if (fileInfo.exists()) {
         if (KMessageBox::warningTwoActions(
                 this,
-                "The file \"" + fileInfo.path() +
+                "The file \"" + fileInfo.filePath() +
                     "\" already exists. Do you want to overwrite it?",
                 "Overwrite file?", KStandardGuiItem::overwrite(),
                 KStandardGuiItem::cancel()) != KMessageBox::PrimaryAction) {
