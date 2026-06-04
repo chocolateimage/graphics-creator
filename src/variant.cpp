@@ -32,6 +32,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Vector2DInt;
     } else if (type == "font") {
         return VariantTypeEnum::Font;
+    } else if (type == "bool") {
+        return VariantTypeEnum::Bool;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -53,6 +55,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(Vector2DInt{0, 0});
     case VariantTypeEnum::Font:
         return Variant(Font{});
+    case VariantTypeEnum::Bool:
+        return Variant(false);
     }
 }
 
@@ -113,6 +117,9 @@ void Variant::pushLua(lua_State *L) const {
         lua_settable(L, -3);
         break;
     }
+    case VariantTypeEnum::Bool:
+        lua_pushboolean(L, get<bool>());
+        break;
     };
 }
 
@@ -165,6 +172,10 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
         const char *filePath = lua_tostring(L, -1);
         lua_pop(L, 1);
         return Variant(Font{filePath, fontIndex, ""});
+    }
+    case VariantTypeEnum::Bool: {
+        bool value = lua_toboolean(L, index);
+        return Variant(value);
     }
     };
 }

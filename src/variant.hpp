@@ -47,7 +47,7 @@ struct Font {
 std::string getFontHash(const Font &font);
 
 using VariantType = std::variant<std::monostate, std::string, int, double,
-                                 Color, Vector2DInt, Font>;
+                                 Color, Vector2DInt, Font, bool>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -58,6 +58,7 @@ struct VariantTypeEnum {
         Color,
         Vector2DInt,
         Font,
+        Bool,
     };
 };
 

@@ -14,6 +14,7 @@
 #include <KStyleManager>
 #include <KTextEditor/View>
 #include <QApplication>
+#include <QCheckBox>
 #include <QCloseEvent>
 #include <QDir>
 #include <QElapsedTimer>
@@ -1020,6 +1021,15 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
                 });
 
         widget = fontWidget;
+    } else if (optionType == VariantTypeEnum::Bool) {
+        auto input = new QCheckBox(optionsWidget);
+        input->setChecked(variant.get<bool>());
+        connect(input, &QCheckBox::checkStateChanged, this,
+                [this, optionId](Qt::CheckState checkState) {
+                    updateOption(optionId, Variant(checkState ==
+                                                   Qt::CheckState::Checked));
+                });
+        widget = input;
     }
 
     if (!widget) {
