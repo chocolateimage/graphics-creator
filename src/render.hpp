@@ -50,6 +50,7 @@ class RenderThread {
     uint32_t *values{nullptr};
     int lastWidth{0};
     int lastHeight{0};
+    int framesSinceLastGc{0};
 };
 
 class Text {

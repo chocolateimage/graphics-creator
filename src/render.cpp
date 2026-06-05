@@ -447,6 +447,12 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
         return false;
     }
 
+    framesSinceLastGc++;
+    if (framesSinceLastGc > 10) {
+        framesSinceLastGc = 0;
+        lua_gc(L, LUA_GCCOLLECT, 0);
+    }
+
     for (auto it = loadedFonts.begin(); it != loadedFonts.end();) {
         if (it->second->framesUnused > 30) {
             delete it->second;
