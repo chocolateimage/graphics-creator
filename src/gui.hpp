@@ -88,9 +88,12 @@ class GuiRenderThread : public QThread {
     QFileInfo fileInfo;
     QMutex frameMutex;
     std::unordered_map<int64_t, AVFrame *> frames;
+    std::vector<AVFrame *> unusedFrames;
     int64_t currentFrameIndex{0};
     int64_t lastFrameIndex{0};
     std::atomic<bool> isCancelling{false};
+
+    AVFrame *getFrame();
 
   protected:
     void run() override;
@@ -120,7 +123,6 @@ class GuiRenderDrawThread : public QThread {
     GuiRenderThread *guiRenderThread{nullptr};
     MainWindow *window{nullptr};
     Video *video{nullptr};
-    int frameFormat;
 
   protected:
     void run() override;

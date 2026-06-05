@@ -189,7 +189,6 @@ void GuiRenderThread::run() {
         thread->guiRenderThread = this;
         thread->window = window;
         thread->video = video;
-        thread->frameFormat = context->pix_fmt;
         connect(thread, &GuiRenderDrawThread::errored, this,
                 &GuiRenderThread::doErrored);
         thread->start();
@@ -223,7 +222,9 @@ void GuiRenderThread::run() {
 
         continueRunning = writeFrame(avFrame);
 
-        av_frame_free(&avFrame);
+        frameMutex.lock();
+        unusedFrames.push_back(avFrame);
+        frameMutex.unlock();
 
         if (!continueRunning)
             break;
@@ -235,6 +236,11 @@ void GuiRenderThread::run() {
         delete thread;
     }
     threads.clear();
+
+    for (auto frame : unusedFrames) {
+        av_frame_free(&frame);
+    }
+    unusedFrames.clear();
 
     av_write_trailer(formatContext);
 
@@ -279,6 +285,21 @@ bool GuiRenderThread::writeFrame(AVFrame *frame) {
     return true;
 }
 
+AVFrame *GuiRenderThread::getFrame() {
+    QMutexLocker locker(&frameMutex);
+    if (!unusedFrames.empty()) {
+        AVFrame *frame = unusedFrames.back();
+        unusedFrames.pop_back();
+        return frame;
+    }
+
+    AVFrame *frame = video->allocateFrame();
+    frame->format = context->pix_fmt;
+    av_frame_get_buffer(frame, 0);
+    av_frame_make_writable(frame);
+    return frame;
+}
+
 void GuiRenderThread::doErrored(QString error) {
     if (isCancelling)
         return;
@@ -317,14 +338,10 @@ void GuiRenderDrawThread::run() {
             break;
         }
 
-        AVFrame *frame = video->allocateFrame();
-        frame->format = frameFormat;
-        av_frame_get_buffer(frame, 0);
-        av_frame_make_writable(frame);
-
         int64_t curFrame = guiRenderThread->currentFrameIndex++;
         guiRenderThread->frameMutex.unlock();
 
+        AVFrame *frame = guiRenderThread->getFrame();
         frame->pts = curFrame;
 
         if (!renderThread.drawImage(video, frame, 0, 0, video->width,
