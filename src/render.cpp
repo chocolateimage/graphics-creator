@@ -431,8 +431,15 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
     lua_setglobal(L, "toY");
 
     lua_getglobal(L, "draw");
-    createPlanes(width, height);
-    lua_pushlightuserdata(L, values);
+
+    bool savePlanes = pixelFormat != AV_PIX_FMT_BGRA;
+    if (savePlanes) {
+        createPlanes(width, height);
+        lua_pushlightuserdata(L, values);
+    } else {
+        lua_pushlightuserdata(L, frame->data[0]);
+    }
+
     if (lua_pcall(L, 1, 0, 0) == LUA_ERRRUN) {
         auto err = lua_tostring(L, -1);
         lastError = err;
@@ -449,89 +456,87 @@ bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
             it++;
         }
     }
+    if (savePlanes) {
+        for (int y = startY; y < startY + renderHeight; y++) {
+            for (int x = startX; x < startX + renderWidth; x++) {
+                uint32_t value = values[y * width + x];
 
-    for (int y = startY; y < startY + renderHeight; y++) {
-        if (pixelFormat == AV_PIX_FMT_BGRA) {
-            memcpy(frame->data[0] + (y * frame->linesize[0] + startX * 4),
-                   (void *)(values + y * width + startX), renderWidth * 4);
-            continue;
-        }
+                uint8_t blue = value & 0xff;
+                uint8_t green = value >> 8 & 0xff;
+                uint8_t red = value >> 16 & 0xff;
+                uint8_t alpha = value >> 24 & 0xff;
 
-        for (int x = startX; x < startX + renderWidth; x++) {
-            uint32_t value = values[y * width + x];
+                float Y = 0.299 * red + 0.587 * green + 0.114 * blue;
 
-            uint8_t blue = value & 0xff;
-            uint8_t green = value >> 8 & 0xff;
-            uint8_t red = value >> 16 & 0xff;
-            uint8_t alpha = value >> 24 & 0xff;
+                switch (pixelFormat) {
+                case AV_PIX_FMT_YUV420P: {
+                    if (alpha < 255) {
+                        uint8_t transparencyPixel =
+                            (((x / 10) % 2 == ((y / 10) % 2 == 0))) ? 255 : 200;
+                        red = mix(alpha / 255.f, transparencyPixel, red);
+                        green = mix(alpha / 255.f, transparencyPixel, green);
+                        blue = mix(alpha / 255.f, transparencyPixel, blue);
+                        Y = 0.299 * red + 0.587 * green + 0.114 * blue;
+                    }
+                    frame->data[0][y * frame->linesize[0] + x] = Y;
 
-            float Y = 0.299 * red + 0.587 * green + 0.114 * blue;
-
-            switch (pixelFormat) {
-            case AV_PIX_FMT_YUV420P: {
-                if (alpha < 255) {
-                    uint8_t transparencyPixel =
-                        (((x / 10) % 2 == ((y / 10) % 2 == 0))) ? 255 : 200;
-                    red = mix(alpha / 255.f, transparencyPixel, red);
-                    green = mix(alpha / 255.f, transparencyPixel, green);
-                    blue = mix(alpha / 255.f, transparencyPixel, blue);
-                    Y = 0.299 * red + 0.587 * green + 0.114 * blue;
+                    if (x % 2 == 0 && y % 2 == 0) {
+                        float Cb =
+                            -0.169 * red - 0.331 * green + 0.500 * blue + 128;
+                        float Cr =
+                            0.500 * red - 0.419 * green - 0.081 * blue + 128;
+                        frame->data[1][(y >> 1) * frame->linesize[1] +
+                                       (x >> 1)] = Cb;
+                        frame->data[2][(y >> 1) * frame->linesize[2] +
+                                       (x >> 1)] = Cr;
+                    }
+                    break;
                 }
-                frame->data[0][y * frame->linesize[0] + x] = Y;
+                case AV_PIX_FMT_YUVA420P: {
+                    frame->data[0][y * frame->linesize[0] + x] = Y;
+                    frame->data[3][y * frame->linesize[3] + x] = alpha;
 
-                if (x % 2 == 0 && y % 2 == 0) {
+                    if (x % 2 == 0 && y % 2 == 0) {
+                        float Cb =
+                            -0.169 * red - 0.331 * green + 0.500 * blue + 128;
+                        float Cr =
+                            0.500 * red - 0.419 * green - 0.081 * blue + 128;
+                        frame->data[1][(y >> 1) * frame->linesize[1] +
+                                       (x >> 1)] = Cb;
+                        frame->data[2][(y >> 1) * frame->linesize[2] +
+                                       (x >> 1)] = Cr;
+                    }
+                    break;
+                }
+                case AV_PIX_FMT_YUVA444P10LE: {
                     float Cb =
                         -0.169 * red - 0.331 * green + 0.500 * blue + 128;
                     float Cr = 0.500 * red - 0.419 * green - 0.081 * blue + 128;
-                    frame->data[1][(y >> 1) * frame->linesize[1] + (x >> 1)] =
-                        Cb;
-                    frame->data[2][(y >> 1) * frame->linesize[2] + (x >> 1)] =
-                        Cr;
+                    ((uint16_t *)(frame->data[0] + y * frame->linesize[0]))[x] =
+                        Y * 4;
+                    ((uint16_t *)(frame->data[1] + y * frame->linesize[1]))[x] =
+                        Cb * 4;
+                    ((uint16_t *)(frame->data[2] + y * frame->linesize[2]))[x] =
+                        Cr * 4;
+                    ((uint16_t *)(frame->data[3] + y * frame->linesize[3]))[x] =
+                        alpha * 4;
+                    break;
                 }
-                break;
-            }
-            case AV_PIX_FMT_YUVA420P: {
-                frame->data[0][y * frame->linesize[0] + x] = Y;
-                frame->data[3][y * frame->linesize[3] + x] = alpha;
-
-                if (x % 2 == 0 && y % 2 == 0) {
-                    float Cb =
-                        -0.169 * red - 0.331 * green + 0.500 * blue + 128;
-                    float Cr = 0.500 * red - 0.419 * green - 0.081 * blue + 128;
-                    frame->data[1][(y >> 1) * frame->linesize[1] + (x >> 1)] =
-                        Cb;
-                    frame->data[2][(y >> 1) * frame->linesize[2] + (x >> 1)] =
-                        Cr;
+                case AV_PIX_FMT_GBRAP: {
+                    frame->data[0][y * frame->linesize[0] + x] = green;
+                    frame->data[1][y * frame->linesize[1] + x] = blue;
+                    frame->data[2][y * frame->linesize[2] + x] = red;
+                    frame->data[3][y * frame->linesize[3] + x] = alpha;
+                    break;
                 }
-                break;
-            }
-            case AV_PIX_FMT_YUVA444P10LE: {
-                float Cb = -0.169 * red - 0.331 * green + 0.500 * blue + 128;
-                float Cr = 0.500 * red - 0.419 * green - 0.081 * blue + 128;
-                ((uint16_t *)(frame->data[0] + y * frame->linesize[0]))[x] =
-                    Y * 4;
-                ((uint16_t *)(frame->data[1] + y * frame->linesize[1]))[x] =
-                    Cb * 4;
-                ((uint16_t *)(frame->data[2] + y * frame->linesize[2]))[x] =
-                    Cr * 4;
-                ((uint16_t *)(frame->data[3] + y * frame->linesize[3]))[x] =
-                    alpha * 4;
-                break;
-            }
-            case AV_PIX_FMT_GBRAP: {
-                frame->data[0][y * frame->linesize[0] + x] = green;
-                frame->data[1][y * frame->linesize[1] + x] = blue;
-                frame->data[2][y * frame->linesize[2] + x] = red;
-                frame->data[3][y * frame->linesize[3] + x] = alpha;
-                break;
-            }
-            case AV_PIX_FMT_ARGB: {
-                frame->data[0][y * frame->linesize[0] + x * 4] = alpha;
-                frame->data[0][y * frame->linesize[0] + x * 4 + 1] = red;
-                frame->data[0][y * frame->linesize[0] + x * 4 + 2] = green;
-                frame->data[0][y * frame->linesize[0] + x * 4 + 3] = blue;
-                break;
-            }
+                case AV_PIX_FMT_ARGB: {
+                    frame->data[0][y * frame->linesize[0] + x * 4] = alpha;
+                    frame->data[0][y * frame->linesize[0] + x * 4 + 1] = red;
+                    frame->data[0][y * frame->linesize[0] + x * 4 + 2] = green;
+                    frame->data[0][y * frame->linesize[0] + x * 4 + 3] = blue;
+                    break;
+                }
+                }
             }
         }
     }
