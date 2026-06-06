@@ -443,6 +443,7 @@ void MainWindow::loadLate() {
 
     auto videoContentWidget = new QWidget();
     auto videoContentLayout = new QVBoxLayout(videoContentWidget);
+    videoContentLayout->setAlignment(Qt::AlignmentFlag::AlignBottom);
     splitter->addWidget(videoContentWidget);
 
     auto statusBar = new QStatusBar(this);
@@ -464,7 +465,7 @@ void MainWindow::loadLate() {
     connect(previewWidget, &ImageViewer::pixelPicked, this,
             &MainWindow::pixelPicked);
     previewWidget->setMinimumSize(10, 10);
-    videoContentLayout->addWidget(previewWidget);
+    videoContentLayout->addWidget(previewWidget, 1);
 
     auto bottomLayout = new QHBoxLayout();
     bottomLayout->setContentsMargins(0, 0, 0, 0);

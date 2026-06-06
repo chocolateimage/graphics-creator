@@ -1,6 +1,7 @@
 #pragma once
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
+#include <QToolButton>
 #include <QWidget>
 
 class TransparentCornerFrame : public QFrame {
@@ -24,7 +25,9 @@ class ImageViewer : public QWidget {
     QImage image;
 
   protected:
+    QToolButton *windowButton;
     bool darkCheckerboard{false};
+    bool poppedOut{false};
     void clampMovePos();
     QPointF movePos{0, 0};
     QPointF lastDragMousePos;
@@ -41,6 +44,7 @@ class ImageViewer : public QWidget {
     void mouseMoveEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
   signals:
     void pixelPicked(QString id, QPoint position);
