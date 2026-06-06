@@ -19,9 +19,9 @@ cp /ucrt64/bin/libKirigamiPlatform.dll ./deploy/
 mkdir ./deploy/iconengines
 cp /ucrt64/share/qt6/plugins/kiconthemes6/iconengines/KIconEnginePlugin.dll ./deploy/iconengines/
 
+set +e
 ldd deploy/* |grep -iv system32|grep -vi windows|grep -v :$  | cut -f2 -d'>' | cut -f1 -d\( | tr '\' '/' |while read a; do ! [ -e "deploy/`basename $a`" ] && cp -v "$a" deploy/; done
 
 pushd deploy
 windeployqt6 graphicscreator.exe
 popd
-
