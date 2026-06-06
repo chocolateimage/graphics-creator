@@ -36,7 +36,7 @@ Available variables:
 
 Available functions:
 
-- `createText(text, font)`: Creates a TextClass instance.
+- `createText(text, font)`: Creates a TextClass instance. The `font` argument must be from a `font` data type from an option.
 - `getTextInfo(textClassInstance, fontSize)`: Returns `minX, minY, maxX, maxY, textWidth, textHeight`.
 - `getPixel(textClassInstance, fontSize, x, y)`: Returns a value from -0.5 to 0.5 of the SDF of the text with the font size. Usually used like `smoothstep(-0.05, 0.05, getPixel(text, 64, x - 100, y - 100)) * 255` to get a value from 0 to 255.
 - `mix(from, to, x)`/`lerp(from, to, x)`: Both do the same. Converts a value from x (0 to 1 range) to `from` - `to` range.
@@ -79,4 +79,37 @@ Functions you should define:
   end
   ```
 
-- `options()`: WIP
+- `options()`: In this function, you should return the available options that you can change in the UI. More info is available info the [Options] section.
+
+  Example with a modifiable `double` option:
+
+  ```lua
+  function options()
+      return {
+          {
+              id = "exampleOption",
+              type = "double",
+          }
+      }
+  end
+  ```
+
+### Options
+
+These option data types are available. They can be set in the `type` property. In the examples, `<id>` is the id property.
+
+- `string`
+- `int`
+  Available properties:
+  - `min = 0` (int): Minimum value of the property.
+  - `max = 100` (int): Maximum value of the property.
+  - `slider = false` (boolean): If a slider should be shown. Requires `min` and `max` to be useful.
+- `double`
+  Available properties:
+  - `min = 0` (int): Minimum value of the property.
+  - `max = 100` (int): Maximum value of the property.
+- `bool`
+- `vector2dint`: Two ints in one variable. The two ints can be accessed with `<id>.x` and `<id>.y`
+- `color`: RGBA color. Can be accessed with `<id>.r`, `<id>.g`, `<id>.b`, and for alpha `<id>.a`. All values are in 0-255.
+- `font`: Font to be passed in `createText()`
+- `easing`: Selectable list of easings. The value in Lua will be the specific easing function and can be used like this: `local value = <id>(0.5)`
