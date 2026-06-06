@@ -34,6 +34,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Font;
     } else if (type == "bool") {
         return VariantTypeEnum::Bool;
+    } else if (type == "easing") {
+        return VariantTypeEnum::Easing;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -57,6 +59,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(Font{});
     case VariantTypeEnum::Bool:
         return Variant(false);
+    case VariantTypeEnum::Easing:
+        return Variant(Easing{""});
     }
 }
 
@@ -120,6 +124,15 @@ void Variant::pushLua(lua_State *L) const {
     case VariantTypeEnum::Bool:
         lua_pushboolean(L, get<bool>());
         break;
+    case VariantTypeEnum::Easing: {
+        Easing value = get<Easing>();
+        if (value.easingCurve.empty()) {
+            lua_getglobal(L, "saturate");
+        } else {
+            lua_getglobal(L, value.easingCurve.c_str());
+        }
+        break;
+    }
     };
 }
 
@@ -176,6 +189,10 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
     case VariantTypeEnum::Bool: {
         bool value = lua_toboolean(L, index);
         return Variant(value);
+    }
+    case VariantTypeEnum::Easing: {
+        const char *str = lua_tostring(L, index);
+        return Variant(Easing{str});
     }
     };
 }

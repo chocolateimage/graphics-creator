@@ -3,6 +3,7 @@
 #include "line.hpp"
 #include "lua.hpp"
 #include "lua_state.hpp"
+#include "math.hpp"
 #include "render.hpp"
 #include "variant.hpp"
 #include <KActionCollection>
@@ -23,6 +24,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPainter>
 #include <QProgressDialog>
 #include <QScrollArea>
 #include <QSlider>
@@ -521,6 +523,10 @@ void MainWindow::loadLate() {
             id = "font",
             type = "font",
         },
+        {
+            id = "easing",
+            type = "easing",
+        }
     }
 end
 
@@ -529,6 +535,8 @@ function draw(_frame)
 
     local ti = createText("frame: " .. frameIndex, font)
     local _,_,_,_,w,h = getTextInfo(ti, 128)
+
+    local progress = easing(seconds / duration)
 
     for y = fromY, toY do
         for x = fromX, toX do
@@ -546,7 +554,7 @@ function draw(_frame)
                 green = value
             end
 
-            if x < seconds / duration * width then
+            if x < progress * width then
                 blue = 255
             end
 
@@ -1047,6 +1055,94 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
                 [this, optionId](Qt::CheckState checkState) {
                     updateOption(optionId, Variant(checkState ==
                                                    Qt::CheckState::Checked));
+                });
+        widget = input;
+    } else if (optionType == VariantTypeEnum::Easing) {
+        std::vector<std::function<double(double)>> functions = {
+            linear,         easeInQuad,     easeOutQuad,    easeInOutQuad,
+            easeInCubic,    easeOutCubic,   easeInOutCubic, easeInQuart,
+            easeOutQuart,   easeInOutQuart, easeInQuint,    easeOutQuint,
+            easeInOutQuint, easeInSine,     easeOutSine,    easeInOutSine,
+            easeInExpo,     easeOutExpo,    easeInOutExpo,  easeInCirc,
+            easeOutCirc,    easeInOutCirc,  easeInBack,     easeOutBack,
+            easeInOutBack,  easeInElastic,  easeOutElastic, easeInOutElastic,
+            easeInBounce,   easeOutBounce,  easeInOutBounce};
+
+        std::vector<std::string> names = {"",
+
+                                          "easeInQuad",
+                                          "easeOutQuad",
+                                          "easeInOutQuad",
+                                          "easeInCubic",
+                                          "easeOutCubic",
+                                          "easeInOutCubic",
+                                          "easeInQuart",
+                                          "easeOutQuart",
+                                          "easeInOutQuart",
+                                          "easeInQuint",
+                                          "easeOutQuint",
+                                          "easeInOutQuint",
+                                          "easeInSine",
+                                          "easeOutSine",
+                                          "easeInOutSine",
+                                          "easeInExpo",
+                                          "easeOutExpo",
+                                          "easeInOutExpo",
+                                          "easeInCirc",
+                                          "easeOutCirc",
+                                          "easeInOutCirc",
+                                          "easeInBack",
+                                          "easeOutBack",
+                                          "easeInOutBack",
+                                          "easeInElastic",
+                                          "easeOutElastic",
+                                          "easeInOutElastic",
+                                          "easeInBounce",
+                                          "easeOutBounce",
+                                          "easeInOutBounce"};
+
+        QStringList displayNames = {
+            "Linear/Constant",
+
+            "Quad In",         "Quad Out",     "Quad In Out",    "Cubic In",
+            "Cubic Out",       "Cubic In Out", "Quart In",       "Quart Out",
+            "Quart In Out",    "Quint In",     "Quint Out",      "Quint In Out",
+            "Sine In",         "Sine Out",     "Sine In Out",    "Expo In",
+            "Expo Out",        "Expo In Out",  "Circ In",        "Circ Out",
+            "Circ In Out",     "Back In",      "Back Out",       "Back In Out",
+            "Elastic In",      "Elastic Out",  "Elastic In Out", "Bounce In",
+            "Bounce Out",      "Bounce In Out"};
+        auto input = new QComboBox(optionsWidget);
+
+        for (size_t i = 0; i < names.size(); i++) {
+            QPixmap pixmap(24, 24);
+            pixmap.fill(Qt::transparent);
+            QPainter pixmapPainter(&pixmap);
+            pixmapPainter.setPen(Qt::NoPen);
+            for (int x = 0; x < pixmap.width(); x++) {
+                double xValue = functions[i]((double)x / pixmap.width());
+                if (xValue > 1 || xValue < 0) {
+                    pixmapPainter.setBrush(QColor(255, 100, 100));
+                } else {
+                    pixmapPainter.setBrush(palette().text());
+                }
+                int xHeight = xValue * pixmap.height();
+                pixmapPainter.drawRect(x, pixmap.height() - xHeight, 1,
+                                       xHeight);
+            }
+            pixmapPainter.end();
+            QIcon previewIcon(pixmap);
+
+            input->addItem(previewIcon, displayNames[i]);
+        }
+
+        auto value = variant.get<Easing>();
+        input->setCurrentIndex(
+            std::find(names.begin(), names.end(), value.easingCurve) -
+            names.begin());
+        connect(input, &QComboBox::currentIndexChanged, this,
+                [this, optionId, names](int index) {
+                    updateOption(optionId, Variant(Easing{names[index]}));
                 });
         widget = input;
     }
