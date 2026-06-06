@@ -11,11 +11,8 @@ Supports Linux and Windows.
 
 ## Planned
 
-- Defaults for config
 - Config presets
-- Draggable spinboxes
 - Templates for scripts (you can pick basic text/rainbow text/moving circles/etc at the start)
-- Rendering (I have a working source code file for rendering, just need to add that and make a nice UI for it)
 
 ## Scripting
 
