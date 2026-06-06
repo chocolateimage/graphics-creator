@@ -270,16 +270,20 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void ImageViewer::wheelEvent(QWheelEvent *event) {
-    // TODO: zoom around the cursor point instead of the middle
     float zoomScale = event->angleDelta().y() / 120.f;
+
+    QPointF cursorCentered =
+        event->position() - QPointF(width() / 2.f, height() / 2.f);
+    QPointF beforeZoomPoint = cursorCentered / zoom - movePos;
+
     zoom = std::clamp(zoom * ((zoomScale * 0.2f) + 1), 1.f, 100.f);
     if (zoom == 1) {
         movePos = {0, 0};
-        updateCursor();
     } else {
-        updateCursor();
+        movePos = cursorCentered / zoom - beforeZoomPoint;
         clampMovePos();
     }
+    updateCursor();
     update();
 }
 
