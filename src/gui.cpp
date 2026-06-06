@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "draggable_spinbox.hpp"
 #include "fontcombobox.hpp"
 #include "line.hpp"
 #include "lua.hpp"
@@ -474,17 +475,17 @@ void MainWindow::loadLate() {
     videoContentLayout->addLayout(bottomLayout);
 
     // TODO: a slider or something to control the time
-    timeInput = new QDoubleSpinBox(this);
-    durationInput = new QDoubleSpinBox(this);
+    timeInput = new DraggableDoubleSpinBox(this);
+    durationInput = new DraggableDoubleSpinBox(this);
     timeInput->setFixedWidth(100);
     timeInput->setSuffix(" s");
     timeInput->setSingleStep(0.5);
     durationInput->setFixedWidth(100);
     durationInput->setMaximum(INFINITY);
     durationInput->setSuffix(" s");
-    connect(timeInput, &QDoubleSpinBox::valueChanged, this,
+    connect(timeInput, &DraggableDoubleSpinBox::valueChanged, this,
             &MainWindow::updateTimeInput);
-    connect(durationInput, &QDoubleSpinBox::valueChanged, this,
+    connect(durationInput, &DraggableDoubleSpinBox::valueChanged, this,
             &MainWindow::updateDurationInput);
     bottomLayout->addWidget(videoControlButton);
     bottomLayout->addWidget(new QLabel("Time:", this));
@@ -526,14 +527,26 @@ void MainWindow::loadLate() {
         {
             id = "easing",
             type = "easing",
-        }
+        },
+        {
+            id = "testValue",
+            type = "int",
+            min = 0,
+            max = 1000,
+        },
+        {
+            id = "testValue2",
+            type = "double",
+            min = 0,
+            max = 1000,
+        },
     }
 end
 
 function draw(_frame)
     local frame = ffi.cast("uint32_t*", _frame)
 
-    local ti = createText("frame: " .. frameIndex, font)
+    local ti = createText(testValue, font)
     local _,_,_,_,w,h = getTextInfo(ti, 128)
 
     local progress = easing(seconds / duration)
@@ -960,22 +973,22 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
                     });
             widget = input;
         } else {
-            auto input = new QSpinBox(optionsWidget);
+            auto input = new DraggableSpinBox(optionsWidget);
             input->setMinimum(min);
             input->setMaximum(max);
             input->setValue(variant.get<int>());
-            connect(input, &QSpinBox::valueChanged, this,
+            connect(input, &DraggableSpinBox::valueChanged, this,
                     [this, optionId](int value) {
                         updateOption(optionId, Variant(value));
                     });
             widget = input;
         }
     } else if (optionType == VariantTypeEnum::Double) {
-        auto input = new QDoubleSpinBox(optionsWidget);
+        auto input = new DraggableDoubleSpinBox(optionsWidget);
         input->setMinimum(min);
         input->setMaximum(max);
         input->setValue(variant.get<double>());
-        connect(input, &QDoubleSpinBox::valueChanged, this,
+        connect(input, &DraggableDoubleSpinBox::valueChanged, this,
                 [this, optionId](double value) {
                     updateOption(optionId, Variant(value));
                 });
@@ -987,12 +1000,12 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
 
         auto value = variant.get<Vector2DInt>();
 
-        auto inputX = new QSpinBox(optionsWidget);
+        auto inputX = new DraggableSpinBox(optionsWidget);
         inputX->setMinimum(min);
         inputX->setMaximum(max);
         inputX->setValue(value.x);
 
-        auto inputY = new QSpinBox(optionsWidget);
+        auto inputY = new DraggableSpinBox(optionsWidget);
         inputY->setMinimum(min);
         inputY->setMaximum(max);
         inputY->setValue(value.y);
@@ -1005,12 +1018,12 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
         layout->addWidget(inputY);
         layout->addWidget(pickButton);
 
-        connect(inputX, &QSpinBox::valueChanged, this,
+        connect(inputX, &DraggableSpinBox::valueChanged, this,
                 [this, optionId, inputY](int value) {
                     updateOption(optionId, Variant((Vector2DInt){
                                                value, inputY->value()}));
                 });
-        connect(inputY, &QSpinBox::valueChanged, this,
+        connect(inputY, &DraggableSpinBox::valueChanged, this,
                 [this, optionId, inputX](int value) {
                     updateOption(optionId, Variant((Vector2DInt){
                                                inputX->value(), value}));

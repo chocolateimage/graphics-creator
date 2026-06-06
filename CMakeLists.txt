@@ -32,6 +32,7 @@ set(graphicscreator_SRCS
     src/lua_state.cpp
     src/variant.cpp
     src/fontcombobox.cpp
+    src/draggable_spinbox.cpp
 )
 
 
