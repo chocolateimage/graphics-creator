@@ -1,10 +1,52 @@
 #include "image_viewer.hpp"
+#include <QFrame>
+#include <QGraphicsOpacityEffect>
+#include <QHBoxLayout>
 #include <QMatrix4x4>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QToolButton>
+
+TransparentCornerFrame::TransparentCornerFrame(QWidget *parent)
+    : QFrame(parent) {
+    setFrameShape(QFrame::Shape::StyledPanel);
+    setFrameShadow(QFrame::Shadow::Sunken);
+    setProperty("_breeze_force_frame", true);
+    setCursor(Qt::CursorShape::ArrowCursor);
+    setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);
+    opacityEffect = new QGraphicsOpacityEffect(this);
+    opacityEffect->setOpacity(0.3);
+    setGraphicsEffect(opacityEffect);
+}
+
+void TransparentCornerFrame::enterEvent(QEnterEvent *event) {
+    opacityEffect->setOpacity(1);
+}
+
+void TransparentCornerFrame::leaveEvent(QEvent *event) {
+    opacityEffect->setOpacity(0.3);
+}
 
 ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     setAttribute(Qt::WidgetAttribute::WA_MouseTracking);
+
+    auto lay = new QHBoxLayout(this);
+    lay->setAlignment(Qt::AlignmentFlag::AlignTop |
+                      Qt::AlignmentFlag::AlignRight);
+    auto frame = new TransparentCornerFrame(this);
+
+    auto frameLay = new QVBoxLayout(frame);
+    auto darkCheckerboardButton = new QToolButton(frame);
+    darkCheckerboardButton->setIcon(QIcon::fromTheme("composite-track-on"));
+    darkCheckerboardButton->setToolTip("Dark checkboard background");
+    darkCheckerboardButton->setCheckable(true);
+    connect(darkCheckerboardButton, &QToolButton::toggled, this,
+            [this](bool checked) {
+                darkCheckerboard = checked;
+                update();
+            });
+    frameLay->addWidget(darkCheckerboardButton);
+    lay->addWidget(frame);
 }
 
 void ImageViewer::updateImage(QImage img) {
@@ -36,15 +78,18 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     constexpr int checkerboardSize = 8;
     QPixmap checkerboardPattern(checkerboardSize * 2, checkerboardSize * 2);
     QPainter checkerboardPainter(&checkerboardPattern);
+    QColor checkerboard1 =
+        darkCheckerboard ? QColor(60, 60, 60) : QColor(200, 200, 200);
+    QColor checkerboard2 = darkCheckerboard ? QColor(30, 30, 30) : Qt::white;
     checkerboardPainter.fillRect(0, 0, checkerboardSize, checkerboardSize,
-                                 QColor(200, 200, 200));
+                                 checkerboard1);
     checkerboardPainter.fillRect(checkerboardSize, checkerboardSize,
                                  checkerboardSize, checkerboardSize,
-                                 QColor(200, 200, 200));
+                                 checkerboard1);
     checkerboardPainter.fillRect(0, checkerboardSize, checkerboardSize,
-                                 checkerboardSize, Qt::white);
+                                 checkerboardSize, checkerboard2);
     checkerboardPainter.fillRect(checkerboardSize, 0, checkerboardSize,
-                                 checkerboardSize, Qt::white);
+                                 checkerboardSize, checkerboard2);
     checkerboardPainter.end();
     painter.fillRect(fitRect, QBrush(checkerboardPattern));
 

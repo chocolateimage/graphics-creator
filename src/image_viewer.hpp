@@ -1,5 +1,18 @@
 #pragma once
+#include <QFrame>
+#include <QGraphicsOpacityEffect>
 #include <QWidget>
+
+class TransparentCornerFrame : public QFrame {
+    Q_OBJECT
+  public:
+    explicit TransparentCornerFrame(QWidget *parent = nullptr);
+    QGraphicsOpacityEffect *opacityEffect;
+
+  protected:
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
+};
 
 class ImageViewer : public QWidget {
     Q_OBJECT
@@ -11,6 +24,7 @@ class ImageViewer : public QWidget {
     QImage image;
 
   protected:
+    bool darkCheckerboard{false};
     void clampMovePos();
     QPointF movePos{0, 0};
     QPointF lastDragMousePos;
