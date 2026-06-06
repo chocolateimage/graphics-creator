@@ -79,7 +79,7 @@ Functions you should define:
   end
   ```
 
-- `options()`: In this function, you should return the available options that you can change in the UI. More info is available info the [Options] section.
+- `options()`: In this function, you should return the available options that you can change in the UI. More info is available info the [Options](#Options) section.
 
   Example with a modifiable `double` option:
 
