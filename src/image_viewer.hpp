@@ -25,6 +25,7 @@ class ImageViewer : public QWidget {
     QImage image;
 
   protected:
+    TransparentCornerFrame *cornerFrame;
     QToolButton *windowButton;
     bool darkCheckerboard{false};
     bool poppedOut{false};
@@ -45,6 +46,8 @@ class ImageViewer : public QWidget {
     void wheelEvent(QWheelEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 
   signals:
     void pixelPicked(QString id, QPoint position);

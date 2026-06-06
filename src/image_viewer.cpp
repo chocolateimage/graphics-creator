@@ -34,10 +34,11 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     auto lay = new QHBoxLayout(this);
     lay->setAlignment(Qt::AlignmentFlag::AlignTop |
                       Qt::AlignmentFlag::AlignRight);
-    auto frame = new TransparentCornerFrame(this);
+    cornerFrame = new TransparentCornerFrame(this);
+    cornerFrame->hide();
 
-    auto frameLay = new QVBoxLayout(frame);
-    windowButton = new QToolButton(frame);
+    auto frameLay = new QVBoxLayout(cornerFrame);
+    windowButton = new QToolButton(cornerFrame);
     windowButton->setIcon(QIcon::fromTheme("view-fullscreen"));
     windowButton->setToolTip("Pop out window");
     connect(windowButton, &QToolButton::clicked, this, [this]() {
@@ -56,7 +57,7 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     });
     frameLay->addWidget(windowButton);
 
-    auto darkCheckerboardButton = new QToolButton(frame);
+    auto darkCheckerboardButton = new QToolButton(cornerFrame);
     darkCheckerboardButton->setIcon(QIcon::fromTheme("composite-track-on"));
     darkCheckerboardButton->setToolTip("Dark checkboard background");
     darkCheckerboardButton->setCheckable(true);
@@ -66,8 +67,12 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
                 update();
             });
     frameLay->addWidget(darkCheckerboardButton);
-    lay->addWidget(frame);
+    lay->addWidget(cornerFrame);
 }
+
+void ImageViewer::enterEvent(QEnterEvent *event) { cornerFrame->show(); }
+
+void ImageViewer::leaveEvent(QEvent *event) { cornerFrame->hide(); }
 
 void ImageViewer::closeEvent(QCloseEvent *event) {
     event->ignore();
