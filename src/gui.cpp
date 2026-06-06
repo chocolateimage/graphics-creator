@@ -781,6 +781,7 @@ void MainWindow::updateTabs() {
 void MainWindow::updateTimeInput(double value) {
     frameIndex = value * video->frameRate;
     updateStatus();
+    generate();
 }
 
 void MainWindow::updateDurationInput(double value) {
@@ -1203,18 +1204,20 @@ void MainWindow::generate() {
     }
     bool shouldLoop = loopButton->isChecked();
     bool atEnd = frameIndex >= video->duration * video->frameRate;
-    if (atEnd) {
+    bool incrementFrame = timer->isActive();
+    if (atEnd && incrementFrame) {
         if (shouldLoop) {
             frameIndex = 0;
         } else {
             toggleTimer();
             frameIndex = video->duration * video->frameRate;
+            incrementFrame = false;
         }
     }
     tooSlow = false;
     PreviewFrame *frame = new PreviewFrame();
     frame->frame = allocateFrame();
-    frame->frame->pts = atEnd ? frameIndex : frameIndex++;
+    frame->frame->pts = incrementFrame ? frameIndex++ : frameIndex;
     timeInput->blockSignals(true);
     timeInput->setValue((float)frameIndex / video->frameRate);
     timeInput->blockSignals(false);
