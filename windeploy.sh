@@ -12,7 +12,7 @@ popd
 
 mkdir deploy
 
-cp ./deploybuild/graphicscreator.exe ./deploy/
+cp ./deploybuild/graphics-creator.exe ./deploy/
 
 cp /ucrt64/bin/libKF6WindowSystem.dll ./deploy/
 cp /ucrt64/bin/libKirigamiPlatform.dll ./deploy/
@@ -23,5 +23,5 @@ set +e
 ldd deploy/* |grep -iv system32|grep -vi windows|grep -v :$  | cut -f2 -d'>' | cut -f1 -d\( | tr '\' '/' |while read a; do ! [ -e "deploy/`basename $a`" ] && cp -v "$a" deploy/; done
 
 pushd deploy
-windeployqt6 graphicscreator.exe
+windeployqt6 graphics-creator.exe
 popd
