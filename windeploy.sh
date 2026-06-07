@@ -25,3 +25,5 @@ ldd deploy/* |grep -iv system32|grep -vi windows|grep -v :$  | cut -f2 -d'>' | c
 pushd deploy
 windeployqt6 graphics-creator.exe
 popd
+
+cp -r ./deploybuild/data ./deploy/data
