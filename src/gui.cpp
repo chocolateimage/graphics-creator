@@ -22,6 +22,8 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QFrame>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
@@ -369,6 +371,25 @@ MainWindow::MainWindow() : QMainWindow() {
     measure.start();
     this->setCursor(Qt::WaitCursor);
     this->resize(1200, 700);
+    QStringList dataPaths = {
+        QApplication::applicationDirPath() + "/data",
+        QApplication::applicationDirPath() + "/../share/graphics-creator/data",
+    };
+
+    for (auto path : dataPaths) {
+        if (QDir(path).exists() &&
+            QFileInfo(path + "/templates/LICENSE").exists()) {
+            dataPath = QDir(path).absolutePath();
+            break;
+        }
+    }
+
+    if (dataPath.isEmpty()) {
+        qCritical() << "No data path found. Tried:" << dataPaths;
+        KMessageBox::error(nullptr, "No data path found");
+        exit(1);
+    }
+
     QTimer::singleShot(4, this, &MainWindow::loadLate);
     qDebug() << "init took" << measure.elapsed() << "ms";
 }
@@ -438,7 +459,7 @@ void MainWindow::loadLate() {
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
 
-    stackedWidget->addWidget(new QLabel("new", stackedWidget));
+    loadTemplates();
 
     auto editCentralWidget = new QWidget(stackedWidget);
     stackedWidget->addWidget(editCentralWidget);
@@ -703,7 +724,6 @@ end
 
     stackedWidget->addWidget(renderWidget);
 
-    stackedWidget->setCurrentIndex(1);
     updateTabs();
 
     // TODO: allow user to set their own thread count
@@ -715,6 +735,72 @@ end
     updateStatus();
     this->unsetCursor();
     qDebug() << "late init took" << measure.elapsed() << "ms";
+}
+
+void MainWindow::loadTemplates() {
+    QScrollArea *newPageScrollArea = new QScrollArea(stackedWidget);
+    newPageScrollArea->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
+    stackedWidget->addWidget(newPageScrollArea);
+
+    QList<NewTemplateCategory> categories = {};
+
+    QFile categoriesFile(dataPath + "/templates/categories.json");
+    if (!categoriesFile.open(QIODevice::ReadOnly)) {
+        KMessageBox::error(nullptr, "Error loading templates");
+        return;
+    }
+
+    QByteArray categoriesData = categoriesFile.readAll();
+    QJsonDocument categoriesDoc = QJsonDocument::fromJson(categoriesData);
+    categoriesFile.close();
+
+    for (const auto &categoryJson : categoriesDoc.array()) {
+        const auto &categoryObject = categoryJson.toObject();
+
+        NewTemplateCategory category;
+        category.name = categoryObject["name"].toString();
+
+        for (const auto &templateJson : categoryObject["templates"].toArray()) {
+            const auto &categoryJson = templateJson.toObject();
+
+            NewTemplate newTemplate;
+            newTemplate.name = categoryJson["name"].toString();
+            QString fileName = categoryJson["file"].toString();
+            newTemplate.scriptPath = fileName + ".lua";
+            newTemplate.previewImagePath = fileName + ".png";
+            category.templates.append(newTemplate);
+        }
+
+        categories.append(category);
+    }
+
+    QWidget *newPage = new QWidget(newPageScrollArea);
+    newPage->setFixedWidth(700);
+    newPageScrollArea->setWidgetResizable(true);
+    newPageScrollArea->setWidget(newPage);
+    QVBoxLayout *newPageLayout = new QVBoxLayout(newPage);
+    newPageLayout->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
+
+    for (const auto &category : categories) {
+        newPageLayout->addSpacing(16);
+
+        QLabel *categoryLabel = new QLabel(newPage);
+        categoryLabel->setText(category.name);
+        categoryLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        categoryLabel->setStyleSheet("font-weight: bold");
+        newPageLayout->addWidget(categoryLabel);
+
+        QGridLayout *categoryLayout = new QGridLayout();
+
+        int i = 0;
+        for (const auto &newTemplate : category.templates) {
+            categoryLayout->addWidget(
+                new QPushButton(newTemplate.name, newPage), i / 5, i % 5);
+            i++;
+        }
+
+        newPageLayout->addLayout(categoryLayout);
+    }
 }
 
 void MainWindow::resetRenderFilePathInput() {

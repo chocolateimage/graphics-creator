@@ -131,8 +131,20 @@ class GuiRenderDrawThread : public QThread {
     void errored(QString error);
 };
 
+struct NewTemplate {
+    QString name;
+    QString previewImagePath;
+    QString scriptPath;
+};
+
+struct NewTemplateCategory {
+    QString name;
+    QList<NewTemplate> templates;
+};
+
 class MainWindow : public QMainWindow {
   public:
+    QString dataPath = "";
     int frameIndex = 0;
     ImageViewer *previewWidget;
     QLabel *statusText;
@@ -186,6 +198,8 @@ class MainWindow : public QMainWindow {
 
     MainWindow();
     void loadLate();
+
+    void loadTemplates();
 
     void updateButtons();
     void updateTimeInput(double value);

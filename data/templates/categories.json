@@ -1,0 +1,35 @@
+[
+  {
+    "name": "Text",
+    "templates": [
+      {
+        "name": "Text with shadow and glow",
+        "file": "text-shadow"
+      },
+      {
+        "name": "Centered Text",
+        "file": "center-text"
+      },
+      {
+        "name": "Rainbow Text (Stationary)",
+        "file": "rainbow"
+      },
+      {
+        "name": "Rainbow Text (Moving)",
+        "file": "rainbow-moving"
+      },
+      {
+        "name": "Popping up",
+        "file": "popping-up"
+      },
+      {
+        "name": "Sliding Fade",
+        "file": "text-fade-slide"
+      }
+    ]
+  },
+  {
+    "name": "Basic",
+    "templates": []
+  }
+]
