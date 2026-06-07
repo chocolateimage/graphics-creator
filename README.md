@@ -95,17 +95,23 @@ Functions you should define:
 These option data types are available. They can be set in the `type` property. In the examples, `<id>` is the id property.
 
 - `string`
-- `int`
+- `int`\
   Available properties:
   - `min = 0` (int): Minimum value of the property.
   - `max = 100` (int): Maximum value of the property.
-  - `slider = false` (boolean): If a slider should be shown. Requires `min` and `max` to be useful.
-- `double`
+  - `slider = false` (boolean): If a slider should be shown instead of an input box. Requires `min` and `max` to be useful.
+- `double`\
   Available properties:
   - `min = 0` (int): Minimum value of the property.
   - `max = 100` (int): Maximum value of the property.
 - `bool`
 - `vector2dint`: Two ints in one variable. The two ints can be accessed with `<id>.x` and `<id>.y`
-- `color`: RGBA color. Can be accessed with `<id>.r`, `<id>.g`, `<id>.b`, and for alpha `<id>.a`. All values are in 0-255.
-- `font`: Font to be passed in `createText()`
-- `easing`: Selectable list of easings. The value in Lua will be the specific easing function and can be used like this: `local value = <id>(0.5)`
+- `color`: RGBA color. Can be accessed with `<id>.r`, `<id>.g`, `<id>.b`, and for alpha `<id>.a`. All values are in 0-255.\
+  <img width="517" height="396" alt="image" src="https://github.com/user-attachments/assets/83386caa-1a99-4344-8cea-c75822925df9" />
+
+- `font`: Font to be passed in `createText()`\
+  <img width="401" height="411" alt="image" src="https://github.com/user-attachments/assets/35b37fa5-4571-4dbe-99d0-148ad5fd39e8" />
+
+- `easing`: Selectable list of easings. The value in Lua will be the specific easing function and can be used like this: `local value = <id>(0.5)`\
+  <img width="168" height="274" alt="image" src="https://github.com/user-attachments/assets/384dea3b-251f-4f7c-946a-9e5ffb2150b6" />
+
