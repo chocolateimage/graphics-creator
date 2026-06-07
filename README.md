@@ -12,7 +12,6 @@ Supports Linux and Windows.
 ## Planned
 
 - Config presets
-- Templates for scripts (you can pick basic text/rainbow text/moving circles/etc at the start)
 
 ## Scripting
 
