@@ -295,6 +295,7 @@ AVFrame *GuiRenderThread::getFrame() {
     if (!unusedFrames.empty()) {
         AVFrame *frame = unusedFrames.back();
         unusedFrames.pop_back();
+        av_frame_make_writable(frame);
         return frame;
     }
 
