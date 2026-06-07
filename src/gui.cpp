@@ -37,6 +37,7 @@
 #include <QStandardPaths>
 #include <QToolBar>
 #include <QToolButton>
+#include <fontconfig/fontconfig.h>
 
 void FramePreviewThread::run() {
     RenderThread renderThread;
@@ -398,6 +399,40 @@ MainWindow::MainWindow() : QMainWindow() {
 void MainWindow::loadLate() {
     QElapsedTimer measure;
     measure.start();
+
+    const FcChar8 *fontsToMatch[] = {
+        (const FcChar8 *)"Noto Sans:regular:slant=0",
+        (const FcChar8 *)"Arial:regular:slant=0",
+    };
+
+    for (auto fontName : fontsToMatch) {
+        FcPattern *pattern = FcNameParse(fontName);
+        FcResult result;
+        FcPattern *font = FcFontMatch(nullptr, pattern, &result);
+        if (result != FcResultMatch || !font) {
+            FcPatternDestroy(pattern);
+            continue;
+        }
+
+        FcChar8 *rawFileName;
+        FcChar8 *rawFamily;
+        FcChar8 *rawStyle;
+        int fontIndex;
+        FcPatternGetString(font, FC_FILE, 0, &rawFileName);
+        FcPatternGetInteger(font, FC_INDEX, 0, &fontIndex);
+        FcPatternGetString(font, FC_FAMILY, 0, &rawFamily);
+        FcPatternGetString(font, FC_STYLE, 0, &rawStyle);
+
+        Variant::defaultFont = {std::string((char *)rawFileName), fontIndex,
+                                std::string((char *)rawFamily) + " " +
+                                    std::string((char *)rawStyle)};
+
+        FcPatternDestroy(font);
+
+        FcPatternDestroy(pattern);
+
+        break;
+    }
 
     // auto menuBar = new QMenuBar(this);
     // menuBar->addMenu("File")->addAction("Quit");
@@ -804,6 +839,8 @@ void MainWindow::useTemplate(const NewTemplate &newTemplate) {
 
     stackedWidget->setCurrentIndex(1);
     updateTabs();
+
+    toggleTimer();
 }
 
 void MainWindow::resetRenderFilePathInput() {

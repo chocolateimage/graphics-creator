@@ -1,5 +1,7 @@
 #include "variant.hpp"
 
+Font Variant::defaultFont = {};
+
 std::string getFontHash(const Font &font) {
     return font.path + ":" + std::to_string(font.index);
 }
@@ -56,7 +58,7 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
     case VariantTypeEnum::Vector2DInt:
         return Variant(Vector2DInt{0, 0});
     case VariantTypeEnum::Font:
-        return Variant(Font{});
+        return Variant(defaultFont);
     case VariantTypeEnum::Bool:
         return Variant(false);
     case VariantTypeEnum::Easing:

@@ -86,6 +86,8 @@ class Variant {
                               int index);
     static bool isValidType(const std::string &type);
 
+    static Font defaultFont;
+
   private:
     VariantType m_variant;
 };
