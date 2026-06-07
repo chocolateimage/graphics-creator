@@ -924,6 +924,8 @@ void MainWindow::updateTabs() {
     renderAction->setDisabled(currentIndex == 0);
     editAction->setDisabled(currentIndex == 0);
 
+    statusBar()->setVisible(currentIndex == 1);
+
     newAction->blockSignals(false);
     editAction->blockSignals(false);
     renderAction->blockSignals(false);
