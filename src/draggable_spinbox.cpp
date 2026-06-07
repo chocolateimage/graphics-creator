@@ -31,6 +31,7 @@ bool DraggableSpinBox::eventFilter(QObject *obj, QEvent *event) {
                         holdStartValue = value();
                         QCursor::setPos(holdAfterDragStartPos);
                     }
+                    return true;
                 } else {
                     if (qAbs(moved) >= QApplication::startDragDistance()) {
                         holdAfterDragStartPos = QCursor::pos();
@@ -82,6 +83,7 @@ bool DraggableDoubleSpinBox::eventFilter(QObject *obj, QEvent *event) {
                         holdStartValue = value();
                         QCursor::setPos(holdAfterDragStartPos);
                     }
+                    return true;
                 } else {
                     if (qAbs(moved) >= QApplication::startDragDistance()) {
                         holdAfterDragStartPos = QCursor::pos();
