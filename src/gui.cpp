@@ -131,6 +131,8 @@ void GuiRenderThread::run() {
     context->width = video->width;
     context->height = video->height;
     stream->time_base = {1, (int)video->frameRate};
+    stream->avg_frame_rate = {(int)video->frameRate, 1};
+    context->framerate = {(int)video->frameRate, 1};
     context->time_base = stream->time_base;
     context->thread_count = 0;
     context->gop_size = 20;
@@ -182,7 +184,7 @@ void GuiRenderThread::run() {
         return;
     }
 
-    int64_t frameCount = video->duration * video->frameRate;
+    int64_t frameCount = (video->duration * video->frameRate) - 1;
     lastFrameIndex = frameCount;
 
     QList<GuiRenderDrawThread *> threads;
