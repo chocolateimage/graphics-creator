@@ -8,7 +8,8 @@ function options()
         },
         {
             id = "text",
-            type = "string"
+            type = "string",
+            default = "Hello world",
         },
         {
             id = "fontSize",
@@ -16,6 +17,7 @@ function options()
             slider = true,
             min = 0,
             max = 1000,
+            default = 128,
         },
     }
 end

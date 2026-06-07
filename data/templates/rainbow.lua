@@ -9,6 +9,7 @@ function options()
         {
             id = "text",
             type = "string",
+            default = "Hello world",
         },
         {
             id = "fontSize",
@@ -16,11 +17,13 @@ function options()
             slider = true,
             min = 0,
             max = 1000,
+            default = 128,
         },
         {
             id = "textPos",
             type = "vector2dint",
             label = "Text position",
+            default = { x = 500, y = 500, },
         },
         {
             id = "borderColor",

@@ -1,3 +1,11 @@
+static const char *LUA_BASIC_CODE = R"(
+    function options() return {} end
+
+    function draw(_frame)
+
+    end
+)";
+
 static const char *LUA_GLOBAL_CODE = R"(
 bit = require("bit")
 ffi = require("ffi")
@@ -74,7 +82,7 @@ end
 
 function easeInOutQuart(x)
     if x < 0.5 then
-        return 8 * x * x * x * x 
+        return 8 * x * x * x * x
     else
         return 1 - ((-2 * x + 2) ^ 4) / 2
     end

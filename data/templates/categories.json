@@ -3,7 +3,7 @@
     "name": "Text",
     "templates": [
       {
-        "name": "Text with shadow and glow",
+        "name": "Text with shadow and border",
         "file": "text-shadow"
       },
       {
@@ -30,6 +30,11 @@
   },
   {
     "name": "Basic",
-    "templates": []
+    "templates": [
+      {
+        "name": "Blank",
+        "file": "blank"
+      }
+    ]
   }
 ]

@@ -3,6 +3,7 @@
 #include "fontcombobox.hpp"
 #include "line.hpp"
 #include "lua.hpp"
+#include "lua_code.hpp"
 #include "lua_state.hpp"
 #include "math.hpp"
 #include "render.hpp"
@@ -428,6 +429,10 @@ void MainWindow::loadLate() {
         }
         stackedWidget->setCurrentIndex(0);
         updateTabs();
+        if (timer->isActive()) {
+            toggleTimer();
+        }
+        textDocument->setText(LUA_BASIC_CODE);
     });
     connect(editAction, &QAction::triggered, this, [this]() {
         stackedWidget->setCurrentIndex(1);
@@ -542,64 +547,7 @@ void MainWindow::loadLate() {
     textDocument = editor->createDocument(this);
     textDocument->setMode("Lua");
     textDocument->setConfigValue("indent-pasted-text", "false");
-    textDocument->setText(R"(function options()
-    return {
-        {
-            id = "font",
-            type = "font",
-        },
-        {
-            id = "easing",
-            type = "easing",
-        },
-        {
-            id = "testValue",
-            type = "int",
-            min = 0,
-            max = 1000,
-        },
-        {
-            id = "testValue2",
-            type = "double",
-            min = 0,
-            max = 1000,
-        },
-    }
-end
-
-function draw(_frame)
-    local frame = ffi.cast("uint32_t*", _frame)
-
-    local ti = createText(testValue, font)
-    local _,_,_,_,w,h = getTextInfo(ti, 128)
-
-    local progress = easing(seconds / duration)
-
-    for y = fromY, toY do
-        for x = fromX, toX do
-            local red = 0
-            local green = 0
-            local blue = 0
-            local alpha = 255
-
-            -- put your draw code here!
-            local tx = x - 100
-            local ty = y - 100
-            if tx >= 0 and ty >= 0 and tx < w and ty < h then
-                local value = smoothstep(-0.05, 0.05, getPixel(ti, 128, tx, ty)) * 255
-                red = value
-                green = value
-            end
-
-            if x < progress * width then
-                blue = 255
-            end
-
-            frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
-        end
-    end
-end
-)");
+    textDocument->setText(LUA_BASIC_CODE);
     textView = textDocument->createView(this);
 #ifdef Q_OS_WIN
     textView->setConfigValue("font", "Consolas");
@@ -742,8 +690,6 @@ void MainWindow::loadTemplates() {
     newPageScrollArea->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
     stackedWidget->addWidget(newPageScrollArea);
 
-    QList<NewTemplateCategory> categories = {};
-
     QFile categoriesFile(dataPath + "/templates/categories.json");
     if (!categoriesFile.open(QIODevice::ReadOnly)) {
         KMessageBox::error(nullptr, "Error loading templates");
@@ -765,7 +711,8 @@ void MainWindow::loadTemplates() {
 
             NewTemplate newTemplate;
             newTemplate.name = categoryJson["name"].toString();
-            QString fileName = categoryJson["file"].toString();
+            QString fileName =
+                dataPath + "/templates/" + categoryJson["file"].toString();
             newTemplate.scriptPath = fileName + ".lua";
             newTemplate.previewImagePath = fileName + ".png";
             category.templates.append(newTemplate);
@@ -775,7 +722,7 @@ void MainWindow::loadTemplates() {
     }
 
     QWidget *newPage = new QWidget(newPageScrollArea);
-    newPage->setFixedWidth(700);
+    newPage->setFixedWidth(800);
     newPageScrollArea->setWidgetResizable(true);
     newPageScrollArea->setWidget(newPage);
     QVBoxLayout *newPageLayout = new QVBoxLayout(newPage);
@@ -791,16 +738,72 @@ void MainWindow::loadTemplates() {
         newPageLayout->addWidget(categoryLabel);
 
         QGridLayout *categoryLayout = new QGridLayout();
+        categoryLayout->setAlignment(Qt::AlignLeft);
 
         int i = 0;
         for (const auto &newTemplate : category.templates) {
-            categoryLayout->addWidget(
-                new QPushButton(newTemplate.name, newPage), i / 5, i % 5);
+            QPushButton *btn = new QPushButton(newPage);
+            btn->setFixedWidth(newPage->width() / 5 - 10);
+            btn->setFixedHeight(130);
+            auto btnLay = new QVBoxLayout(btn);
+            btnLay->setSpacing(0);
+
+            QPixmap previewPixmap;
+            if (!previewPixmap.load(newTemplate.previewImagePath)) {
+                qWarning() << "Failed to load" << newTemplate.previewImagePath;
+                previewPixmap = QPixmap(150, 84);
+                previewPixmap.fill(QColor(20, 20, 20));
+                QPainter painter(&previewPixmap);
+                painter.setPen(Qt::white);
+                painter.setBrush(Qt::NoBrush);
+                painter.drawText(0, 0, 150, 84, Qt::AlignCenter,
+                                 "Error loading preview");
+            } else {
+                previewPixmap.setDevicePixelRatio(2);
+            }
+
+            auto previewImage = new QLabel(btn);
+            previewImage->setPixmap(previewPixmap);
+            previewImage->setAlignment(Qt::AlignCenter);
+            btnLay->addWidget(previewImage);
+
+            auto label = new QLabel(newTemplate.name, btn);
+            label->setWordWrap(true);
+            label->setAlignment(Qt::AlignCenter);
+            btnLay->addWidget(label);
+
+            connect(btn, &QPushButton::clicked, this,
+                    [this, newTemplate]() { useTemplate(newTemplate); });
+
+            int row = i / 5;
+            int column = i % 5;
+            categoryLayout->addWidget(btn, i / 5, i % 5);
             i++;
         }
 
         newPageLayout->addLayout(categoryLayout);
     }
+}
+
+void MainWindow::useTemplate(const NewTemplate &newTemplate) {
+    QFile scriptFile(newTemplate.scriptPath);
+    if (!scriptFile.open(QIODevice::ReadOnly)) {
+        KMessageBox::error(nullptr, "Error loading script file" +
+                                        newTemplate.scriptPath);
+        return;
+    }
+
+    QByteArray scriptData = scriptFile.readAll();
+    scriptFile.close();
+
+    textDocument->setText(scriptData);
+    textView->setCursorPosition({0, 0});
+    durationInput->setValue(5);
+    timeInput->setValue(0);
+    generate();
+
+    stackedWidget->setCurrentIndex(1);
+    updateTabs();
 }
 
 void MainWindow::resetRenderFilePathInput() {

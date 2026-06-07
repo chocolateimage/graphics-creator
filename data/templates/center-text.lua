@@ -9,6 +9,7 @@ function options()
         {
             id = "text",
             type = "string",
+            default = "Hello world",
         },
         {
             id = "fontSize",

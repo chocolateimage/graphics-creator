@@ -25,6 +25,7 @@ class ImageViewer : public QWidget {
     QImage image;
 
   protected:
+    void saveFrameAsFile(QSize size);
     TransparentCornerFrame *cornerFrame;
     QToolButton *windowButton;
     bool darkCheckerboard{false};

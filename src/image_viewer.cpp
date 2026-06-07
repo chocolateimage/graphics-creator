@@ -1,8 +1,10 @@
 #include "image_viewer.hpp"
+#include <QFileDialog>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QMatrix4x4>
+#include <QMenu>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QToolButton>
@@ -67,7 +69,40 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
                 update();
             });
     frameLay->addWidget(darkCheckerboardButton);
+
+    auto saveFrameButton = new QToolButton(cornerFrame);
+    saveFrameButton->setIcon(QIcon::fromTheme("document-save"));
+    saveFrameButton->setToolTip("Save frame…");
+    connect(saveFrameButton, &QToolButton::clicked, this, [this]() {
+        QMenu menu;
+        QSize previewSize{300, 168};
+        QSize fullSize = image.size();
+        QAction *previewAction = menu.addAction(
+            "Preview size (" + QString::number(previewSize.width()) + "x" +
+            QString::number(previewSize.height()) + ")");
+        QAction *fullAction =
+            menu.addAction("Full size (" + QString::number(fullSize.width()) +
+                           "x" + QString::number(fullSize.height()) + ")");
+
+        QAction *selectedAction = menu.exec(QCursor::pos());
+        if (selectedAction == previewAction) {
+            saveFrameAsFile(previewSize);
+        } else if (selectedAction == fullAction) {
+            saveFrameAsFile(fullSize);
+        }
+    });
+    frameLay->addWidget(saveFrameButton);
     lay->addWidget(cornerFrame);
+}
+
+void ImageViewer::saveFrameAsFile(QSize size) {
+    QString path = QFileDialog::getSaveFileName(
+        this, "Save frame", QString(), "PNG image (*.png);;All files (*.*)");
+    if (path.isEmpty())
+        return;
+
+    image.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+        .save(path);
 }
 
 void ImageViewer::enterEvent(QEnterEvent *event) { cornerFrame->show(); }

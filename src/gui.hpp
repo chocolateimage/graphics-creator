@@ -195,11 +195,13 @@ class MainWindow : public QMainWindow {
     QProgressBar *renderProgressBar;
 
     QList<EncoderInfo> encoders;
+    QList<NewTemplateCategory> categories = {};
 
     MainWindow();
     void loadLate();
 
     void loadTemplates();
+    void useTemplate(const NewTemplate &newTemplate);
 
     void updateButtons();
     void updateTimeInput(double value);

@@ -9,6 +9,7 @@ function options()
         {
             id = "text",
             type = "string",
+            default = "Hello world",
         },
         {
             id = "fontSize",
@@ -16,26 +17,32 @@ function options()
             slider = true,
             min = 0,
             max = 500,
+            default = 128,
         },
         {
             id = "bottomLeft",
             type = "vector2dint",
+            default = { x = 500, y = 500 },
         },
         {
             id = "borderSize",
             type = "int",
+            default = 16,
         },
         {
             id = "borderColor",
             type = "color",
+            default = { r = 255, g = 200, b = 0, a = 255 },
         },
         {
             id = "backgroundColor",
             type = "color",
+            default = { r = 20, g = 20, b = 20, a = 255 },
         },
         {
             id = "textColor",
             type = "color",
+            default = { r = 255, g = 200, b = 0, a = 255 },
         },
     }
 end
