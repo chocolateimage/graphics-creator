@@ -14,7 +14,7 @@ function options()
         {
             id = "textPos",
             type = "vector2dint",
-            default = { x = 200, y = 200 },
+            default = { x = 64, y = 1000 },
         },
         {
             id = "fontSize",
@@ -58,7 +58,7 @@ function draw(_frame)
     local frame = ffi.cast("uint32_t*", _frame)
 
     local ti = createText(text, font)
-    local _, _, _, _, w, h = getTextInfo(ti, fontSize)
+    local minX, minY, _, _, w, h = getTextInfo(ti, fontSize)
 
     local shadowFrom = -0.05
     local shadowTo = 0.05
@@ -74,8 +74,8 @@ function draw(_frame)
             local blue = 0
             local alpha = 0
 
-            local tx = x - textPos.x
-            local ty = y - textPos.y
+            local tx = x - textPos.x - minX
+            local ty = y - textPos.y - minY
             if tx >= 0 and ty >= 0 and tx <= w + shadowSize and ty <= h + shadowSize then
                 local value = smoothstep(-0.05, 0.05, getPixel(ti, fontSize, tx, ty))
                 local border = smoothstep(-0.5, -0.4, getPixel(ti, fontSize, tx, ty))

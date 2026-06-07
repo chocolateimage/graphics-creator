@@ -23,7 +23,7 @@ function options()
             id = "textPos",
             type = "vector2dint",
             label = "Text position",
-            default = { x = 500, y = 500, },
+            default = { x = 64, y = 1000, },
         },
         {
             id = "borderColor",
@@ -39,6 +39,11 @@ function options()
             type = "double",
             default = 1,
         },
+        {
+            id = "easing",
+            type = "easing",
+            default = "easeOutExpo",
+        },
     }
 end
 
@@ -48,7 +53,7 @@ function draw(_frame)
     local ts = fontSize
     local minX, minY, maxX, maxY, tw, th = getTextInfo(t, ts)
     local frame = ffi.cast("uint32_t*", _frame)
-    local time = easeOutExpo(saturate(seconds / animationDuration))
+    local time = easing(saturate(seconds / animationDuration))
     local thisPosX = mix(-tw, textPos.x, time)
     local thisPosY = mix(textPos.y, textPos.y, time)
 

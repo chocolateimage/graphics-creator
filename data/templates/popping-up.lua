@@ -22,7 +22,7 @@ function options()
         {
             id = "bottomLeft",
             type = "vector2dint",
-            default = { x = 500, y = 500 },
+            default = { x = 64, y = 1000 },
         },
         {
             id = "borderSize",

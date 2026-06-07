@@ -23,7 +23,7 @@ function options()
             id = "textPos",
             type = "vector2dint",
             label = "Text position",
-            default = { x = 500, y = 500, },
+            default = { x = 64, y = 1000, },
         },
         {
             id = "borderColor",

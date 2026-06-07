@@ -32,7 +32,12 @@ function options()
             id = "textColor",
             type = "color",
             default = { r = 255, g = 255, b = 255, a = 255 },
-        }
+        },
+        {
+            id = "easing",
+            type = "easing",
+            default = "easeOutElastic",
+        },
     }
 end
 
@@ -42,7 +47,7 @@ function draw(_frame)
     local ti = createText(text, font)
     local _, _, _, _, w, h = getTextInfo(ti, fontSize)
 
-    local progress = easeOutElastic(saturate(seconds / 1))
+    local progress = easing(saturate(seconds / 1))
     local origW = width
     local origH = height
     if not stretched then
