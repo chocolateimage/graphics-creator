@@ -260,6 +260,11 @@ void GuiRenderThread::run() {
         avio_closep(&formatContext->pb);
     }
     avformat_free_context(formatContext);
+
+    if (!hasErrored) {
+        emit finishedSuccessfully();
+    }
+
     qInfo() << "finished rendering";
 }
 
@@ -314,6 +319,7 @@ void GuiRenderThread::doErrored(QString error) {
     if (isCancelling)
         return;
     isCancelling = true;
+    hasErrored = true;
     emit errored(error);
 }
 
@@ -694,6 +700,12 @@ void MainWindow::loadLate() {
             &MainWindow::renderButtonClicked);
     renderLayout->addWidget(renderButton);
 
+    renderLayout->addSpacing(16);
+
+    renderedFileButton = new VideoFileButton(renderContent);
+    renderedFileButton->hide();
+    renderLayout->addWidget(renderedFileButton, 0, Qt::AlignCenter);
+
     renderLayout->addStretch();
 
     renderProgressLabel = new QLabel(renderContent);
@@ -877,6 +889,7 @@ void MainWindow::renderButtonClicked() {
         }
     }
 
+    renderedFileButton->hide();
     renderButton->setDisabled(true);
     renderProgressLabel->setText("Preparing...");
     renderProgressBar->setRange(0, 0);
@@ -908,6 +921,12 @@ void MainWindow::renderButtonClicked() {
                                              QString::number(lastFrame) + ")");
                 renderProgressBar->setRange(0, lastFrame);
                 renderProgressBar->setValue(frame);
+            });
+
+    connect(thread, &GuiRenderThread::finishedSuccessfully, thread,
+            [this, fileInfo]() {
+                renderedFileButton->show();
+                renderedFileButton->setFile(fileInfo.filePath());
             });
 }
 

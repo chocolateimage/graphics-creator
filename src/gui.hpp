@@ -2,6 +2,7 @@
 #include "lua.hpp"
 #include "variant.hpp"
 #include "video.hpp"
+#include "video_file_button.hpp"
 #include <KMessageWidget>
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
@@ -92,6 +93,7 @@ class GuiRenderThread : public QThread {
     int64_t currentFrameIndex{0};
     int64_t lastFrameIndex{0};
     std::atomic<bool> isCancelling{false};
+    std::atomic<bool> hasErrored{false};
 
     AVFrame *getFrame();
 
@@ -114,6 +116,7 @@ class GuiRenderThread : public QThread {
   signals:
     void errored(QString error);
     void progressed(int64_t frame, int64_t lastFrame);
+    void finishedSuccessfully();
 };
 
 class GuiRenderDrawThread : public QThread {
@@ -191,6 +194,7 @@ class MainWindow : public QMainWindow {
     QComboBox *renderVideoFormatComboBox;
     QLineEdit *renderFilePathInput;
     QPushButton *renderButton;
+    VideoFileButton *renderedFileButton;
     QLabel *renderProgressLabel;
     QProgressBar *renderProgressBar;
 

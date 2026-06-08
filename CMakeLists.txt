@@ -33,6 +33,7 @@ set(graphicscreator_SRCS
     src/variant.cpp
     src/fontcombobox.cpp
     src/draggable_spinbox.cpp
+    src/video_file_button.cpp
 )
 
 
