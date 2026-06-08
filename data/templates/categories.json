@@ -3,6 +3,10 @@
     "name": "Text",
     "templates": [
       {
+        "name": "Lower Third",
+        "file": "lower-third-01"
+      },
+      {
         "name": "Text with shadow and border",
         "file": "text-shadow"
       },
