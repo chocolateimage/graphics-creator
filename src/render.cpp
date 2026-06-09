@@ -352,6 +352,9 @@ int Text::luaGetInfo(lua_State *L, float fontSize) {
 }
 
 int Text::luaGetIndexInfo(lua_State *L, float fontSize, int index) {
+    if (!isManual)
+        return 0;
+
     if (index < 0 || index >= (int)glyphCount)
         return 0;
 
@@ -368,6 +371,9 @@ int Text::luaGetIndexInfo(lua_State *L, float fontSize, int index) {
 }
 
 int Text::luaGetAllCharsInfo(lua_State *L, float fontSize) {
+    if (!isManual)
+        return 0;
+
     float adjust = fontSize / (fontInfo == nullptr ? 1 : fontInfo->pixelHeight);
 
     lua_createtable(L, glyphCount, 0);
@@ -394,16 +400,16 @@ int Text::luaGetAllCharsInfo(lua_State *L, float fontSize) {
         lua_pushnumber(L, (float)h * adjust);
         lua_settable(L, -3);
         lua_pushstring(L, "xo");
-        lua_pushnumber(L, (float)glyphPos.x_offset * adjust);
+        lua_pushnumber(L, (float)(glyphPos.x_offset >> 6) * adjust);
         lua_settable(L, -3);
         lua_pushstring(L, "xa");
-        lua_pushnumber(L, (float)glyphPos.x_advance * adjust);
+        lua_pushnumber(L, (float)(glyphPos.x_advance >> 6) * adjust);
         lua_settable(L, -3);
         lua_pushstring(L, "yo");
-        lua_pushnumber(L, (float)glyphPos.y_offset * adjust);
+        lua_pushnumber(L, (float)(glyphPos.y_offset >> 6) * adjust);
         lua_settable(L, -3);
         lua_pushstring(L, "ya");
-        lua_pushnumber(L, (float)glyphPos.y_advance * adjust);
+        lua_pushnumber(L, (float)(glyphPos.y_advance >> 6) * adjust);
         lua_settable(L, -3);
         lua_pushstring(L, "l");
         lua_pushnumber(L, (float)l * adjust);
