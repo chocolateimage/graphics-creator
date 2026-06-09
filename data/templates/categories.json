@@ -33,6 +33,10 @@
       {
         "name": "Single Letter Test",
         "file": "letters"
+      },
+      {
+        "name": "Single Letter Test 2",
+        "file": "letters-2"
       }
     ]
   },

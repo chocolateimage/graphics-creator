@@ -11,6 +11,11 @@ bit = require("bit")
 ffi = require("ffi")
 bor = bit.bor
 lshift = bit.lshift
+rshift = bit.rshift
+band = bit.band
+bor = bit.bor
+bxor = bit.bxor
+bnot = bit.bnot
 abs = math.abs
 acos = math.acos
 asin = math.asin
@@ -350,5 +355,9 @@ function over(r1,g1,b1,a1,r2,g2,b2,a2)
     local g = ((g2 / 255) * a2 + (g1 / 255) * t) / a
     local b = ((b2 / 255) * a2 + (b1 / 255) * t) / a
     return r * 255, g * 255, b * 255, a * 255
+end
+
+function extractRGBA(num)
+    return band(rshift(num, 16), 0xff), band(rshift(num, 8), 0xff), band(num, 0xff), band(rshift(num, 24), 0xff)
 end
 )";
