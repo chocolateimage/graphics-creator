@@ -49,6 +49,13 @@ Available functions:
 - `wave(x)`: Sine wave but instead of -1 to 1, it goes from 0 to 1. When x is 0, it's the start of the wave. When x is 0.5, it's the peak of the wave, and when x is 1 it's back to the start of the wave.
 - `isInRect(x, y, rectX, rectY, rectW, rectH)`: Returns `true`/`false` when the coords are in the rectangle or not.
 - `hsvToRgb(hue, saturation, value)`: Hue is from 0 to 360. Saturation and value are from 0 to 1.
+- `over(r1,g1,b1,a1,r2,g2,b2,a2)`: Adds together two transparent values. First four values (r1, g1, b1, a1) are "behind", and the last four values (r2, g2, b2, a2) are "over".\
+  You would use it like this:
+  ```lua
+  -- "red, green, blue, alpha" comes from the frame.
+  -- "255, 0, 0, 128" means half transparent red.
+  red, green, blue, alpha = over(red, green, blue, alpha, 255, 0, 0, 128)
+  ```
 - all `math.` functions are in global scope (`math.sin()` can be used just with `sin()`)
 - easing functions from [easings.net](https://easings.net). call it like `easeOutSine(x)`
 
@@ -114,4 +121,3 @@ These option data types are available. They can be set in the `type` property. I
 
 - `easing`: Selectable list of easings. The value in Lua will be the specific easing function and can be used like this: `local value = <id>(0.5)`\
   <img width="168" height="274" alt="image" src="https://github.com/user-attachments/assets/384dea3b-251f-4f7c-946a-9e5ffb2150b6" />
-

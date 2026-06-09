@@ -337,4 +337,18 @@ function hsvToRgb(h,s,v)
 
     return (r+m)*255, (g+m)*255, (b+m)*255
 end
+
+function over(r1,g1,b1,a1,r2,g2,b2,a2)
+    a1 = a1 / 255
+    a2 = a2 / 255
+    local t = a1 * (1 - a2)
+    local a = a2 + t
+    if a == 0 then
+        return 0, 0, 0, 0
+    end
+    local r = ((r2 / 255) * a2 + (r1 / 255) * t) / a
+    local g = ((g2 / 255) * a2 + (g1 / 255) * t) / a
+    local b = ((b2 / 255) * a2 + (b1 / 255) * t) / a
+    return r * 255, g * 255, b * 255, a * 255
+end
 )";
