@@ -10,6 +10,7 @@
 #include <hb.h>
 #include <map>
 #include <unordered_map>
+#include <vector>
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -55,11 +56,15 @@ class RenderThread {
 
 class Text {
   public:
-    Text(RenderThread *renderThread, const char *text, const Font &font);
-    uint8_t getPixel(int x, int y);
-    float getSmoothPixel(float fontSize, float x, float y);
+    Text(RenderThread *renderThread, const char *text, const Font &font,
+         bool isManual);
+    uint8_t getPixel(int x, int y, int index);
+    float getSmoothPixel(float fontSize, float x, float y, int index);
     int luaGetInfo(lua_State *L, float fontSize);
+    int luaGetIndexInfo(lua_State *L, float fontSize, int index);
+    int luaGetAllCharsInfo(lua_State *L, float fontSize);
     ~Text();
+    uint32_t glyphCount;
 
   private:
     void calculateSize();
@@ -70,10 +75,13 @@ class Text {
     int maxY{INT_MIN};
     int width;
     int height;
+    bool isManual{false};
+    std::vector<std::pair<int, int>> drawPoints;
+    std::vector<std::pair<int, int>> offsetPoints;
+    std::vector<std::tuple<uint8_t *, int, int>> bitmaps;
     RenderThread *renderThread;
     FontInfo *fontInfo{nullptr};
     hb_buffer_t *hbBuffer;
-    uint32_t glyphCount;
     hb_glyph_info_t *glyphInfo;
     hb_glyph_position_t *glyphPositions;
     uint8_t *image{nullptr};

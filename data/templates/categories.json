@@ -29,6 +29,10 @@
       {
         "name": "Sliding Fade",
         "file": "text-fade-slide"
+      },
+      {
+        "name": "Single Letter Test",
+        "file": "letters"
       }
     ]
   },

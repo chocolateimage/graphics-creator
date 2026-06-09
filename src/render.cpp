@@ -73,10 +73,17 @@ int TextClass__gc(lua_State *L) {
     return 0;
 }
 
+int TextClass__len(lua_State *L) {
+    Text *text = *((Text **)lua_touserdata(L, 1));
+    lua_pushnumber(L, text->glyphCount);
+    return 1;
+}
+
 int TextClass_create(lua_State *L) {
     int arguments = lua_gettop(L);
-    if (arguments != 2) {
-        luaL_error(L, "createText(): invalid argument count (string, font)");
+    if (arguments != 2 && arguments != 3) {
+        luaL_error(
+            L, "createText(): invalid argument count (string, font, [manual])");
         return 0;
     }
     auto text = lua_tostring(L, 1);
@@ -90,11 +97,18 @@ int TextClass_create(lua_State *L) {
         return 0;
     }
 
+    bool isManual{false};
+
+    if (arguments == 3) {
+        isManual = lua_toboolean(L, 3);
+    }
+
     auto fontVariant = Variant::getFromLua(VariantTypeEnum::Font, L, 2);
 
     RenderThread *renderThread =
         (RenderThread *)lua_touserdata(L, lua_upvalueindex(1));
-    Text *textObject = new Text(renderThread, text, fontVariant.get<Font>());
+    Text *textObject =
+        new Text(renderThread, text, fontVariant.get<Font>(), isManual);
     Text **newUserData = (Text **)lua_newuserdata(L, sizeof(Text *));
     *newUserData = textObject;
     luaL_getmetatable(L, "TextClass");
@@ -104,9 +118,9 @@ int TextClass_create(lua_State *L) {
 
 int TextClass_getPixel(lua_State *L) {
     int arguments = lua_gettop(L);
-    if (arguments != 4) {
+    if (arguments != 4 && arguments != 5) {
         luaL_error(L, "getPixel(): invalid argument count (textInstance, "
-                      "fontSize, x, y)");
+                      "fontSize, x, y, [index])");
         return 0;
     }
 
@@ -119,27 +133,49 @@ int TextClass_getPixel(lua_State *L) {
     float fontSize = lua_tonumber(L, 2);
     float x = lua_tonumber(L, 3);
     float y = lua_tonumber(L, 4);
+    int index = -1;
+    if (arguments == 5) {
+        index = lua_tointeger(L, 5);
+    }
 
-    lua_pushnumber(L, text->getSmoothPixel(fontSize, x, y));
+    lua_pushnumber(L, text->getSmoothPixel(fontSize, x, y, index));
     return 1;
 }
 
 int TextClass_getTextInfo(lua_State *L) {
     int arguments = lua_gettop(L);
-    if (arguments != 2) {
-        luaL_error(
-            L,
-            "getTextInfo(): invalid argument count (textInstance, fontSize)");
+    if (arguments != 2 && arguments != 3) {
+        luaL_error(L, "getTextInfo(): invalid argument count (textInstance, "
+                      "fontSize, index)");
         return 0;
     }
 
     Text *text = *((Text **)luaL_checkudata(L, 1, "TextClass"));
 
-    return text->luaGetInfo(L, lua_tonumber(L, 2));
+    if (arguments == 2) {
+        return text->luaGetInfo(L, lua_tonumber(L, 2));
+    } else {
+        return text->luaGetIndexInfo(L, lua_tonumber(L, 2),
+                                     lua_tointeger(L, 3));
+    }
 }
 
-Text::Text(RenderThread *renderThread, const char *text, const Font &font)
-    : renderThread(renderThread) {
+int TextClass_getAllCharsInfo(lua_State *L) {
+    int arguments = lua_gettop(L);
+    if (arguments != 2) {
+        luaL_error(L, "getAllCharsInfo(): invalid argument count "
+                      "(textInstance, fontSize)");
+        return 0;
+    }
+
+    Text *text = *((Text **)luaL_checkudata(L, 1, "TextClass"));
+
+    return text->luaGetAllCharsInfo(L, lua_tonumber(L, 2));
+}
+
+Text::Text(RenderThread *renderThread, const char *text, const Font &font,
+           bool isManual)
+    : isManual(isManual), renderThread(renderThread) {
     if (font.path.empty()) {
         width = 0;
         height = 0;
@@ -185,6 +221,12 @@ void Text::calculateSize() {
         int drawX = (curX + xOffset + glyph->left);
         int drawY = (curY + yOffset - glyph->top);
 
+        if (isManual) {
+            drawPoints.push_back({drawX, drawY});
+
+            offsetPoints.push_back({glyph->left, -glyph->top});
+        }
+
         minX = std::min(minX, drawX);
         minY = std::min(minY, drawY);
         maxX = std::max(maxX, (int)glyph->bitmap.width + drawX);
@@ -206,44 +248,74 @@ void Text::draw() {
     int curX = 0;
     int curY = 0;
 
-    image = new uint8_t[width * height];
-    memset(image, 0, width * height);
+    if (!isManual) {
+        image = new uint8_t[width * height];
+        memset(image, 0, width * height);
+    }
 
     for (unsigned int i = 0; i < glyphCount; i++) {
         auto glyphPos = glyphPositions[i];
         auto codepoint = glyphInfo[i].codepoint;
-        int xOffset = (glyphPos.x_offset >> 6);
-        int yOffset = (glyphPos.y_offset >> 6);
-        int xAdvance = (glyphPos.x_advance >> 6);
-        int yAdvance = (glyphPos.y_advance >> 6);
         auto glyph = fontInfo->getGlyph(glyphInfo[i].codepoint);
 
-        int drawX = (curX + xOffset + glyph->left) - minX;
-        int drawY = (curY + yOffset - glyph->top) - minY;
+        if (isManual) {
+            uint8_t *bitmap =
+                new uint8_t[glyph->bitmap.width * glyph->bitmap.rows];
+            memcpy(bitmap, glyph->bitmap.buffer,
+                   glyph->bitmap.width * glyph->bitmap.rows);
 
-        for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
-            for (unsigned int x = 0; x < glyph->bitmap.width; x++) {
-                int targetX = drawX + x;
-                int targetY = drawY + y;
-                image[targetY * width + targetX] =
-                    std::max(image[targetY * width + targetX],
-                             glyph->bitmap.buffer[y * glyph->bitmap.pitch + x]);
+            bitmaps.push_back({
+                bitmap,
+                glyph->bitmap.width,
+                glyph->bitmap.rows,
+            });
+        } else {
+            int xOffset = (glyphPos.x_offset >> 6);
+            int yOffset = (glyphPos.y_offset >> 6);
+            int xAdvance = (glyphPos.x_advance >> 6);
+            int yAdvance = (glyphPos.y_advance >> 6);
+
+            int drawX = (curX + xOffset + glyph->left) - minX;
+            int drawY = (curY + yOffset - glyph->top) - minY;
+
+            for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
+                for (unsigned int x = 0; x < glyph->bitmap.width; x++) {
+                    int targetX = drawX + x;
+                    int targetY = drawY + y;
+                    image[targetY * width + targetX] = std::max(
+                        image[targetY * width + targetX],
+                        glyph->bitmap.buffer[y * glyph->bitmap.pitch + x]);
+                }
             }
-        }
 
-        curX += xAdvance;
-        curY += yAdvance;
+            curX += xAdvance;
+            curY += yAdvance;
+        }
     }
 }
 
-inline uint8_t Text::getPixel(int x, int y) {
-    if (x < 0 || y < 0 || x >= width || y >= height)
+inline uint8_t Text::getPixel(int x, int y, int index) {
+    if (x < 0 || y < 0)
         return 0;
 
-    return image[y * width + x];
+    if (isManual) {
+        if (index < 0 || index >= (int)glyphCount)
+            return 0;
+
+        const auto [data, w, h] = bitmaps[index];
+        if (x >= w || y >= h)
+            return 0;
+
+        return data[y * w + x];
+    } else {
+        if (x >= width || y >= height)
+            return 0;
+
+        return image[y * width + x];
+    }
 }
 
-float Text::getSmoothPixel(float fontSize, float x, float y) {
+float Text::getSmoothPixel(float fontSize, float x, float y, int index) {
     if (fontInfo == nullptr)
         return -0.5f;
 
@@ -254,10 +326,10 @@ float Text::getSmoothPixel(float fontSize, float x, float y) {
     int rightX = leftX + 1;
     int topY = (int)targetY;
     int bottomY = topY + 1;
-    float topLeft = (float)getPixel(leftX, topY);
-    float topRight = (float)getPixel(rightX, topY);
-    float bottomLeft = (float)getPixel(leftX, bottomY);
-    float bottomRight = (float)getPixel(rightX, bottomY);
+    float topLeft = (float)getPixel(leftX, topY, index);
+    float topRight = (float)getPixel(rightX, topY, index);
+    float bottomLeft = (float)getPixel(leftX, bottomY, index);
+    float bottomRight = (float)getPixel(rightX, bottomY, index);
 
     float xPercent = targetX - leftX;
     float yPercent = targetY - topY;
@@ -279,10 +351,79 @@ int Text::luaGetInfo(lua_State *L, float fontSize) {
     return 6;
 }
 
+int Text::luaGetIndexInfo(lua_State *L, float fontSize, int index) {
+    if (index < 0 || index >= (int)glyphCount)
+        return 0;
+
+    float adjust = fontSize / (fontInfo == nullptr ? 1 : fontInfo->pixelHeight);
+
+    const auto [x, y] = drawPoints[index];
+    const auto [bitmap, w, h] = bitmaps[index];
+
+    lua_pushnumber(L, (float)x * adjust);
+    lua_pushnumber(L, (float)y * adjust);
+    lua_pushnumber(L, (float)w * adjust);
+    lua_pushnumber(L, (float)h * adjust);
+    return 4;
+}
+
+int Text::luaGetAllCharsInfo(lua_State *L, float fontSize) {
+    float adjust = fontSize / (fontInfo == nullptr ? 1 : fontInfo->pixelHeight);
+
+    lua_createtable(L, glyphCount, 0);
+
+    for (uint32_t index = 0; index < glyphCount; index++) {
+        auto glyphPos = glyphPositions[index];
+        const auto [x, y] = drawPoints[index];
+        const auto [l, t] = offsetPoints[index];
+        const auto [bitmap, w, h] = bitmaps[index];
+
+        lua_pushnumber(L, index);
+
+        lua_createtable(L, 0, 10);
+        lua_pushstring(L, "x");
+        lua_pushnumber(L, (float)x * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "y");
+        lua_pushnumber(L, (float)y * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "w");
+        lua_pushnumber(L, (float)w * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "h");
+        lua_pushnumber(L, (float)h * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "xo");
+        lua_pushnumber(L, (float)glyphPos.x_offset * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "xa");
+        lua_pushnumber(L, (float)glyphPos.x_advance * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "yo");
+        lua_pushnumber(L, (float)glyphPos.y_offset * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "ya");
+        lua_pushnumber(L, (float)glyphPos.y_advance * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "l");
+        lua_pushnumber(L, (float)l * adjust);
+        lua_settable(L, -3);
+        lua_pushstring(L, "t");
+        lua_pushnumber(L, (float)t * adjust);
+        lua_settable(L, -3);
+        lua_settable(L, -3);
+    }
+
+    return 1;
+}
+
 Text::~Text() {
     if (fontInfo != nullptr) {
         hb_buffer_destroy(hbBuffer);
         delete[] image;
+        for (auto bitmap : bitmaps) {
+            delete[] std::get<0>(bitmap);
+        }
     }
 }
 
@@ -318,6 +459,8 @@ bool RenderThread::loadLua(const std::string &code) {
     luaL_newmetatable(L, "TextClass");
     lua_pushcfunction(L, TextClass__gc);
     lua_setfield(L, -2, "__gc");
+    lua_pushcfunction(L, TextClass__len);
+    lua_setfield(L, -2, "__len");
     lua_pop(L, 1);
 
     lua_pushlightuserdata(L, this);
@@ -329,6 +472,9 @@ bool RenderThread::loadLua(const std::string &code) {
 
     lua_pushcfunction(L, TextClass_getTextInfo);
     lua_setglobal(L, "getTextInfo");
+
+    lua_pushcfunction(L, TextClass_getAllCharsInfo);
+    lua_setglobal(L, "getAllCharsInfo");
 
     // load
     if (luaL_dostring(L, code.c_str()) != LUA_OK) {
