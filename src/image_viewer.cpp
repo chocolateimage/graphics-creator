@@ -63,6 +63,7 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     darkCheckerboardButton->setIcon(QIcon::fromTheme("composite-track-on"));
     darkCheckerboardButton->setToolTip("Dark checkboard background");
     darkCheckerboardButton->setCheckable(true);
+    darkCheckerboardButton->setChecked(true);
     connect(darkCheckerboardButton, &QToolButton::toggled, this,
             [this](bool checked) {
                 darkCheckerboard = checked;

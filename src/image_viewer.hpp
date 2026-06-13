@@ -28,7 +28,7 @@ class ImageViewer : public QWidget {
     void saveFrameAsFile(QSize size);
     TransparentCornerFrame *cornerFrame;
     QToolButton *windowButton;
-    bool darkCheckerboard{false};
+    bool darkCheckerboard{true};
     bool poppedOut{false};
     void clampMovePos();
     QPointF movePos{0, 0};
