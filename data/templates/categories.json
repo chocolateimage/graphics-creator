@@ -7,6 +7,14 @@
         "file": "lower-third-01"
       },
       {
+        "name": "Section Text",
+        "file": "section-text"
+      },
+      {
+        "name": "Text with shadow",
+        "file": "text-basic-shadow"
+      },
+      {
         "name": "Text with shadow and border",
         "file": "text-shadow"
       },
