@@ -13,6 +13,15 @@ Supports Linux and Windows.
 
 - Config presets
 
+## Contributing
+
+It would be really helpful for me if, in case you have an idea, or found a bug, that you [create an issue](https://github.com/chocolateimage/graphics-creator/issues/new)!
+
+In case you are a developer and want to add a new feature to the program, or add a new template, then you are welcome to create a PR! (just no AI slop please)
+
+- License of the templates: [MIT](data/templates/LICENSE)
+- License of the rest of the program: [GPLv3](LICENSE)
+
 ## Scripting
 
 TODO: put this somewhere else instead of the README (in the program itself?)
