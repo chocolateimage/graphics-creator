@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "brush_input.hpp"
 #include "draggable_spinbox.hpp"
 #include "fontcombobox.hpp"
 #include "line.hpp"
@@ -1306,6 +1307,15 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
         connect(input, &QComboBox::currentIndexChanged, this,
                 [this, optionId, names](int index) {
                     updateOption(optionId, Variant(Easing{names[index]}));
+                });
+        widget = input;
+    } else if (optionType == VariantTypeEnum::Brush) {
+        auto input = new BrushInput(optionsWidget);
+        Brush value = variant.get<Brush>();
+        input->setValue(value);
+        connect(input, &BrushInput::valueChanged, this,
+                [this, optionId](Brush newValue) {
+                    updateOption(optionId, Variant(newValue));
                 });
         widget = input;
     }

@@ -38,6 +38,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Bool;
     } else if (type == "easing") {
         return VariantTypeEnum::Easing;
+    } else if (type == "brush") {
+        return VariantTypeEnum::Brush;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -63,6 +65,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(false);
     case VariantTypeEnum::Easing:
         return Variant(Easing{""});
+    case VariantTypeEnum::Brush:
+        return Variant(Brush{});
     }
 }
 
@@ -135,6 +139,39 @@ void Variant::pushLua(lua_State *L) const {
         }
         break;
     }
+    case VariantTypeEnum::Brush: {
+        Brush value = get<Brush>();
+        switch (value.brushType) {
+        case Brush::Type::SingleColor: {
+            std::string code = "return function(x,y) return ";
+            code += std::to_string(value.color1.r) + "," +
+                    std::to_string(value.color1.g) + "," +
+                    std::to_string(value.color1.b) + "," +
+                    std::to_string(value.color1.a) + " end";
+            luaL_dostring(L, code.c_str());
+            break;
+        }
+        case Brush::Type::LinearGradient: {
+            std::string code = "return function(x,y) return ";
+            code += "mix(" + std::to_string(value.color1.r) + "," +
+                    std::to_string(value.color2.r) + ",x),";
+            code += "mix(" + std::to_string(value.color1.g) + "," +
+                    std::to_string(value.color2.g) + ",x),";
+            code += "mix(" + std::to_string(value.color1.b) + "," +
+                    std::to_string(value.color2.b) + ",x),";
+            code += "mix(" + std::to_string(value.color1.a) + "," +
+                    std::to_string(value.color2.a) + ",x)";
+            code += " end";
+            luaL_dostring(L, code.c_str());
+            break;
+        }
+        case Brush::Type::RadialGradient: {
+            // TODO: radial gradient implementation
+            break;
+        }
+        }
+        break;
+    }
     };
 }
 
@@ -195,6 +232,10 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
     case VariantTypeEnum::Easing: {
         const char *str = lua_tostring(L, index);
         return Variant(Easing{str});
+    }
+    case VariantTypeEnum::Brush: {
+        // TODO: brush from lua
+        return Variant(Brush{});
     }
     };
 }

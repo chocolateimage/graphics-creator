@@ -31,7 +31,7 @@ std::variant for storing?
 */
 
 struct Color {
-    int r, g, b, a;
+    int r{255}, g{255}, b{255}, a{255};
 };
 
 struct Vector2DInt {
@@ -48,10 +48,23 @@ struct Easing {
     std::string easingCurve;
 };
 
+struct Brush {
+    enum Type {
+        SingleColor,
+        LinearGradient,
+        RadialGradient,
+    };
+
+    Brush::Type brushType = Brush::Type::SingleColor;
+    Color color1;
+    Color color2;
+    double angle{0};
+};
+
 std::string getFontHash(const Font &font);
 
 using VariantType = std::variant<std::monostate, std::string, int, double,
-                                 Color, Vector2DInt, Font, bool, Easing>;
+                                 Color, Vector2DInt, Font, bool, Easing, Brush>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -64,6 +77,7 @@ struct VariantTypeEnum {
         Font,
         Bool,
         Easing,
+        Brush,
     };
 };
 

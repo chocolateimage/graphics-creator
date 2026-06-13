@@ -34,6 +34,7 @@ set(graphicscreator_SRCS
     src/fontcombobox.cpp
     src/draggable_spinbox.cpp
     src/video_file_button.cpp
+    src/brush_input.cpp
 )
 
 

@@ -46,6 +46,10 @@
       {
         "name": "Blank",
         "file": "blank"
+      },
+      {
+        "name": "Brush",
+        "file": "brush"
       }
     ]
   }
