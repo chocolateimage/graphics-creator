@@ -34,7 +34,7 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
 
     changeButton = new QPushButton(this);
     changeButton->setIcon(QIcon::fromTheme("arrow-down"));
-    connect(changeButton, &QPushButton::clicked, this, &BrushInput::showMenu);
+    connect(changeButton, &QPushButton::pressed, this, &BrushInput::showMenu);
     lay->addWidget(changeButton);
 }
 
@@ -54,6 +54,7 @@ void BrushInput::showMenu() {
         changeButton->mapToGlobal(changeButton->rect().bottomLeft()));
     updateType();
     _valueChanged();
+    changeButton->clearFocus();
 }
 
 Brush::Type BrushInput::getBrushType() {
