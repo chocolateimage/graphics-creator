@@ -143,7 +143,7 @@ void Variant::pushLua(lua_State *L) const {
         Brush value = get<Brush>();
         switch (value.brushType) {
         case Brush::Type::SingleColor: {
-            std::string code = "return function(x,y) return ";
+            std::string code = "return function(x,y,w,h) return ";
             code += std::to_string(value.color1.r) + "," +
                     std::to_string(value.color1.g) + "," +
                     std::to_string(value.color1.b) + "," +
@@ -152,7 +152,7 @@ void Variant::pushLua(lua_State *L) const {
             break;
         }
         case Brush::Type::LinearGradient: {
-            std::string code = "return function(x,y) return mixColor(";
+            std::string code = "return function(x,y,w,h) return mixColor(";
             code += std::to_string(value.color1.r) + "," +
                     std::to_string(value.color1.g) + "," +
                     std::to_string(value.color1.b) + "," +
@@ -160,12 +160,12 @@ void Variant::pushLua(lua_State *L) const {
                     std::to_string(value.color2.r) + "," +
                     std::to_string(value.color2.g) + "," +
                     std::to_string(value.color2.b) + "," +
-                    std::to_string(value.color2.a) + ",x) end";
+                    std::to_string(value.color2.a) + ",x / w) end";
             luaL_dostring(L, code.c_str());
             break;
         }
         case Brush::Type::RadialGradient: {
-            std::string code = "return function(x,y) return mixColor(";
+            std::string code = "return function(x,y,w,h) return mixColor(";
             code += std::to_string(value.color1.r) + "," +
                     std::to_string(value.color1.g) + "," +
                     std::to_string(value.color1.b) + "," +
@@ -174,7 +174,7 @@ void Variant::pushLua(lua_State *L) const {
                     std::to_string(value.color2.g) + "," +
                     std::to_string(value.color2.b) + "," +
                     std::to_string(value.color2.a) +
-                    ",distance(x,y,0.5,0.5) * 2) end";
+                    ",distance(x/w,y/h,0.5,0.5) * 2) end";
             luaL_dostring(L, code.c_str());
             break;
         }

@@ -115,7 +115,7 @@ function draw(_frame)
             if textX >= 0 and textY >= 0 and textX < tw and textY < th and y < textPos.y then
                 local pixel = getPixel(t, fontSizeTitle, textX, textY)
                 local innerValue = smoothstep(-0.05, 0.05, pixel)
-                local colorR, colorG, colorB, colorA = titleColor(textX / tw, textY / th)
+                local colorR, colorG, colorB, colorA = titleColor(textX, textY, tw, th)
                 red = colorR
                 green = colorG
                 blue = colorB
@@ -129,7 +129,7 @@ function draw(_frame)
                 local pixel = getPixel(t2, fontSizeSubTitle, textX, textY)
                 local innerValue = smoothstep(-0.05, 0.05, pixel)
 
-                local colorR, colorG, colorB, colorA = subTitleColor(textX / tw2, textY / th2)
+                local colorR, colorG, colorB, colorA = subTitleColor(textX, textY, tw2, th2)
                 red = colorR
                 green = colorG
                 blue = colorB
@@ -137,8 +137,7 @@ function draw(_frame)
             end
 
             if x >= textPos.x and y >= textPos.y and x <= textPos.x + lineWidth and y <= textPos.y + lineHeight then
-                local colorR, colorG, colorB, colorA = lineColor((x - textPos.x) / lineWidth,
-                    (y - textPos.y) / lineHeight)
+                local colorR, colorG, colorB, colorA = lineColor(x - textPos.x, y - textPos.y, lineWidth, lineHeight)
                 red = colorR
                 green = colorG
                 blue = colorB

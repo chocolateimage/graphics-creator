@@ -3,6 +3,7 @@ build/
 deploy/
 deploybuild/
 
+__cmake_systeminformation/
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
