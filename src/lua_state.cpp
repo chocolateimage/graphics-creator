@@ -1,5 +1,6 @@
 #include "lua_state.hpp"
 #include "lua_code.hpp"
+#include <iostream>
 
 static const luaL_Reg luaLibrariesLoad[] = {
     {"", luaopen_base},
@@ -23,7 +24,11 @@ lua_State *createLuaState() {
 
     luaJIT_setmode(L, -1, LUAJIT_MODE_ON);
 
-    luaL_dostring(L, LUA_GLOBAL_CODE);
+    if (luaL_dostring(L, LUA_GLOBAL_CODE) != LUA_OK) {
+        auto err = lua_tostring(L, -1);
+        std::cout << err << std::endl;
+        lua_pop(L, 1);
+    }
 
     return L;
 }

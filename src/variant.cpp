@@ -152,16 +152,15 @@ void Variant::pushLua(lua_State *L) const {
             break;
         }
         case Brush::Type::LinearGradient: {
-            std::string code = "return function(x,y) return ";
-            code += "mix(" + std::to_string(value.color1.r) + "," +
-                    std::to_string(value.color2.r) + ",x),";
-            code += "mix(" + std::to_string(value.color1.g) + "," +
-                    std::to_string(value.color2.g) + ",x),";
-            code += "mix(" + std::to_string(value.color1.b) + "," +
-                    std::to_string(value.color2.b) + ",x),";
-            code += "mix(" + std::to_string(value.color1.a) + "," +
-                    std::to_string(value.color2.a) + ",x)";
-            code += " end";
+            std::string code = "return function(x,y) return mixColor(";
+            code += std::to_string(value.color1.r) + "," +
+                    std::to_string(value.color1.g) + "," +
+                    std::to_string(value.color1.b) + "," +
+                    std::to_string(value.color1.a) + "," +
+                    std::to_string(value.color2.r) + "," +
+                    std::to_string(value.color2.g) + "," +
+                    std::to_string(value.color2.b) + "," +
+                    std::to_string(value.color2.a) + ",x) end";
             luaL_dostring(L, code.c_str());
             break;
         }

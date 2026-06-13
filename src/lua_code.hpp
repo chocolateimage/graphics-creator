@@ -357,6 +357,61 @@ function over(r1,g1,b1,a1,r2,g2,b2,a2)
     return r * 255, g * 255, b * 255, a * 255
 end
 
+function srgbToLinear(x)
+    if x < 0.04045 then
+        return x * 0.0773993808
+    end
+
+    return (x * 0.9478672986 + 0.0521327014) ^ 2.4
+end
+
+function linearToSrgb(x)
+    if x < 0.0031308 then
+        return x * 12.92
+    end
+
+    return 1.055 * (x ^ 0.41666) - 0.055
+end
+
+function rgbToOklab(r, g, b)
+    r = srgbToLinear(r / 255)
+    g = srgbToLinear(g / 255)
+    b = srgbToLinear(b / 255)
+
+    local l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
+    local m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
+    local s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+    l = l ^ (1 / 3)
+    m = m ^ (1 / 3)
+    s = s ^ (1 / 3)
+    return l * 0.2104542553 + m * 0.7936177850 + s * -0.0040720468,
+        l * 1.9779984951 + m * -2.4285922050 + s * 0.4505937099,
+        l * 0.0259040371 + m * 0.7827717662 + s * -0.8086757660
+end
+
+function oklabToRgb(L, a, b)
+    local l = L + a * 0.3963377774 + b * 0.2158037573
+    local m = L + a * -0.1055613458 + b * -0.0638541728
+    local s = L + a * -0.0894841775 + b * -1.2914855480
+    l = l ^ 3
+    m = m ^ 3
+    s = s ^ 3
+    local r = l * 4.0767416621 + m * -3.3077115913 + s * 0.2309699292
+    local g = l * -1.2684380046 + m * 2.6097574011 + s * -0.3413193965
+    b = l * -0.0041960863 + m * -0.7034186147 + s * 1.7076147010
+    r = 255 * saturate(linearToSrgb(r))
+    g = 255 * saturate(linearToSrgb(g))
+    b = 255 * saturate(linearToSrgb(b))
+    return r, g, b
+end
+
+function mixColor(r1,g1,b1,a1,r2,g2,b2,a2,x)
+    local l1,oa1,ob1 = rgbToOklab(r1,g1,b1)
+    local l2,oa2,ob2 = rgbToOklab(r2,g2,b2)
+    local r,g,b = oklabToRgb(mix(l1,l2,x),mix(oa1,oa2,x),mix(ob1,ob2,x))
+    return r,g,b, mix(a1, a2, x)
+end
+
 function extractRGBA(num)
     return band(rshift(num, 16), 0xff), band(rshift(num, 8), 0xff), band(num, 0xff), band(rshift(num, 24), 0xff)
 end
