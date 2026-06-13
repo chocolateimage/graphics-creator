@@ -44,18 +44,15 @@ function options()
         },
         {
             id = "titleColor",
-            type = "color",
-            default = { r = 255, g = 255, b = 255, a = 255 },
+            type = "brush",
         },
         {
             id = "subTitleColor",
-            type = "color",
-            default = { r = 255, g = 255, b = 255, a = 255 },
+            type = "brush",
         },
         {
             id = "lineColor",
-            type = "color",
-            default = { r = 255, g = 255, b = 255, a = 255 },
+            type = "brush",
         },
         {
             id = "lineHeight",
@@ -118,11 +115,11 @@ function draw(_frame)
             if textX >= 0 and textY >= 0 and textX < tw and textY < th and y < textPos.y then
                 local pixel = getPixel(t, fontSizeTitle, textX, textY)
                 local innerValue = smoothstep(-0.05, 0.05, pixel)
-
-                red = titleColor.r
-                green = titleColor.g
-                blue = titleColor.b
-                alpha = mix(alpha, subTitleColor.a, innerValue)
+                local colorR, colorG, colorB, colorA = titleColor(textX / tw, textY / th)
+                red = colorR
+                green = colorG
+                blue = colorB
+                alpha = mix(alpha, colorA, innerValue)
             end
 
             local textX = x - textPos.x - minX2 - bottomHorizontalSpacing
@@ -132,17 +129,20 @@ function draw(_frame)
                 local pixel = getPixel(t2, fontSizeSubTitle, textX, textY)
                 local innerValue = smoothstep(-0.05, 0.05, pixel)
 
-                red = subTitleColor.r
-                green = subTitleColor.g
-                blue = subTitleColor.b
-                alpha = mix(alpha, subTitleColor.a, innerValue)
+                local colorR, colorG, colorB, colorA = subTitleColor(textX / tw2, textY / th2)
+                red = colorR
+                green = colorG
+                blue = colorB
+                alpha = mix(alpha, colorA, innerValue)
             end
 
             if x >= textPos.x and y >= textPos.y and x <= textPos.x + lineWidth and y <= textPos.y + lineHeight then
-                red = lineColor.r
-                green = lineColor.g
-                blue = lineColor.b
-                alpha = lineColor.a
+                local colorR, colorG, colorB, colorA = lineColor((x - textPos.x) / lineWidth,
+                    (y - textPos.y) / lineHeight)
+                red = colorR
+                green = colorG
+                blue = colorB
+                alpha = colorA
             end
 
             frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
