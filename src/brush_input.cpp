@@ -10,9 +10,11 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
     lay->setContentsMargins(0, 0, 0, 0);
 
     color1 = new KColorButton(this);
+    color1->setAlphaChannelEnabled(true);
     lay->addWidget(color1);
     connect(color1, &KColorButton::changed, this, &BrushInput::_valueChanged);
     color2 = new KColorButton(this);
+    color2->setAlphaChannelEnabled(true);
     connect(color2, &KColorButton::changed, this, &BrushInput::_valueChanged);
     lay->addWidget(color2);
 
