@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+
+Name=Graphics Creator
+Comment=Create titles and other visual effects with Lua.
+Categories=Graphics;
+
+Icon=me.chocolateimage.graphics-creator
+Exec=graphics-creator
+Terminal=false

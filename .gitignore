@@ -2,6 +2,7 @@ build/
 .cache/
 deploy/
 deploybuild/
+repo/
 
 __cmake_systeminformation/
 CMakeLists.txt.user

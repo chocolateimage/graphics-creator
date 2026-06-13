@@ -1,0 +1,46 @@
+id: me.chocolateimage.graphics-creator
+runtime: org.kde.Platform
+runtime-version: "6.10"
+sdk: org.kde.Sdk
+command: graphics-creator
+finish-args:
+  - --device=dri
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --filesystem=host
+
+modules:
+  - name: luajit
+    buildsystem: simple
+    build-commands:
+      - 'make -j $FLATPAK_BUILDER_N_JOBS CFLAGS="$CFLAGS -fPIC" PREFIX=$FLATPAK_DEST amalg'
+      - "make PREFIX=$FLATPAK_DEST install"
+    sources:
+      - type: archive
+        url: https://github.com/LuaJIT/LuaJIT/archive/194d7f2d635a11193177f0ed820ae419148f0b70.zip
+        sha256: 0ece381496caf3839df6391d6653520a6b27fb7987dea16ec8f19e9250d1a047
+
+  - name: graphics-creator
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+
+    sources:
+      - type: dir
+        path: src
+        dest: src
+
+      - type: dir
+        path: data
+        dest: data
+
+      - type: file
+        path: CMakeLists.txt
+
+      - type: file
+        path: me.chocolateimage.graphics-creator.metainfo.xml
+
+      - type: file
+        path: me.chocolateimage.graphics-creator.desktop

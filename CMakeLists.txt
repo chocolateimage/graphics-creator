@@ -50,3 +50,15 @@ add_custom_command(TARGET graphics-creator POST_BUILD
                        ${CMAKE_CURRENT_SOURCE_DIR}/data
                        $<TARGET_FILE_DIR:graphics-creator>/data
                    )
+
+install(TARGETS graphics-creator)
+install(DIRECTORY data DESTINATION share/graphics-creator)
+install(FILES me.chocolateimage.graphics-creator.desktop DESTINATION share/applications)
+install(FILES src/icons/icon.svg DESTINATION share/icons/hicolor/scalable/apps RENAME me.chocolateimage.graphics-creator.svg)
+install(FILES src/icons/icon-16.png DESTINATION share/icons/hicolor/16x16/apps RENAME me.chocolateimage.graphics-creator.png)
+install(FILES src/icons/icon-32.png DESTINATION share/icons/hicolor/32x32/apps RENAME me.chocolateimage.graphics-creator.png)
+install(FILES src/icons/icon-48.png DESTINATION share/icons/hicolor/48x48/apps RENAME me.chocolateimage.graphics-creator.png)
+install(FILES src/icons/icon-64.png DESTINATION share/icons/hicolor/64x64/apps RENAME me.chocolateimage.graphics-creator.png)
+install(FILES src/icons/icon-128.png DESTINATION share/icons/hicolor/128x128/apps RENAME me.chocolateimage.graphics-creator.png)
+install(FILES src/icons/icon-256.png DESTINATION share/icons/hicolor/256x256/apps RENAME me.chocolateimage.graphics-creator.png)
+install(FILES src/icons/icon-512.png DESTINATION share/icons/hicolor/512x512/apps RENAME me.chocolateimage.graphics-creator.png)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<component type="desktop-application">
+  <id>me.chocolateimage.graphics-creator</id>
+
+  <name>Graphics Creator</name>
+  <summary>Create titles and other visual effects with Lua.</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <description>
+    <p>
+      Create titles and other visual effects with Lua.
+    </p>
+  </description>
+
+  <launchable
+        type="desktop-id"
+    >me.chocolateimage.graphics-creator.desktop</launchable>
+</component>
