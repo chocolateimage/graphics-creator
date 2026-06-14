@@ -30,6 +30,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QPainter>
+#include <QPlainTextEdit>
 #include <QProgressDialog>
 #include <QScrollArea>
 #include <QSlider>
@@ -1100,11 +1101,14 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
                             QSizePolicy::Policy::Minimum);
         widget = line;
     } else if (optionType == VariantTypeEnum::String) {
-        auto input = new QLineEdit(optionsWidget);
-        input->setText(QString::fromStdString(variant.get<std::string>()));
-        connect(input, &QLineEdit::textEdited, this,
-                [this, optionId](const QString &text) {
-                    updateOption(optionId, Variant(text.toStdString()));
+        auto input = new QPlainTextEdit(optionsWidget);
+        input->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        input->setFixedHeight(50);
+        input->setPlainText(QString::fromStdString(variant.get<std::string>()));
+        connect(input, &QPlainTextEdit::textChanged, this,
+                [this, optionId, input]() {
+                    updateOption(optionId,
+                                 Variant(input->toPlainText().toStdString()));
                 });
         widget = input;
     } else if (optionType == VariantTypeEnum::Int) {

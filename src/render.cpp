@@ -75,7 +75,7 @@ int TextClass__gc(lua_State *L) {
 
 int TextClass__len(lua_State *L) {
     Text *text = *((Text **)lua_touserdata(L, 1));
-    lua_pushnumber(L, text->glyphCount);
+    lua_pushnumber(L, text->totalGlyphs);
     return 1;
 }
 
@@ -186,15 +186,39 @@ Text::Text(RenderThread *renderThread, const char *text, const Font &font,
         return;
     }
     fontInfo = this->renderThread->getFont(font);
-    hbBuffer = hb_buffer_create();
-    hb_buffer_add_utf8(hbBuffer, text, -1, 0, -1);
 
-    hb_buffer_guess_segment_properties(hbBuffer);
+    std::vector<std::pair<int, int>> locations;
 
-    hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
+    const char *currentPoint = text;
+    while (true) {
+        const char *breakPoint = strchr(currentPoint, '\n');
+        if (breakPoint == nullptr) {
+            locations.push_back(
+                {currentPoint - text, strlen(text) - (currentPoint - text)});
+            break;
+        } else {
+            locations.push_back({currentPoint - text,
+                                 (breakPoint - text) - (currentPoint - text)});
+            currentPoint = breakPoint + 1;
+        }
+    }
 
-    glyphInfo = hb_buffer_get_glyph_infos(hbBuffer, &glyphCount);
-    glyphPositions = hb_buffer_get_glyph_positions(hbBuffer, &glyphCount);
+    for (const auto &location : locations) {
+        hb_buffer_t *hbBuffer = hb_buffer_create();
+        hb_buffer_add_utf8(hbBuffer, text, -1, location.first, location.second);
+
+        hb_buffer_guess_segment_properties(hbBuffer);
+
+        hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
+
+        uint32_t glyphCount;
+        glyphsInfo.push_back(hb_buffer_get_glyph_infos(hbBuffer, &glyphCount));
+        glyphsPositions.push_back(
+            hb_buffer_get_glyph_positions(hbBuffer, &glyphCount));
+        totalGlyphs += glyphCount;
+        glyphCounts.push_back(glyphCount);
+        hbBuffers.push_back(hbBuffer);
+    }
 
     calculateSize();
     draw();
@@ -208,32 +232,37 @@ void Text::calculateSize() {
     int curX = 0;
     int curY = 0;
 
-    for (unsigned int i = 0; i < glyphCount; i++) {
-        auto codepoint = glyphInfo[i].codepoint;
-        auto glyph = fontInfo->getGlyph(codepoint);
+    for (size_t line = 0; line < glyphCounts.size(); line++) {
+        for (unsigned int i = 0; i < glyphCounts[line]; i++) {
+            auto codepoint = glyphsInfo[line][i].codepoint;
+            auto glyph = fontInfo->getGlyph(codepoint);
 
-        auto glyphPos = glyphPositions[i];
-        int xOffset = glyphPos.x_offset >> 6;
-        int yOffset = glyphPos.y_offset >> 6;
-        int xAdvance = glyphPos.x_advance >> 6;
-        int yAdvance = glyphPos.y_advance >> 6;
+            auto glyphPos = glyphsPositions[line][i];
+            int xOffset = glyphPos.x_offset >> 6;
+            int yOffset = glyphPos.y_offset >> 6;
+            int xAdvance = glyphPos.x_advance >> 6;
+            int yAdvance = glyphPos.y_advance >> 6;
 
-        int drawX = (curX + xOffset + glyph->left);
-        int drawY = (curY + yOffset - glyph->top);
+            int drawX = (curX + xOffset + glyph->left);
+            int drawY = (curY + yOffset - glyph->top);
 
-        if (isManual) {
-            drawPoints.push_back({drawX, drawY});
+            if (isManual) {
+                drawPoints.push_back({drawX, drawY});
 
-            offsetPoints.push_back({glyph->left, -glyph->top});
+                offsetPoints.push_back({glyph->left, -glyph->top});
+            }
+
+            minX = std::min(minX, drawX);
+            minY = std::min(minY, drawY);
+            maxX = std::max(maxX, (int)glyph->bitmap.width + drawX);
+            maxY = std::max(maxY, (int)glyph->bitmap.rows + drawY);
+
+            curX += xAdvance;
+            curY += yAdvance;
         }
 
-        minX = std::min(minX, drawX);
-        minY = std::min(minY, drawY);
-        maxX = std::max(maxX, (int)glyph->bitmap.width + drawX);
-        maxY = std::max(maxY, (int)glyph->bitmap.rows + drawY);
-
-        curX += xAdvance;
-        curY += yAdvance;
+        curX = 0;
+        curY += fontInfo->pixelHeight;
     }
 
     width = (maxX - minX);
@@ -253,44 +282,49 @@ void Text::draw() {
         memset(image, 0, width * height);
     }
 
-    for (unsigned int i = 0; i < glyphCount; i++) {
-        auto glyphPos = glyphPositions[i];
-        auto codepoint = glyphInfo[i].codepoint;
-        auto glyph = fontInfo->getGlyph(glyphInfo[i].codepoint);
+    for (size_t line = 0; line < glyphCounts.size(); line++) {
+        for (unsigned int i = 0; i < glyphCounts[line]; i++) {
+            auto glyphPos = glyphsPositions[line][i];
+            auto codepoint = glyphsInfo[line][i].codepoint;
+            auto glyph = fontInfo->getGlyph(glyphsInfo[line][i].codepoint);
 
-        if (isManual) {
-            uint8_t *bitmap =
-                new uint8_t[glyph->bitmap.width * glyph->bitmap.rows];
-            memcpy(bitmap, glyph->bitmap.buffer,
-                   glyph->bitmap.width * glyph->bitmap.rows);
+            if (isManual) {
+                uint8_t *bitmap =
+                    new uint8_t[glyph->bitmap.width * glyph->bitmap.rows];
+                memcpy(bitmap, glyph->bitmap.buffer,
+                       glyph->bitmap.width * glyph->bitmap.rows);
 
-            bitmaps.push_back({
-                bitmap,
-                glyph->bitmap.width,
-                glyph->bitmap.rows,
-            });
-        } else {
-            int xOffset = (glyphPos.x_offset >> 6);
-            int yOffset = (glyphPos.y_offset >> 6);
-            int xAdvance = (glyphPos.x_advance >> 6);
-            int yAdvance = (glyphPos.y_advance >> 6);
+                bitmaps.push_back({
+                    bitmap,
+                    glyph->bitmap.width,
+                    glyph->bitmap.rows,
+                });
+            } else {
+                int xOffset = (glyphPos.x_offset >> 6);
+                int yOffset = (glyphPos.y_offset >> 6);
+                int xAdvance = (glyphPos.x_advance >> 6);
+                int yAdvance = (glyphPos.y_advance >> 6);
 
-            int drawX = (curX + xOffset + glyph->left) - minX;
-            int drawY = (curY + yOffset - glyph->top) - minY;
+                int drawX = (curX + xOffset + glyph->left) - minX;
+                int drawY = (curY + yOffset - glyph->top) - minY;
 
-            for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
-                for (unsigned int x = 0; x < glyph->bitmap.width; x++) {
-                    int targetX = drawX + x;
-                    int targetY = drawY + y;
-                    image[targetY * width + targetX] = std::max(
-                        image[targetY * width + targetX],
-                        glyph->bitmap.buffer[y * glyph->bitmap.pitch + x]);
+                for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
+                    for (unsigned int x = 0; x < glyph->bitmap.width; x++) {
+                        int targetX = drawX + x;
+                        int targetY = drawY + y;
+                        image[targetY * width + targetX] = std::max(
+                            image[targetY * width + targetX],
+                            glyph->bitmap.buffer[y * glyph->bitmap.pitch + x]);
+                    }
                 }
-            }
 
-            curX += xAdvance;
-            curY += yAdvance;
+                curX += xAdvance;
+                curY += yAdvance;
+            }
         }
+
+        curX = 0;
+        curY += fontInfo->pixelHeight;
     }
 }
 
@@ -299,7 +333,7 @@ inline uint8_t Text::getPixel(int x, int y, int index) {
         return 0;
 
     if (isManual) {
-        if (index < 0 || index >= (int)glyphCount)
+        if (index < 0 || index >= (int)totalGlyphs)
             return 0;
 
         const auto [data, w, h] = bitmaps[index];
@@ -355,7 +389,7 @@ int Text::luaGetIndexInfo(lua_State *L, float fontSize, int index) {
     if (!isManual)
         return 0;
 
-    if (index < 0 || index >= (int)glyphCount)
+    if (index < 0 || index >= (int)totalGlyphs)
         return 0;
 
     float adjust = fontSize / (fontInfo == nullptr ? 1 : fontInfo->pixelHeight);
@@ -376,48 +410,54 @@ int Text::luaGetAllCharsInfo(lua_State *L, float fontSize) {
 
     float adjust = fontSize / (fontInfo == nullptr ? 1 : fontInfo->pixelHeight);
 
-    lua_createtable(L, glyphCount, 0);
+    lua_createtable(L, totalGlyphs, 0);
 
-    for (uint32_t index = 0; index < glyphCount; index++) {
-        auto glyphPos = glyphPositions[index];
-        const auto [x, y] = drawPoints[index];
-        const auto [l, t] = offsetPoints[index];
-        const auto [bitmap, w, h] = bitmaps[index];
+    int total = 0;
 
-        lua_pushnumber(L, index);
+    for (size_t line = 0; line < glyphCounts.size(); line++) {
+        for (uint32_t index = 0; index < glyphCounts[line]; index++) {
+            auto glyphPos = glyphsPositions[line][index];
+            const auto [x, y] = drawPoints[total];
+            const auto [l, t] = offsetPoints[total];
+            const auto [bitmap, w, h] = bitmaps[total];
 
-        lua_createtable(L, 0, 10);
-        lua_pushstring(L, "x");
-        lua_pushnumber(L, (float)x * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "y");
-        lua_pushnumber(L, (float)y * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "w");
-        lua_pushnumber(L, (float)w * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "h");
-        lua_pushnumber(L, (float)h * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "xo");
-        lua_pushnumber(L, (float)(glyphPos.x_offset >> 6) * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "xa");
-        lua_pushnumber(L, (float)(glyphPos.x_advance >> 6) * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "yo");
-        lua_pushnumber(L, (float)(glyphPos.y_offset >> 6) * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "ya");
-        lua_pushnumber(L, (float)(glyphPos.y_advance >> 6) * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "l");
-        lua_pushnumber(L, (float)l * adjust);
-        lua_settable(L, -3);
-        lua_pushstring(L, "t");
-        lua_pushnumber(L, (float)t * adjust);
-        lua_settable(L, -3);
-        lua_settable(L, -3);
+            lua_pushnumber(L, total);
+
+            lua_createtable(L, 0, 10);
+            lua_pushstring(L, "x");
+            lua_pushnumber(L, (float)x * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "y");
+            lua_pushnumber(L, (float)y * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "w");
+            lua_pushnumber(L, (float)w * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "h");
+            lua_pushnumber(L, (float)h * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "xo");
+            lua_pushnumber(L, (float)(glyphPos.x_offset >> 6) * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "xa");
+            lua_pushnumber(L, (float)(glyphPos.x_advance >> 6) * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "yo");
+            lua_pushnumber(L, (float)(glyphPos.y_offset >> 6) * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "ya");
+            lua_pushnumber(L, (float)(glyphPos.y_advance >> 6) * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "l");
+            lua_pushnumber(L, (float)l * adjust);
+            lua_settable(L, -3);
+            lua_pushstring(L, "t");
+            lua_pushnumber(L, (float)t * adjust);
+            lua_settable(L, -3);
+            lua_settable(L, -3);
+
+            total++;
+        }
     }
 
     return 1;
@@ -425,10 +465,15 @@ int Text::luaGetAllCharsInfo(lua_State *L, float fontSize) {
 
 Text::~Text() {
     if (fontInfo != nullptr) {
-        hb_buffer_destroy(hbBuffer);
-        delete[] image;
-        for (auto bitmap : bitmaps) {
-            delete[] std::get<0>(bitmap);
+        for (auto hbBuffer : hbBuffers) {
+            hb_buffer_destroy(hbBuffer);
+        }
+        if (isManual) {
+            for (auto bitmap : bitmaps) {
+                delete[] std::get<0>(bitmap);
+            }
+        } else {
+            delete[] image;
         }
     }
 }

@@ -64,7 +64,8 @@ class Text {
     int luaGetIndexInfo(lua_State *L, float fontSize, int index);
     int luaGetAllCharsInfo(lua_State *L, float fontSize);
     ~Text();
-    uint32_t glyphCount;
+    std::vector<uint32_t> glyphCounts;
+    uint32_t totalGlyphs{0};
 
   private:
     void calculateSize();
@@ -81,8 +82,8 @@ class Text {
     std::vector<std::tuple<uint8_t *, int, int>> bitmaps;
     RenderThread *renderThread;
     FontInfo *fontInfo{nullptr};
-    hb_buffer_t *hbBuffer;
-    hb_glyph_info_t *glyphInfo;
-    hb_glyph_position_t *glyphPositions;
+    std::vector<hb_buffer_t *> hbBuffers;
+    std::vector<hb_glyph_info_t *> glyphsInfo;
+    std::vector<hb_glyph_position_t *> glyphsPositions;
     uint8_t *image{nullptr};
 };
