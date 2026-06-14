@@ -603,6 +603,14 @@ void MainWindow::loadLate() {
     textView->setStatusBarEnabled(false);
     textView->setContextMenu(
         textView->defaultContextMenu()); // what else should I use??
+    for (auto actionCollection :
+         textDocument->actionCollection()->allCollections()) {
+        for (auto action : actionCollection->actions()) {
+            if (action->objectName().startsWith("file_save")) {
+                action->setDisabled(true);
+            }
+        }
+    }
     connect(textDocument, &KTextEditor::Document::textChanged, this,
             &MainWindow::scriptUpdated);
     rightSideSplitter->addWidget(textView);

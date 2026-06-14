@@ -12,6 +12,7 @@ Supports Linux and Windows.
 ## Planned
 
 - Config presets
+- Save templates (with recents)
 
 ## Scripting
 
