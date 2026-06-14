@@ -36,6 +36,11 @@ function options()
             id = "expandEasing",
             type = "easing",
             default = "easeOutQuad",
+        },
+        {
+            id = "closeEasing",
+            type = "easing",
+            default = "easeOutQuad",
         }
     }
 end
@@ -50,6 +55,10 @@ function draw(_frame)
     local enterProgress = enterEasing(saturate(seconds / .5))
     local expandProgress = expandEasing(saturate((seconds - 0.5) / .3))
     local middleSize = mix(fontSize * 1.5, height, expandProgress)
+    if seconds > duration - 0.5 then
+        local closeProgress = 1 - closeEasing(saturate(linearstep(duration - 0.3, duration, seconds)))
+        middleSize = middleSize * closeProgress
+    end
     local middleStart = height / 2 - middleSize / 2
 
     for y = fromY, toY do
