@@ -61,6 +61,8 @@ struct Brush {
     double angle{0};
 };
 
+Brush::Type getBrushTypeFromString(const std::string &str);
+
 std::string getFontHash(const Font &font);
 
 using VariantType = std::variant<std::monostate, std::string, int, double,

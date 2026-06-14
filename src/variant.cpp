@@ -7,6 +7,17 @@ std::string getFontHash(const Font &font) {
     return font.path + ":" + std::to_string(font.index);
 }
 
+Brush::Type getBrushTypeFromString(const std::string &str) {
+    if (str == "singleColor") {
+        return Brush::Type::SingleColor;
+    } else if (str == "linearGradient") {
+        return Brush::Type::LinearGradient;
+    } else if (str == "radialGradient") {
+        return Brush::Type::RadialGradient;
+    }
+    return Brush::Type::SingleColor;
+}
+
 Variant::Variant(VariantType variant) : m_variant(variant) {}
 
 Variant::Variant(const Variant &variant) {
@@ -226,7 +237,10 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
         int b = lua_tonumber(L, -1);
         lua_pop(L, 1);
         lua_getfield(L, index, "a");
-        int a = lua_tonumber(L, -1);
+        int a = 255;
+        if (lua_isnumber(L, -1)) {
+            a = lua_tonumber(L, -1);
+        }
         lua_pop(L, 1);
         return Variant(Color{r, g, b, a});
     }
@@ -248,8 +262,34 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
         return Variant(Easing{str});
     }
     case VariantTypeEnum::Brush: {
-        // TODO: brush from lua
-        return Variant(Brush{});
+        Brush brush;
+
+        lua_getfield(L, index, "type");
+        const char *brushTypeString = lua_tostring(L, index);
+        if (brushTypeString != nullptr) {
+            brush.brushType = getBrushTypeFromString(brushTypeString);
+        }
+        lua_pop(L, 1);
+
+        lua_getfield(L, index, "color1");
+        if (lua_istable(L, -1)) {
+            brush.color1 =
+                getFromLua(VariantTypeEnum::Color, L, -1).get<Color>();
+        }
+        lua_pop(L, 1);
+
+        lua_getfield(L, index, "color2");
+        if (lua_istable(L, -1)) {
+            brush.color2 =
+                getFromLua(VariantTypeEnum::Color, L, -1).get<Color>();
+        }
+        lua_pop(L, 1);
+
+        lua_getfield(L, index, "angle");
+        brush.angle = lua_tonumber(L, -1);
+        lua_pop(L, 1);
+
+        return Variant(brush);
     }
     };
 }
