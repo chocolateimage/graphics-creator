@@ -3,6 +3,7 @@
 #include "variant.hpp"
 #include <KColorButton>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QWidget>
 
 class BrushInput : public QWidget {
@@ -30,6 +31,7 @@ class BrushInput : public QWidget {
     QAction *actionRadialGradient;
     KColorButton *color1;
     KColorButton *color2;
+    QSpinBox *angleInput;
     QPushButton *changeButton;
     QMenu *typeMenu;
 };

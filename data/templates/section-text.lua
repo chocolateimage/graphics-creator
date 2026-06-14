@@ -62,7 +62,7 @@ function draw(_frame)
             local tx = x - textPosX
             local ty = y - textPosY
             if y >= middleStart and y < height / 2 + middleSize / 2 and x < enterProgress * width then
-                red, green, blue, alpha = backgroundColor(x,y - middleStart,width,middleSize)
+                red, green, blue, alpha = backgroundColor(x,y,width,height)
                 if tx >= 0 and ty >= 0 and tx < w and ty < h then
                     local value = smoothstep(-0.03, 0.03, getPixel(ti, fontSize, tx, ty))
                     local r,g,b,a = textColor(tx,ty,w,h)

@@ -1,4 +1,5 @@
 #include "brush_input.hpp"
+#include "draggable_spinbox.hpp"
 #include <KColorButton>
 #include <QActionGroup>
 #include <QHBoxLayout>
@@ -17,6 +18,14 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
     color2->setAlphaChannelEnabled(true);
     connect(color2, &KColorButton::changed, this, &BrushInput::_valueChanged);
     lay->addWidget(color2);
+
+    angleInput = new DraggableSpinBox(this);
+    angleInput->setSuffix("°");
+    angleInput->setMinimum(0);
+    angleInput->setMaximum(360);
+    connect(angleInput, &QSpinBox::valueChanged, this,
+            &BrushInput::_valueChanged);
+    lay->addWidget(angleInput);
 
     typeMenu = new QMenu(this);
 
@@ -49,6 +58,8 @@ void BrushInput::updateType() {
 
     color2->setVisible(brushType == Brush::LinearGradient ||
                        brushType == Brush::RadialGradient);
+
+    angleInput->setVisible(brushType == Brush::LinearGradient);
 }
 
 void BrushInput::showMenu() {
@@ -72,6 +83,9 @@ Brush::Type BrushInput::getBrushType() {
 }
 
 void BrushInput::setValue(Brush value) {
+    QSignalBlocker blocker(color1);
+    QSignalBlocker blocker2(color2);
+    QSignalBlocker blocker3(angleInput);
     actionSingleColor->setChecked(value.brushType == Brush::SingleColor);
     actionLinearGradient->setChecked(value.brushType == Brush::LinearGradient);
     actionRadialGradient->setChecked(value.brushType == Brush::RadialGradient);
@@ -79,6 +93,7 @@ void BrushInput::setValue(Brush value) {
                                      value.color1.b, value.color1.a));
     color2->setColor(QColor::fromRgb(value.color2.r, value.color2.g,
                                      value.color2.b, value.color2.a));
+    angleInput->setValue(value.angle);
     updateType();
 }
 
@@ -91,6 +106,7 @@ Brush BrushInput::value() {
     brush.color1 = {color.red(), color.green(), color.blue(), color.alpha()};
     color = color2->color();
     brush.color2 = {color.red(), color.green(), color.blue(), color.alpha()};
+    brush.angle = angleInput->value();
 
     return brush;
 }

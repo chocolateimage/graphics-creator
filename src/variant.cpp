@@ -1,4 +1,5 @@
 #include "variant.hpp"
+#include <math.h>
 
 Font Variant::defaultFont = {};
 
@@ -152,7 +153,9 @@ void Variant::pushLua(lua_State *L) const {
             break;
         }
         case Brush::Type::LinearGradient: {
-            std::string code = "return function(x,y,w,h) return mixColor(";
+            std::string code = "return function(x,y,w,h) local uvX = x / w - "
+                               "0.5\nlocal uvY = y / h - 0.5\nreturn mixColor(";
+            float rad = -value.angle * M_PI / 180.f;
             code += std::to_string(value.color1.r) + "," +
                     std::to_string(value.color1.g) + "," +
                     std::to_string(value.color1.b) + "," +
@@ -160,7 +163,9 @@ void Variant::pushLua(lua_State *L) const {
                     std::to_string(value.color2.r) + "," +
                     std::to_string(value.color2.g) + "," +
                     std::to_string(value.color2.b) + "," +
-                    std::to_string(value.color2.a) + ",x / w) end";
+                    std::to_string(value.color2.a) + ",saturate(cos(" +
+                    std::to_string(rad) +
+                    " + atan2(uvY, uvX)) * length(uvX, uvY) + 0.5)) end";
             luaL_dostring(L, code.c_str());
             break;
         }
