@@ -576,22 +576,26 @@ void MainWindow::loadLate() {
 
     auto rightSideWidget = new QWidget();
     auto rightSideLayout = new QVBoxLayout(rightSideWidget);
+    rightSideLayout->setContentsMargins(0, 0, 0, 0);
+    auto rightSideSplitter = new QSplitter(rightSideWidget);
+    rightSideSplitter->setOrientation(Qt::Orientation::Vertical);
+    rightSideLayout->addWidget(rightSideSplitter);
     splitter->addWidget(rightSideWidget);
 
-    auto scrollArea = new QScrollArea(this);
+    auto scrollArea = new QScrollArea(rightSideSplitter);
     optionsWidget = new QWidget();
     optionsLayout = new QFormLayout(optionsWidget);
     scrollArea->setFrameShape(QFrame::Shape::NoFrame);
     scrollArea->setWidget(optionsWidget);
     scrollArea->setWidgetResizable(true);
-    rightSideLayout->addWidget(scrollArea, 1);
+    rightSideSplitter->addWidget(scrollArea);
 
     auto editor = KTextEditor::Editor::instance();
     textDocument = editor->createDocument(this);
     textDocument->setMode("Lua");
     textDocument->setConfigValue("indent-pasted-text", "false");
     textDocument->setText(LUA_BASIC_CODE);
-    textView = textDocument->createView(this);
+    textView = textDocument->createView(rightSideSplitter);
 #ifdef Q_OS_WIN
     textView->setConfigValue("font", "Consolas");
 #endif
@@ -601,7 +605,9 @@ void MainWindow::loadLate() {
         textView->defaultContextMenu()); // what else should I use??
     connect(textDocument, &KTextEditor::Document::textChanged, this,
             &MainWindow::scriptUpdated);
-    rightSideLayout->addWidget(textView, 1);
+    rightSideSplitter->addWidget(textView);
+
+    rightSideSplitter->setSizes({50, 50});
 
     errorMessage = new KMessageWidget(this);
     errorMessage->setCloseButtonVisible(false);
