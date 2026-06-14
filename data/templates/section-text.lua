@@ -22,6 +22,12 @@ function options()
         {
             id = "backgroundColor",
             type = "brush",
+            default = {
+                type = "linearGradient",
+                color1 = {r = 5, g = 61, b = 139},
+                color2 = {r = 17, g = 100, b = 176},
+                angle = 45,
+            }
         },
         {
             id = "textColor",
