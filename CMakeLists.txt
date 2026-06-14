@@ -54,6 +54,7 @@ add_custom_command(TARGET graphics-creator POST_BUILD
 install(TARGETS graphics-creator)
 install(DIRECTORY data DESTINATION share/graphics-creator)
 install(FILES me.chocolateimage.graphics-creator.desktop DESTINATION share/applications)
+install(FILES me.chocolateimage.graphics-creator.metainfo.xml DESTINATION share/metainfo)
 install(FILES src/icons/icon.svg DESTINATION share/icons/hicolor/scalable/apps RENAME me.chocolateimage.graphics-creator.svg)
 install(FILES src/icons/icon-16.png DESTINATION share/icons/hicolor/16x16/apps RENAME me.chocolateimage.graphics-creator.png)
 install(FILES src/icons/icon-32.png DESTINATION share/icons/hicolor/32x32/apps RENAME me.chocolateimage.graphics-creator.png)
