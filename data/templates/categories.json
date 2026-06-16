@@ -45,6 +45,10 @@
       {
         "name": "Single Letter Test 2",
         "file": "letters-2"
+      },
+      {
+        "name": "Falling Letters",
+        "file": "falling-letters"
       }
     ]
   },
