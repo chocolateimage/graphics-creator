@@ -4,6 +4,7 @@
 #include "video.hpp"
 #include <freetype/ftglyph.h>
 #include <ft2build.h>
+#include <memory>
 #include <string>
 #include FT_FREETYPE_H
 #include <hb-ft.h>
@@ -35,8 +36,8 @@ class RenderThread {
     void init();
     bool loadLua(const std::string &code);
     void updateOptions(const std::map<std::string, Variant> &variants);
-    bool drawImage(Video *video, AVFrame *frame, int startX, int startY,
-                   int renderWidth, int renderHeight);
+    bool drawImage(std::shared_ptr<Video> video, AVFrame *frame, int startX,
+                   int startY, int renderWidth, int renderHeight);
     void close();
     FontInfo *getFont(const Font &font);
     std::string lastError;

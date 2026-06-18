@@ -50,7 +50,7 @@ struct EncoderInfo {
 
 class PreviewFrame {
   public:
-    Video *video;
+    std::shared_ptr<Video> video;
     AVFrame *frame;
     std::atomic<int> threadsLeft{0};
 };
@@ -84,7 +84,7 @@ class GuiRenderThread : public QThread {
   public:
     explicit GuiRenderThread(QObject *parent = nullptr) : QThread(parent) {}
     MainWindow *window{nullptr};
-    Video *video{nullptr};
+    std::shared_ptr<Video> video;
     QString encoder;
     QFileInfo fileInfo;
     QMutex frameMutex;
@@ -125,7 +125,7 @@ class GuiRenderDrawThread : public QThread {
     explicit GuiRenderDrawThread(QObject *parent = nullptr) : QThread(parent) {}
     GuiRenderThread *guiRenderThread{nullptr};
     MainWindow *window{nullptr};
-    Video *video{nullptr};
+    std::shared_ptr<Video> video;
 
   protected:
     void run() override;
@@ -145,6 +145,21 @@ struct NewTemplateCategory {
     QList<NewTemplate> templates;
 };
 
+class VideoSettingsDialog : public QDialog {
+    Q_OBJECT
+  public:
+    explicit VideoSettingsDialog(std::shared_ptr<Video> oldVideo,
+                                 QWidget *parent = nullptr);
+    std::shared_ptr<Video> oldVideo;
+
+    std::shared_ptr<Video> video();
+
+  private:
+    QSpinBox *width;
+    QSpinBox *height;
+    QSpinBox *frameRate;
+};
+
 class MainWindow : public QMainWindow {
   public:
     QString dataPath = "";
@@ -152,7 +167,7 @@ class MainWindow : public QMainWindow {
     ImageViewer *previewWidget;
     QLabel *statusText;
     QChronoTimer *timer;
-    Video *video;
+    std::shared_ptr<Video> video;
     QToolButton *videoControlButton;
     QToolButton *loopButton;
     std::atomic<bool> isClosing{false};
@@ -230,11 +245,10 @@ class MainWindow : public QMainWindow {
     void updateError(const QString &error);
     bool addOptionFromLua(lua_State *L);
     void pixelPicked(QString id, QPoint position);
+    void openVideoSettings();
+    void videoSettingsUpdated();
 
-    ~MainWindow() {
-        delete video;
-        qDebug() << "close took" << closeTimer.elapsed() << "ms";
-    }
+    ~MainWindow() { qDebug() << "close took" << closeTimer.elapsed() << "ms"; }
 
   protected:
     void closeEvent(QCloseEvent *event) override;

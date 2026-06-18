@@ -577,8 +577,9 @@ void RenderThread::createPlanes(int width, int height) {
     values = new uint32_t[width * height];
 }
 
-bool RenderThread::drawImage(Video *video, AVFrame *frame, int startX,
-                             int startY, int renderWidth, int renderHeight) {
+bool RenderThread::drawImage(std::shared_ptr<Video> video, AVFrame *frame,
+                             int startX, int startY, int renderWidth,
+                             int renderHeight) {
     if (!L) {
         std::cerr << "impossible..." << std::endl;
         lastError = "No Lua state found";

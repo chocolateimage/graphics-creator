@@ -63,7 +63,7 @@ void FramePreviewThread::run() {
 
         FramePreviewTask task = window->tasks.dequeue();
         window->taskMutex.unlock();
-        Video *video = task.frame->video;
+        std::shared_ptr<Video> video = task.frame->video;
 
         if (luaDirty) {
             hasError = false;
@@ -404,6 +404,53 @@ MainWindow::MainWindow() : QMainWindow() {
     qDebug() << "init took" << measure.elapsed() << "ms";
 }
 
+VideoSettingsDialog::VideoSettingsDialog(std::shared_ptr<Video> oldVideo,
+                                         QWidget *parent)
+    : QDialog(parent), oldVideo(oldVideo) {
+    setAttribute(Qt::WA_DeleteOnClose);
+    auto parentLay = new QVBoxLayout(this);
+    auto lay = new QFormLayout();
+    lay->setContentsMargins(0, 0, 0, 0);
+    parentLay->addLayout(lay);
+
+    width = new DraggableSpinBox(this);
+    width->setRange(1, 999999);
+    width->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    height = new DraggableSpinBox(this);
+    height->setRange(1, 999999);
+    height->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    frameRate = new DraggableSpinBox(this);
+    frameRate->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    frameRate->setRange(1, 999999);
+
+    width->setValue(oldVideo->width);
+    height->setValue(oldVideo->height);
+    frameRate->setValue(oldVideo->frameRate);
+
+    lay->addRow("Width", width);
+    lay->addRow("Height", height);
+    lay->addRow("Frame Rate", frameRate);
+    setMinimumWidth(400);
+
+    parentLay->addStretch();
+
+    auto buttonBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    parentLay->addWidget(buttonBox);
+}
+
+std::shared_ptr<Video> VideoSettingsDialog::video() {
+    auto video = std::make_shared<Video>(*oldVideo);
+    video->frameRate = frameRate->value();
+    video->width = width->value();
+    video->height = height->value();
+    return video;
+}
+
 void MainWindow::loadLate() {
     QElapsedTimer measure;
     measure.start();
@@ -567,12 +614,15 @@ void MainWindow::loadLate() {
     bottomLayout->addWidget(loopButton);
     bottomLayout->addStretch();
 
-    // TODO: dynamic
-    video = new Video();
-    video->frameRate = 60;
-    video->width = 1920;
-    video->height = 1080;
-    video->duration = 5;
+    QToolButton *videoSettingsButton = new QToolButton();
+    videoSettingsButton->setText("Settings");
+    videoSettingsButton->setToolTip("Change video settings");
+    videoSettingsButton->setIcon(QIcon::fromTheme("settings-configure"));
+    videoSettingsButton->setToolButtonStyle(
+        Qt::ToolButtonStyle::ToolButtonTextBesideIcon);
+    connect(videoSettingsButton, &QToolButton::clicked, this,
+            &MainWindow::openVideoSettings);
+    bottomLayout->addWidget(videoSettingsButton);
 
     auto rightSideWidget = new QWidget();
     auto rightSideLayout = new QVBoxLayout(rightSideWidget);
@@ -628,12 +678,9 @@ void MainWindow::loadLate() {
     // TODO: use QDateTime::currentMSecsSinceEpoch() or QElapsedTimer for better
     // precision instead of relying on microsecond timers
     timer = new QChronoTimer(this);
-    timer->setInterval(
-        std::chrono::microseconds((int)((1000.f * 1000.f) / video->frameRate)));
     timer->setTimerType(Qt::PreciseTimer);
     connect(timer, &QChronoTimer::timeout, this, &MainWindow::generate);
 
-    durationInput->setValue(video->duration);
     updateButtons();
 
     auto renderWidget = new QScrollArea(stackedWidget);
@@ -742,10 +789,22 @@ void MainWindow::loadLate() {
         createThread();
     }
 
-    scriptUpdated();
-    updateStatus();
     this->unsetCursor();
     qDebug() << "late init took" << measure.elapsed() << "ms";
+}
+
+void MainWindow::openVideoSettings() {
+    VideoSettingsDialog *dialog = new VideoSettingsDialog(video, this);
+    connect(dialog, &VideoSettingsDialog::accepted, this, [this, dialog]() {
+        video = dialog->video();
+        videoSettingsUpdated();
+    });
+    dialog->open();
+}
+
+void MainWindow::videoSettingsUpdated() {
+    timer->setInterval(
+        std::chrono::microseconds((int)((1000.f * 1000.f) / video->frameRate)));
 }
 
 void MainWindow::loadTemplates() {
@@ -855,6 +914,13 @@ void MainWindow::useTemplate(const NewTemplate &newTemplate) {
                                         newTemplate.scriptPath);
         return;
     }
+
+    video = std::make_shared<Video>();
+    video->frameRate = 60;
+    video->width = 1920;
+    video->height = 1080;
+    video->duration = 5;
+    videoSettingsUpdated();
 
     QByteArray scriptData = scriptFile.readAll();
     scriptFile.close();
@@ -1586,6 +1652,9 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 void MainWindow::updateStatus() {
     if (isClosing)
         return;
+    if (!video)
+        return;
+
     taskMutex.lock();
     QString text =
         "Threads: " + QString::number(threads.size()) +
