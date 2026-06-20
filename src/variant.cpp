@@ -1,4 +1,5 @@
 #include "variant.hpp"
+#include <cstring>
 #include <math.h>
 
 Font Variant::defaultFont = {};
@@ -227,22 +228,50 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
         return Variant(Vector2DInt{x, y});
     }
     case VariantTypeEnum::Color: {
-        lua_getfield(L, index, "r");
-        int r = lua_tonumber(L, -1);
-        lua_pop(L, 1);
-        lua_getfield(L, index, "g");
-        int g = lua_tonumber(L, -1);
-        lua_pop(L, 1);
-        lua_getfield(L, index, "b");
-        int b = lua_tonumber(L, -1);
-        lua_pop(L, 1);
-        lua_getfield(L, index, "a");
-        int a = 255;
-        if (lua_isnumber(L, -1)) {
-            a = lua_tonumber(L, -1);
+        if (lua_istable(L, index)) {
+            lua_getfield(L, index, "r");
+            int r = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+            lua_getfield(L, index, "g");
+            int g = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+            lua_getfield(L, index, "b");
+            int b = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+            lua_getfield(L, index, "a");
+            int a = 255;
+            if (lua_isnumber(L, -1)) {
+                a = lua_tonumber(L, -1);
+            }
+            lua_pop(L, 1);
+            return Variant(Color{r, g, b, a});
+        } else if (lua_isstring(L, index)) {
+            const char *str = lua_tostring(L, index);
+            int len = strlen(str);
+            if (len == 7) {
+                char *end;
+                unsigned long num = strtoul(str + 1, &end, 16);
+                if (*end == 0) {
+                    return Variant(Color{
+                        (int)((num >> 16) & 0xff),
+                        (int)((num >> 8) & 0xff),
+                        (int)((num) & 0xff),
+                    });
+                }
+            } else if (len == 9) {
+                char *end;
+                unsigned long num = strtoul(str + 1, &end, 16);
+                if (*end == 0) {
+                    return Variant(Color{
+                        (int)((num >> 24) & 0xff),
+                        (int)((num >> 16) & 0xff),
+                        (int)((num >> 8) & 0xff),
+                        (int)((num) & 0xff),
+                    });
+                }
+            }
         }
-        lua_pop(L, 1);
-        return Variant(Color{r, g, b, a});
+        return Variant(Color{});
     }
     case VariantTypeEnum::Font: {
         lua_getfield(L, index, "i");
