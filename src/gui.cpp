@@ -408,6 +408,7 @@ VideoSettingsDialog::VideoSettingsDialog(std::shared_ptr<Video> oldVideo,
                                          QWidget *parent)
     : QDialog(parent), oldVideo(oldVideo) {
     setAttribute(Qt::WA_DeleteOnClose);
+    setWindowTitle("Video Settings");
     auto parentLay = new QVBoxLayout(this);
     auto lay = new QFormLayout();
     lay->setContentsMargins(0, 0, 0, 0);
