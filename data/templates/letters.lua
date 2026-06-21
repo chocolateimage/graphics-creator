@@ -26,6 +26,11 @@ function options()
             default = { x = 400, y = 400, },
         },
         {
+            id = "color",
+            type = "color",
+            default = { r = 255, g = 255, b = 255 }
+        },
+        {
             id = "easing",
             type = "easing",
         },
@@ -41,33 +46,39 @@ function draw(_frame)
     local chars = getAllCharsInfo(t, ts)
 
     local count = #t
+    local progress = saturate(seconds)
+    if progress > 0 and progress < 1 then
+        progress = easing(progress)
+    end
 
     for y = fromY, toY do
         for x = fromX, toX do
             local red = 0
-            local green = 0
+            local green = 25
             local blue = 0
             local alpha = 255
 
-            for i = 0, count - 1 do
-                local progress = saturate(seconds + (count - i) / count - 1)
-                if progress > 0 and progress < 1 then
-                    progress = easing(progress)
-                end
-                local char = chars[i]
-                local textX = x - textPos.x - char.x
-                local textY = y - textPos.y - char.y - progress * 500
-                if textX >= 0 and textY >= 0 and textX < char.w and textY < char.h then
-                    local pixel = getPixel(t, ts, textX, textY, i)
-                    local innerValue = smoothstep(-0.05, 0.05, pixel)
+            frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
+        end
+    end
 
-                    red = mix(red, 255, innerValue)
-                    green = mix(green, 255, innerValue)
-                    blue = mix(blue, 255, innerValue)
+    for i = 0, count - 1 do
+        local char = chars[i]
+        local textX = textPos.x + char.x * progress
+        local textY = textPos.y + char.y
+        for ty = 0, char.h - 1 do
+            for tx = 0, char.w - 1 do
+                local x = floor(tx + textX)
+                local y = floor(ty + textY)
+                if x >= fromX and y >= fromY and x <= toX and y <= toY then
+                    local pixel = getPixel(t, ts, tx, ty, i)
+                    local value = smoothstep(-0.05, 0.05, pixel)
+                    local existing = frame[y * width + x]
+                    local red, green, blue, alpha = extractRGBA(existing)
+                    red, green, blue, alpha = over(red, green, blue, alpha, color.r, color.g, color.b, color.a * value)
+                    frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
                 end
             end
-
-            frame[y * width + x] = bor(lshift(alpha, 24), lshift(red, 16), lshift(green, 8), blue)
         end
     end
 end

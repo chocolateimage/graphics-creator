@@ -43,12 +43,12 @@
         "file": "letters"
       },
       {
-        "name": "Single Letter Test 2",
-        "file": "letters-2"
-      },
-      {
         "name": "Falling Letters",
         "file": "falling-letters"
+      },
+      {
+        "name": "Basic Text",
+        "file": "basic-text"
       }
     ]
   },
@@ -62,6 +62,10 @@
       {
         "name": "Brush",
         "file": "brush"
+      },
+      {
+        "name": "Circle Splash",
+        "file": "circle"
       }
     ]
   }
