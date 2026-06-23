@@ -14,6 +14,19 @@ Supports Linux and Windows.
 - Config presets
 - Save templates (with recents)
 
+This version of the tool is currently only a prototype, so right now only people with experience in Lua and interested in scripting can make their own templates. I want people to be able to make templates themselves without needing to script ([suggestion](https://discuss.kde.org/t/i-made-a-tool-for-kdenlive-for-titles-and-graphics/47773/13)). Therefore I have several ideas:
+
+- Major overhaul. Instead of a single script view, you can add elements in the "scene" (or how it will be called).
+- Still keep Lua scripting, but make it into a separate element type
+- Basic element types like: Box, Circle, Text
+- For these basic element types like box, I want them to be able to use a brush (brushes being the existing color/linear-gradient/radial-gradient)
+- Being able to group elements together
+- You can add effects to elements/groups
+  - Effects can either change things visually or transform it
+  - Effects would also be scriptable
+- Animate elements and properties with a timeline
+- Instead of fixed layout it is dockable
+
 ## Scripting
 
 If you want to make your own Lua template, then look at [the scripting docs](docs/scripting.md)
