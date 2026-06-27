@@ -9,6 +9,7 @@
 #include "math.hpp"
 #include "render.hpp"
 #include "variant.hpp"
+#include <DockAreaWidget.h>
 #include <KActionCollection>
 #include <KActionMenu>
 #include <KColorButton>
@@ -17,6 +18,7 @@
 #include <KMessageWidget>
 #include <KStyleManager>
 #include <KTextEditor/View>
+#include <QActionGroup>
 #include <QApplication>
 #include <QCheckBox>
 #include <QCloseEvent>
@@ -1671,6 +1673,108 @@ void MainWindow::updateStatus() {
     statusText->setText(text);
 }
 
+NewMainWindow::NewMainWindow() : QMainWindow() {
+    this->resize(1200, 700);
+
+    ads::CDockManager::setConfigFlag(ads::CDockManager::OpaqueSplitterResize,
+                                     true);
+
+    QMenuBar *menuBar = new QMenuBar(this);
+    QMenu *view = menuBar->addMenu("View");
+    setMenuBar(menuBar);
+
+    QToolBar *toolBar = addToolBar("Controls");
+    QActionGroup *controlsGroup = new QActionGroup(toolBar);
+    QAction *controlSelect =
+        toolBar->addAction(QIcon::fromTheme("select"), "Select");
+    toolBar->addSeparator();
+    QAction *controlRectangle =
+        toolBar->addAction(QIcon::fromTheme("draw-rectangle"), "Rectangle");
+    QAction *controlEllipse =
+        toolBar->addAction(QIcon::fromTheme("draw-circle"), "Ellipse");
+    QAction *controlPolygon =
+        toolBar->addAction(QIcon::fromTheme("draw-polygon"), "Polygon");
+    QAction *controlLua =
+        toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
+
+    controlSelect->setActionGroup(controlsGroup);
+    controlRectangle->setActionGroup(controlsGroup);
+    controlEllipse->setActionGroup(controlsGroup);
+    controlPolygon->setActionGroup(controlsGroup);
+    controlLua->setActionGroup(controlsGroup);
+
+    controlSelect->setCheckable(true);
+    controlRectangle->setCheckable(true);
+    controlEllipse->setCheckable(true);
+    controlPolygon->setCheckable(true);
+    controlLua->setCheckable(true);
+
+    controlSelect->setChecked(true);
+
+    dockManager = new ads::CDockManager(this);
+
+    ads::CDockWidget *widgetTest1 = dockManager->createDockWidget("Scene");
+    // QLabel *test1 = new QLabel("This is the scene");
+    ImageViewer *imageViewer = new ImageViewer();
+    QPixmap pix(1280, 720);
+    pix.fill(Qt::transparent);
+    {
+        QPainter painter(&pix);
+        painter.setRenderHint(QPainter::RenderHint::Antialiasing);
+        painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform);
+        painter.setRenderHint(QPainter::RenderHint::TextAntialiasing);
+        painter.setBrush(Qt::red);
+        painter.setPen(QPen(Qt::white, 64));
+        painter.drawRect(50, 50, 400, 400);
+    }
+    imageViewer->updateImage(pix.toImage());
+    widgetTest1->setWidget(imageViewer);
+
+    ads::CDockWidget *widgetTest2 = dockManager->createDockWidget("Timeline");
+    QLabel *test2 = new QLabel("Here you can animate elements");
+    widgetTest2->setWidget(test2);
+
+    ads::CDockWidget *widgetTest3 = dockManager->createDockWidget("Properties");
+    QLabel *test3 =
+        new QLabel("here you can change the properties of an elemenet");
+    test3->setWordWrap(true);
+    widgetTest3->setWidget(test3);
+
+    ads::CDockWidget *effectsDockWidget =
+        dockManager->createDockWidget("Effects");
+    QLabel *test4 = new QLabel("effects on an element");
+    test4->setWordWrap(true);
+    effectsDockWidget->setWidget(test4);
+
+    auto scene = dockManager->addDockWidget(
+        ads::DockWidgetArea::CenterDockWidgetArea, widgetTest1);
+    auto elements = dockManager->addDockWidget(
+        ads::DockWidgetArea::RightDockWidgetArea, widgetTest3);
+    auto effects = dockManager->addDockWidget(
+        ads::DockWidgetArea::BottomDockWidgetArea, effectsDockWidget, elements);
+    auto timeline = dockManager->addDockWidget(
+        ads::DockWidgetArea::BottomDockWidgetArea, widgetTest2);
+    QSizePolicy policy = scene->sizePolicy();
+    policy.setHorizontalStretch(1);
+    policy.setVerticalStretch(1);
+    scene->setSizePolicy(policy);
+    policy = elements->sizePolicy();
+    policy.setHorizontalStretch(0);
+    policy.setVerticalStretch(1);
+    elements->setSizePolicy(policy);
+    policy = timeline->sizePolicy();
+    policy.setHorizontalStretch(1);
+    policy.setVerticalStretch(0);
+    timeline->setSizePolicy(policy);
+
+    view->addAction(widgetTest1->toggleViewAction());
+    view->addAction(widgetTest2->toggleViewAction());
+    view->addAction(widgetTest3->toggleViewAction());
+    view->addAction(effectsDockWidget->toggleViewAction());
+}
+
+NewMainWindow::~NewMainWindow() {}
+
 int main(int argc, char **argv) {
     KIconTheme::initTheme();
     QApplication application(argc, argv);
@@ -1678,7 +1782,7 @@ int main(int argc, char **argv) {
     application.setDesktopFileName("me.chocolateimage.graphics-creator");
     application.setApplicationDisplayName(QStringLiteral("Graphics Creator"));
     KStyleManager::initStyle();
-    MainWindow widget;
+    NewMainWindow widget;
     widget.show();
     return application.exec();
 }

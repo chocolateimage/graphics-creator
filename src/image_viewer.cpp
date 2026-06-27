@@ -40,24 +40,6 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     cornerFrame->hide();
 
     auto frameLay = new QVBoxLayout(cornerFrame);
-    windowButton = new QToolButton(cornerFrame);
-    windowButton->setIcon(QIcon::fromTheme("view-fullscreen"));
-    windowButton->setToolTip("Pop out window");
-    connect(windowButton, &QToolButton::clicked, this, [this]() {
-        poppedOut = !poppedOut;
-        QPoint globalPos = mapToGlobal(QPoint(0, 0));
-        setWindowFlag(Qt::WindowType::Window, poppedOut);
-        if (poppedOut) {
-            windowButton->setIcon(QIcon::fromTheme("view-restore"));
-            windowButton->setToolTip("Pop in");
-        } else {
-            windowButton->setIcon(QIcon::fromTheme("view-fullscreen"));
-            windowButton->setToolTip("Pop out window");
-        }
-        move(globalPos);
-        show();
-    });
-    frameLay->addWidget(windowButton);
 
     auto darkCheckerboardButton = new QToolButton(cornerFrame);
     darkCheckerboardButton->setIcon(QIcon::fromTheme("composite-track-on"));

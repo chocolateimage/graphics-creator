@@ -2,6 +2,8 @@
 
 > [!WARNING]
 > this tool is **work in progress**. IT'S NOT READY!!!
+>
+> The `main` branch is currently under rework. Checkout commit [f294dd1](https://github.com/chocolateimage/graphics-creator/commit/f294dd16829bfe034bc605fa0258139be510fc1b) for the version shown in the KDE Discuss post.
 
 _Name is undecided._
 

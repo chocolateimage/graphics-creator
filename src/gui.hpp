@@ -3,6 +3,7 @@
 #include "variant.hpp"
 #include "video.hpp"
 #include "video_file_button.hpp"
+#include <DockManager.h>
 #include <KMessageWidget>
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
@@ -252,4 +253,12 @@ class MainWindow : public QMainWindow {
 
   protected:
     void closeEvent(QCloseEvent *event) override;
+};
+
+class NewMainWindow : public QMainWindow {
+  public:
+    NewMainWindow();
+    ~NewMainWindow();
+
+    ads::CDockManager *dockManager;
 };
