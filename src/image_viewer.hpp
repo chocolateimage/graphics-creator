@@ -18,9 +18,16 @@ class TransparentCornerFrame : public QFrame {
 class ImageViewer : public QWidget {
     Q_OBJECT
   public:
+    enum PickType {
+        Point,
+        Rect,
+    };
+
     explicit ImageViewer(QWidget *parent = nullptr);
     void updateImage(QImage img);
-    void beginPicking(const QString &id, const QString &infoText);
+    void beginPicking(const QString &id, const QString &infoText,
+                      PickType pickType);
+    void stopPicking();
     QRectF fittedRect();
     QImage image;
 
@@ -35,8 +42,10 @@ class ImageViewer : public QWidget {
     float zoom{1};
     bool dragging{false};
     bool isPicking{false};
+    PickType pickType;
     QString pickId;
     QString pickText;
+    QPoint startPickPosition;
     QPoint pickPosition;
     void updateCursor();
     void paintEvent(QPaintEvent *event) override;
@@ -51,4 +60,5 @@ class ImageViewer : public QWidget {
 
   signals:
     void pixelPicked(QString id, QPoint position);
+    void rectPicked(QString id, QRect rect);
 };

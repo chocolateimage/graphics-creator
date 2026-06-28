@@ -1,5 +1,7 @@
+#pragma once
 #include "image_viewer.hpp"
 #include "lua.hpp"
+#include "scene.hpp"
 #include "variant.hpp"
 #include "video.hpp"
 #include "video_file_button.hpp"
@@ -26,6 +28,7 @@
 #include <QStatusBar>
 #include <QThread>
 #include <QToolButton>
+#include <QUndoStack>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -260,5 +263,19 @@ class NewMainWindow : public QMainWindow {
     NewMainWindow();
     ~NewMainWindow();
 
+    QAction *controlSelect;
+    QAction *controlRectangle;
+    QAction *controlEllipse;
+    QAction *controlPolygon;
+    QAction *controlLua;
+
+    ImageViewer *scenePreviewWidget;
+
+    void controlsUpdated();
+    void sceneRectPicked(QString id, QRect rect);
+
+    Scene *scene;
+
     ads::CDockManager *dockManager;
+    QUndoStack *undoStack;
 };

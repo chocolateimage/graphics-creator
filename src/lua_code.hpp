@@ -1,3 +1,5 @@
+#pragma once
+
 static const char *LUA_BASIC_CODE = R"(
     function options() return {} end
 

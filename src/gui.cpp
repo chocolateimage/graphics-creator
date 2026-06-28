@@ -8,6 +8,7 @@
 #include "lua_state.hpp"
 #include "math.hpp"
 #include "render.hpp"
+#include "timeline.hpp"
 #include "variant.hpp"
 #include <DockAreaWidget.h>
 #include <KActionCollection>
@@ -1270,7 +1271,8 @@ bool MainWindow::addOptionFromLua(lua_State *L) {
                 [this, optionId, optionLabel]() {
                     previewWidget->beginPicking(
                         QString::fromStdString(optionId),
-                        "Pick \"" + optionLabel + "\"");
+                        "Pick \"" + optionLabel + "\"",
+                        ImageViewer::PickType::Point);
                 });
     } else if (optionType == VariantTypeEnum::Color) {
         auto colorButton = new KColorButton(optionsWidget);
@@ -1673,29 +1675,46 @@ void MainWindow::updateStatus() {
     statusText->setText(text);
 }
 
+class TestCommand : public QUndoCommand {
+  public:
+    TestCommand() { setText("add rectangle"); }
+    void undo() override { qInfo() << "UNDO"; }
+    void redo() override { qInfo() << "REDO"; }
+};
+
 NewMainWindow::NewMainWindow() : QMainWindow() {
+    undoStack = new QUndoStack(this);
+    scene = new Scene();
+
     this->resize(1200, 700);
 
     ads::CDockManager::setConfigFlag(ads::CDockManager::OpaqueSplitterResize,
                                      true);
+    ads::CDockManager::setAutoHideConfigFlags(
+        ads::CDockManager::DefaultAutoHideConfig);
 
     QMenuBar *menuBar = new QMenuBar(this);
-    QMenu *view = menuBar->addMenu("View");
+    QMenu *editMenu = menuBar->addMenu("Edit");
+    QAction *undoAction = undoStack->createUndoAction(this);
+    undoAction->setShortcut(QKeySequence::Undo);
+    editMenu->addAction(undoAction);
+    QAction *redoAction = undoStack->createRedoAction(this);
+    redoAction->setShortcuts(QKeySequence::Redo);
+    editMenu->addAction(redoAction);
+    QMenu *viewMenu = menuBar->addMenu("View");
     setMenuBar(menuBar);
 
     QToolBar *toolBar = addToolBar("Controls");
     QActionGroup *controlsGroup = new QActionGroup(toolBar);
-    QAction *controlSelect =
-        toolBar->addAction(QIcon::fromTheme("select"), "Select");
+    controlSelect = toolBar->addAction(QIcon::fromTheme("select"), "Select");
     toolBar->addSeparator();
-    QAction *controlRectangle =
+    controlRectangle =
         toolBar->addAction(QIcon::fromTheme("draw-rectangle"), "Rectangle");
-    QAction *controlEllipse =
+    controlEllipse =
         toolBar->addAction(QIcon::fromTheme("draw-circle"), "Ellipse");
-    QAction *controlPolygon =
+    controlPolygon =
         toolBar->addAction(QIcon::fromTheme("draw-polygon"), "Polygon");
-    QAction *controlLua =
-        toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
+    controlLua = toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
 
     controlSelect->setActionGroup(controlsGroup);
     controlRectangle->setActionGroup(controlsGroup);
@@ -1711,11 +1730,25 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     controlSelect->setChecked(true);
 
+    connect(controlSelect, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlRectangle, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlEllipse, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlPolygon, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlLua, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+
     dockManager = new ads::CDockManager(this);
 
-    ads::CDockWidget *widgetTest1 = dockManager->createDockWidget("Scene");
+    ads::CDockWidget *sceneDockWidget = dockManager->createDockWidget("Scene");
+    sceneDockWidget->setIcon(QIcon::fromTheme("video-television-symbolic"));
     // QLabel *test1 = new QLabel("This is the scene");
-    ImageViewer *imageViewer = new ImageViewer();
+    scenePreviewWidget = new ImageViewer();
+    connect(scenePreviewWidget, &ImageViewer::rectPicked, this,
+            &NewMainWindow::sceneRectPicked);
     QPixmap pix(1280, 720);
     pix.fill(Qt::transparent);
     {
@@ -1727,14 +1760,15 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         painter.setPen(QPen(Qt::white, 64));
         painter.drawRect(50, 50, 400, 400);
     }
-    imageViewer->updateImage(pix.toImage());
-    widgetTest1->setWidget(imageViewer);
+    scenePreviewWidget->updateImage(pix.toImage());
+    sceneDockWidget->setWidget(scenePreviewWidget);
 
     ads::CDockWidget *widgetTest2 = dockManager->createDockWidget("Timeline");
-    QLabel *test2 = new QLabel("Here you can animate elements");
-    widgetTest2->setWidget(test2);
+    TimelineContentWidget *timeline = new TimelineContentWidget(scene);
+    widgetTest2->setWidget(timeline);
 
     ads::CDockWidget *widgetTest3 = dockManager->createDockWidget("Properties");
+    widgetTest3->setIcon(QIcon::fromTheme("settings-configure-symbolic"));
     QLabel *test3 =
         new QLabel("here you can change the properties of an elemenet");
     test3->setWordWrap(true);
@@ -1742,35 +1776,65 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     ads::CDockWidget *effectsDockWidget =
         dockManager->createDockWidget("Effects");
+    effectsDockWidget->setIcon(QIcon::fromTheme("special-effects-symbolic"));
     QLabel *test4 = new QLabel("effects on an element");
     test4->setWordWrap(true);
     effectsDockWidget->setWidget(test4);
 
-    auto scene = dockManager->addDockWidget(
-        ads::DockWidgetArea::CenterDockWidgetArea, widgetTest1);
-    auto elements = dockManager->addDockWidget(
+    auto sceneDockArea = dockManager->addDockWidget(
+        ads::DockWidgetArea::CenterDockWidgetArea, sceneDockWidget);
+    auto elementsDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::RightDockWidgetArea, widgetTest3);
-    auto effects = dockManager->addDockWidget(
-        ads::DockWidgetArea::BottomDockWidgetArea, effectsDockWidget, elements);
-    auto timeline = dockManager->addDockWidget(
+    auto effectsDockArea =
+        dockManager->addDockWidget(ads::DockWidgetArea::BottomDockWidgetArea,
+                                   effectsDockWidget, elementsDockArea);
+    auto timelineDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::BottomDockWidgetArea, widgetTest2);
-    QSizePolicy policy = scene->sizePolicy();
+
+    QSizePolicy policy = sceneDockArea->sizePolicy();
     policy.setHorizontalStretch(1);
     policy.setVerticalStretch(1);
-    scene->setSizePolicy(policy);
-    policy = elements->sizePolicy();
+    sceneDockArea->setSizePolicy(policy);
+    policy = elementsDockArea->sizePolicy();
     policy.setHorizontalStretch(0);
     policy.setVerticalStretch(1);
-    elements->setSizePolicy(policy);
-    policy = timeline->sizePolicy();
+    elementsDockArea->setSizePolicy(policy);
+    policy = timelineDockArea->sizePolicy();
     policy.setHorizontalStretch(1);
     policy.setVerticalStretch(0);
-    timeline->setSizePolicy(policy);
+    timelineDockArea->setSizePolicy(policy);
 
-    view->addAction(widgetTest1->toggleViewAction());
-    view->addAction(widgetTest2->toggleViewAction());
-    view->addAction(widgetTest3->toggleViewAction());
-    view->addAction(effectsDockWidget->toggleViewAction());
+    viewMenu->addAction(sceneDockWidget->toggleViewAction());
+    viewMenu->addAction(widgetTest2->toggleViewAction());
+    viewMenu->addAction(widgetTest3->toggleViewAction());
+    viewMenu->addAction(effectsDockWidget->toggleViewAction());
+}
+
+void NewMainWindow::controlsUpdated() {
+    if (controlSelect->isChecked()) {
+        scenePreviewWidget->stopPicking();
+    } else {
+        scenePreviewWidget->beginPicking("", "", ImageViewer::Rect);
+    }
+}
+
+void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
+    Element *element{nullptr};
+    if (controlRectangle->isChecked()) {
+        controlSelect->setChecked(true);
+        if (!rect.isEmpty()) {
+            RectangleElement *rectElement = new RectangleElement();
+            element = rectElement;
+        }
+    }
+    if (element) {
+        element->x = rect.x();
+        element->y = rect.y();
+        element->w = rect.width();
+        element->h = rect.height();
+        scene->addElement(element);
+        scene->selectElements({element});
+    }
 }
 
 NewMainWindow::~NewMainWindow() {}

@@ -146,22 +146,46 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     painter.drawImage(fittedRect(), image);
 
     if (isPicking) {
-        painter.setRenderHint(QPainter::RenderHint::Antialiasing, false);
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(255, 0, 0, 200));
-
-        painter.drawRect(QRectF(
-            ((float)pickPosition.x() / image.width() * fitRect.width()) +
-                fitRect.x(),
-            ((float)pickPosition.y() / image.height() * fitRect.height()) +
-                fitRect.y(),
-            (float)fitRect.width() / image.width(),
-            (float)fitRect.height() / image.height()));
+        if (startPickPosition.x() == -1 && startPickPosition.y() == -1) {
+            painter.setRenderHint(QPainter::RenderHint::Antialiasing, false);
+            painter.setPen(QPen(QColor(0, 0, 0, 255),
+                                (float)fitRect.width() / image.width() * .1));
+            painter.setBrush(QColor(255, 0, 0, 100));
+            painter.drawRect(QRectF(
+                ((float)pickPosition.x() / image.width() * fitRect.width()) +
+                    fitRect.x(),
+                ((float)pickPosition.y() / image.height() * fitRect.height()) +
+                    fitRect.y(),
+                (float)fitRect.width() / image.width(),
+                (float)fitRect.height() / image.height()));
+        } else {
+            painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
+            QPen pen = QPen(palette().accent(),
+                            (float)fitRect.width() / image.width());
+            pen.setJoinStyle(Qt::PenJoinStyle::RoundJoin);
+            painter.setPen(pen);
+            painter.setBrush(Qt::NoBrush);
+            float startX = ((float)startPickPosition.x() / image.width() *
+                            fitRect.width()) +
+                           fitRect.x();
+            float startY = ((float)startPickPosition.y() / image.height() *
+                            fitRect.height()) +
+                           fitRect.y();
+            float endX =
+                ((float)pickPosition.x() / image.width() * fitRect.width()) +
+                fitRect.x();
+            float endY =
+                ((float)pickPosition.y() / image.height() * fitRect.height()) +
+                fitRect.y();
+            painter.drawRect(QRectF(startX + pen.widthF() / 2.f,
+                                    startY + pen.widthF() / 2.f, endX - startX,
+                                    endY - startY));
+        }
     }
 
     painter.resetTransform();
 
-    if (isPicking) {
+    if (isPicking && !pickId.isEmpty()) {
         painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
         painter.setPen(Qt::NoPen);
         painter.setBrush(QColor(0, 0, 0, 180));
@@ -274,16 +298,25 @@ void ImageViewer::clampMovePos() {
 }
 
 void ImageViewer::mousePressEvent(QMouseEvent *event) {
-
-    if (isPicking && (event->button() == Qt::LeftButton ||
-                      event->button() == Qt::RightButton)) {
-        isPicking = false;
-        update();
-        updateCursor();
+    if (isPicking) {
         if (event->button() == Qt::LeftButton) {
-            emit pixelPicked(pickId, pickPosition);
+            if (pickType == PickType::Point) {
+                stopPicking();
+                emit pixelPicked(pickId, pickPosition);
+            } else if (pickType == PickType::Rect) {
+                startPickPosition = pickPosition;
+                update();
+            }
+
+            return;
+        } else if (event->button() == Qt::RightButton) {
+            if (pickId.isEmpty())
+                return;
+
+            stopPicking();
+
+            return;
         }
-        return;
     }
 
     if (event->button() == Qt::LeftButton ||
@@ -308,6 +341,29 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 }
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
+    if (isPicking && pickType == PickType::Rect) {
+        if (event->button() == Qt::LeftButton) {
+            QRect rect;
+            if (startPickPosition.x() > pickPosition.x()) {
+                rect.setX(pickPosition.x());
+                rect.setWidth(startPickPosition.x() - pickPosition.x());
+            } else {
+                rect.setX(startPickPosition.x());
+                rect.setWidth(pickPosition.x() - startPickPosition.x());
+            }
+            if (startPickPosition.y() > pickPosition.y()) {
+                rect.setY(pickPosition.y());
+                rect.setHeight(startPickPosition.y() - pickPosition.y());
+            } else {
+                rect.setY(startPickPosition.x());
+                rect.setHeight(pickPosition.y() - startPickPosition.y());
+            }
+            stopPicking();
+            emit rectPicked(pickId, rect);
+            return;
+        }
+    }
+
     if (event->button() == Qt::LeftButton ||
         event->button() == Qt::MiddleButton) {
         if (dragging) {
@@ -341,12 +397,21 @@ void ImageViewer::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
 }
 
-void ImageViewer::beginPicking(const QString &id, const QString &infoText) {
+void ImageViewer::beginPicking(const QString &id, const QString &infoText,
+                               PickType pickType) {
     isPicking = true;
+    startPickPosition = QPoint(-1, -1);
+    this->pickType = pickType;
     pickId = id;
     pickText = infoText;
     updateCursor();
     update();
+}
+
+void ImageViewer::stopPicking() {
+    isPicking = false;
+    update();
+    updateCursor();
 }
 
 void ImageViewer::updateCursor() {
