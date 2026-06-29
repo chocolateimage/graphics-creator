@@ -1764,7 +1764,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     sceneDockWidget->setWidget(scenePreviewWidget);
 
     ads::CDockWidget *widgetTest2 = dockManager->createDockWidget("Timeline");
-    TimelineContentWidget *timeline = new TimelineContentWidget(scene);
+    TimelineWidget *timeline = new TimelineWidget(scene);
     widgetTest2->setWidget(timeline);
 
     ads::CDockWidget *widgetTest3 = dockManager->createDockWidget("Properties");

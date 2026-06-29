@@ -1,25 +1,62 @@
 #include "timeline.hpp"
 #include <QEasingCurve>
 #include <QPainter>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QSplitter>
 #include <QVBoxLayout>
 
-TimelineContentWidget::TimelineContentWidget(Scene *scene, QWidget *parent)
+TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     : QWidget(parent) {
     this->scene = scene;
+
+    connect(scene, &Scene::elementAdded, this, &TimelineWidget::updateContents);
+    connect(scene, &Scene::elementRemoved, this,
+            &TimelineWidget::updateContents);
+    connect(scene, &Scene::elementSelectionChanged, this,
+            &TimelineWidget::updateContents);
+
+    auto lay = new QVBoxLayout(this);
+    lay->setContentsMargins(0, 0, 0, 0);
+
+    QSplitter *splitter = new QSplitter(this);
+
+    QScrollArea *timelineLeftScrollArea = new QScrollArea(splitter);
+    timelineLeftScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    timelineLeftScrollArea->setHorizontalScrollBarPolicy(
+        Qt::ScrollBarAlwaysOff);
+    timelineLeftScrollArea->verticalScrollBar()->setEnabled(false);
+    QWidget *timelineLeftContents = new QWidget(timelineLeftScrollArea);
+    QVBoxLayout *timelineLeftLayout = new QVBoxLayout(timelineLeftContents);
+    timelineLeftScrollArea->setWidget(timelineLeftContents);
+    timelineLeftScrollArea->setWidgetResizable(true);
+    splitter->addWidget(timelineLeftScrollArea);
+
+    QScrollArea *timelineMainScrollArea = new QScrollArea(splitter);
+    timelineMainScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    timelineMainScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    timelineContent = new TimelineContentWidget(this, this);
+    timelineMainScrollArea->setWidget(timelineContent);
+    splitter->addWidget(timelineMainScrollArea);
+
+    splitter->setSizes({250, 900});
+
+    lay->addWidget(splitter);
+}
+
+void TimelineWidget::updateContents() { timelineContent->updateContents(); }
+
+TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
+                                             QWidget *parent)
+    : QWidget(parent), timelineWidget(timelineWidget) {
     new QVBoxLayout(this);
     setMouseTracking(true);
     updateContents();
-    connect(scene, &Scene::elementAdded, this,
-            &TimelineContentWidget::updateContents);
-    connect(scene, &Scene::elementRemoved, this,
-            &TimelineContentWidget::updateContents);
-    connect(scene, &Scene::elementSelectionChanged, this,
-            &TimelineContentWidget::updateContents);
 }
 
 void TimelineContentWidget::updateContents() {
     double height = TIMELINE_HEADER_HEIGHT;
-    for (auto elements : scene->elements) {
+    for (auto elements : timelineWidget->scene->elements) {
         height += OBJECT_TRACK_HEIGHT;
         // height += PROPERTY_TRACK_HEIGHT * elements->propertyTracks.size();
     }
@@ -46,7 +83,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 
     // --- Elements ---
     bool stripe = false;
-    for (auto element : scene->elements) {
+    for (auto element : timelineWidget->scene->elements) {
         if (stripe) {
             painter.fillRect(0, yPos, width(), OBJECT_TRACK_HEIGHT,
                              palette().alternateBase());
