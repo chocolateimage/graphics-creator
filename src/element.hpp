@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 
 struct Rect {
     int x, y, w, h;
@@ -14,6 +15,7 @@ class Element {
     int y{0};
     int w{100};
     int h{100};
+    std::string name;
     std::vector<Effect *> effects;
 
     Rect getBoundingBox();

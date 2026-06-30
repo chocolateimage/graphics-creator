@@ -1824,6 +1824,7 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         controlSelect->setChecked(true);
         if (!rect.isEmpty()) {
             RectangleElement *rectElement = new RectangleElement();
+            rectElement->name = "New Rectangle";
             element = rectElement;
         }
     }

@@ -1,6 +1,8 @@
 #pragma once
 #include "scene.hpp"
 #include <QWidget>
+#include <QVBoxLayout>
+#include <QScrollArea>
 
 const double TIMELINE_HEADER_HEIGHT = 24;
 const double OBJECT_TRACK_HEIGHT = 16;
@@ -13,6 +15,10 @@ class TimelineWidget : public QWidget {
     explicit TimelineWidget(Scene *scene, QWidget *parent = nullptr);
 
     TimelineContentWidget *timelineContent;
+    QVBoxLayout *timelineLeftLayout;
+    QWidget *timelineLeftContents;
+    QScrollArea *timelineLeftScrollArea;
+    QScrollArea *timelineMainScrollArea;
     Scene *scene;
     void updateContents();
 };

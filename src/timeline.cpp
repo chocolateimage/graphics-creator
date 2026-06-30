@@ -5,6 +5,7 @@
 #include <QScrollBar>
 #include <QSplitter>
 #include <QVBoxLayout>
+#include <QPushButton>
 
 TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     : QWidget(parent) {
@@ -21,18 +22,20 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
 
     QSplitter *splitter = new QSplitter(this);
 
-    QScrollArea *timelineLeftScrollArea = new QScrollArea(splitter);
+    timelineLeftScrollArea = new QScrollArea(splitter);
     timelineLeftScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     timelineLeftScrollArea->setHorizontalScrollBarPolicy(
         Qt::ScrollBarAlwaysOff);
     timelineLeftScrollArea->verticalScrollBar()->setEnabled(false);
-    QWidget *timelineLeftContents = new QWidget(timelineLeftScrollArea);
-    QVBoxLayout *timelineLeftLayout = new QVBoxLayout(timelineLeftContents);
+    timelineLeftContents = new QWidget(timelineLeftScrollArea);
+    timelineLeftLayout = new QVBoxLayout(timelineLeftContents);
+    timelineLeftLayout->setContentsMargins(0,0,0,0);
+    timelineLeftLayout->setSpacing(0);
     timelineLeftScrollArea->setWidget(timelineLeftContents);
     timelineLeftScrollArea->setWidgetResizable(true);
     splitter->addWidget(timelineLeftScrollArea);
 
-    QScrollArea *timelineMainScrollArea = new QScrollArea(splitter);
+    timelineMainScrollArea = new QScrollArea(splitter);
     timelineMainScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     timelineMainScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     timelineContent = new TimelineContentWidget(this, this);
@@ -44,7 +47,38 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     lay->addWidget(splitter);
 }
 
-void TimelineWidget::updateContents() { timelineContent->updateContents(); }
+void TimelineWidget::updateContents() {
+    while (timelineLeftLayout->count() > 0) {
+            auto item = timelineLeftLayout->takeAt(0);
+            QWidget *widget = item->widget();
+            if (widget != nullptr) {
+                widget->setParent(nullptr);
+                widget->deleteLater();
+            }
+            delete item;
+        }
+
+
+        timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
+
+        for (auto element : scene->elements) {
+            QPushButton *elementButton = new QPushButton(timelineLeftContents);
+                elementButton->setStyleSheet("font-weight: bold; text-align: left; padding-left: 8px;");
+            elementButton->setText(QString::fromStdString(element->name));
+            elementButton->setFixedHeight(OBJECT_TRACK_HEIGHT);
+            elementButton->setFlat(true);
+            timelineLeftLayout->addWidget(elementButton);
+        }
+
+        timelineLeftLayout->addSpacing(64);
+        timelineLeftLayout->addStretch();
+        timelineLeftScrollArea->verticalScrollBar()->setValue(timelineMainScrollArea->verticalScrollBar()->value());
+
+        timelineContent->updateContents();
+
+
+    timelineContent->updateContents();
+}
 
 TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
                                              QWidget *parent)
