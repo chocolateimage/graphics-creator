@@ -346,17 +346,17 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
             QRect rect;
             if (startPickPosition.x() > pickPosition.x()) {
                 rect.setX(pickPosition.x());
-                rect.setWidth(startPickPosition.x() - pickPosition.x());
+                rect.setWidth(startPickPosition.x() - pickPosition.x() + 1);
             } else {
                 rect.setX(startPickPosition.x());
-                rect.setWidth(pickPosition.x() - startPickPosition.x());
+                rect.setWidth(pickPosition.x() - startPickPosition.x() + 1);
             }
             if (startPickPosition.y() > pickPosition.y()) {
                 rect.setY(pickPosition.y());
-                rect.setHeight(startPickPosition.y() - pickPosition.y());
+                rect.setHeight(startPickPosition.y() - pickPosition.y() + 1);
             } else {
-                rect.setY(startPickPosition.x());
-                rect.setHeight(pickPosition.y() - startPickPosition.y());
+                rect.setY(startPickPosition.y());
+                rect.setHeight(pickPosition.y() - startPickPosition.y() + 1);
             }
             stopPicking();
             emit rectPicked(pickId, rect);

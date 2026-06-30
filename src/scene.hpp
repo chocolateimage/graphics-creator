@@ -6,6 +6,8 @@
 class Scene : public QObject {
     Q_OBJECT
   public:
+    int width;
+    int height;
     QList<Element *> elements;
     QList<Element *> selectedElements;
 

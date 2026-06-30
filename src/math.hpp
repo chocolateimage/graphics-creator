@@ -1,5 +1,7 @@
 #pragma once
+#include <array>
 #include <cmath>
+#include <cstdint>
 
 static inline float mix(float t, float min, float max) {
     return (t * (max - min)) + min;
@@ -178,4 +180,20 @@ static double easeInOutBounce(double x) {
     } else {
         return (1 + easeOutBounce(2 * x - 1)) / 2;
     }
+}
+
+static std::array<uint8_t, 4> over(double r1, double g1, double b1, double a1,
+                                   double r2, double g2, double b2, double a2) {
+    a1 = a1 / 255.;
+    a2 = a2 / 255.;
+    double t = a1 * (1 - a2);
+    double a = a2 + t;
+    if (a == 0) {
+        return {0, 0, 0, 0};
+    }
+    double r = ((r2 / 255.) * a2 + (r1 / 255.) * t) / a;
+    double g = ((g2 / 255.) * a2 + (g1 / 255.) * t) / a;
+    double b = ((b2 / 255.) * a2 + (b1 / 255.) * t) / a;
+    return {(uint8_t)(r * 255.), (uint8_t)(g * 255.), (uint8_t)(b * 255.),
+            (uint8_t)(a * 255.)};
 }

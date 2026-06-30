@@ -1685,6 +1685,8 @@ class TestCommand : public QUndoCommand {
 NewMainWindow::NewMainWindow() : QMainWindow() {
     undoStack = new QUndoStack(this);
     scene = new Scene();
+    scene->width = 1280;
+    scene->height = 720;
 
     this->resize(1200, 700);
 
@@ -1836,6 +1838,49 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         scene->addElement(element);
         scene->selectElements({element});
     }
+    rerender();
+}
+
+void NewMainWindow::rerender() { renderTest(); }
+
+void NewMainWindow::renderTest() {
+    // TODO: this is bad this is bad this is bad
+    // This should be in a render thread. The data (like elements) should
+    // probably be copied to avoid crashing.
+    // and instead of splitting a single frame into chunks, I will probably do
+    // a whole frame per thread.
+
+    uint32_t *frame = new uint32_t[scene->width * scene->height];
+    memset(frame, 0, scene->width * scene->height * 4);
+
+    for (auto element : scene->elements) {
+        auto rect = element->getRenderBox();
+        uint32_t *elementValues = new uint32_t[rect.w * rect.h];
+        bool success = element->render(elementValues);
+
+        if (!success) {
+            delete[] elementValues;
+            continue;
+        }
+
+        int maxY = std::min(scene->height, rect.y + rect.h) - rect.y;
+        int maxX = std::min(scene->width, rect.x + rect.w) - rect.x;
+
+        for (int y = std::max(0, -rect.y); y < maxY; y++) {
+            for (int x = std::max(0, -rect.x); x < maxX; x++) {
+                // TODO: "over" or something
+                frame[pixelIndex(x + rect.x, y + rect.y, scene->width)] =
+                    elementValues[pixelIndex(x, y, rect.w)];
+            }
+        }
+        delete[] elementValues;
+    }
+
+    QImage img = QImage((unsigned char *)frame, scene->width, scene->height,
+                        scene->width * 4, QImage::Format_ARGB32)
+                     .copy();
+    scenePreviewWidget->updateImage(img);
+    delete[] frame;
 }
 
 NewMainWindow::~NewMainWindow() {}

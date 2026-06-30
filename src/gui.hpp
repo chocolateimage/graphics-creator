@@ -273,6 +273,8 @@ class NewMainWindow : public QMainWindow {
 
     void controlsUpdated();
     void sceneRectPicked(QString id, QRect rect);
+    void renderTest();
+    void rerender();
 
     Scene *scene;
 
