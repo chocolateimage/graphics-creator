@@ -1863,6 +1863,7 @@ void NewMainWindow::renderTest() {
     for (auto element : renderElements) {
         auto rect = element->getRenderBox();
         uint32_t *elementValues = new uint32_t[rect.w * rect.h];
+        memset(elementValues, 0, rect.w * rect.h * 4);
         bool success = element->render(elementValues);
 
         if (!success) {

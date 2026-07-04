@@ -101,7 +101,7 @@ class ElementRender : public AnimatableRender {
     PropertyRender<int> w{this};
     PropertyRender<int> h{this};
 
-    Rect getRenderBox();
+    virtual Rect getRenderBox();
 
     virtual bool render(uint32_t *target) = 0;
 };
@@ -114,6 +114,7 @@ class RectangleElement : public Element {
     virtual AnimatableRender *createClass();
 
     Property<Brush> fill{this, "fill", {}};
+    Property<int> strokeWidth{this, "strokeWidth", 16};
 };
 
 class RectangleElementRender : public ElementRender {
@@ -122,6 +123,9 @@ class RectangleElementRender : public ElementRender {
     virtual ~RectangleElementRender() {}
 
     PropertyRender<Brush> fill{this};
+    PropertyRender<int> strokeWidth{this};
+
+    virtual Rect getRenderBox();
 
     virtual bool render(uint32_t *target);
 };
