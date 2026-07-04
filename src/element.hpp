@@ -1,4 +1,5 @@
 #pragma once
+#include "variant.hpp"
 #include <QObject>
 #include <string>
 #include <vector>
@@ -6,6 +7,10 @@
 static constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
                                     uint8_t alpha) {
     return (alpha << 24) | (red << 16) | (green << 8) | blue;
+}
+
+static constexpr uint32_t makePixel(Color color) {
+    return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
 
 static constexpr int pixelIndex(int x, int y, int stride) {
@@ -16,31 +21,116 @@ struct Rect {
     int x, y, w, h;
 };
 
-class Effect {};
+class Animatable;
+class AnimatableRender;
 
-class Element : public QObject {
+class PropertyBase {
+  public:
+    PropertyBase(const std::string &name);
+    virtual ~PropertyBase() {}
+    std::string name;
+};
+
+template <typename T> class Property : public PropertyBase {
+  public:
+    Property(Animatable *animatable, const std::string &name, T defaultValue);
+    virtual ~Property() {}
+
+    T get();
+    void setConstant(T value) { this->value = value; };
+
+    T value;
+};
+
+class PropertyRenderBase {
+  public:
+    PropertyRenderBase();
+    virtual ~PropertyRenderBase() {}
+    virtual void set(PropertyBase *property) {};
+};
+
+template <typename T> class PropertyRender : public PropertyRenderBase {
+  public:
+    PropertyRender(AnimatableRender *animatable);
+    virtual ~PropertyRender() {}
+
+    T get();
+    virtual void set(PropertyBase *property);
+
+    T value;
+};
+
+class Animatable : public QObject {
+    Q_OBJECT
+  public:
+    void addProperty(PropertyBase *property);
+    std::vector<PropertyBase *> properties;
+
+    virtual AnimatableRender *createClass() = 0;
+    AnimatableRender *toRender();
+};
+
+class AnimatableRender : public QObject {
+    Q_OBJECT
+  public:
+    void addProperty(PropertyRenderBase *property);
+    std::vector<PropertyRenderBase *> properties;
+};
+
+class EffectRender : public AnimatableRender {};
+class Effect : public Animatable {
+  public:
+    AnimatableRender *createClass() { return new EffectRender(); }
+};
+
+class Element : public Animatable {
     Q_OBJECT
   public:
     Element() {};
     ~Element();
-    int x{0};
-    int y{0};
-    int w{100};
-    int h{100};
+    Property<int> x{this, "x", 0};
+    Property<int> y{this, "y", 0};
+    Property<int> w{this, "w", 100};
+    Property<int> h{this, "h", 100};
     std::string name;
     std::vector<Effect *> effects;
 
-    Rect getRenderBox();
-    virtual bool render(uint32_t *target) = 0;
-
     // TODO: "properties" that are named with strings so you can animate them
     // ("x", "y", "fill", whatever)
+};
+
+class ElementRender : public AnimatableRender {
+    Q_OBJECT
+  public:
+    ElementRender() {};
+    ~ElementRender() {};
+
+    PropertyRender<int> x{this};
+    PropertyRender<int> y{this};
+    PropertyRender<int> w{this};
+    PropertyRender<int> h{this};
+
+    Rect getRenderBox();
+
+    virtual bool render(uint32_t *target) = 0;
 };
 
 class RectangleElement : public Element {
   public:
     RectangleElement();
     virtual ~RectangleElement() {}
+
+    virtual AnimatableRender *createClass();
+
+    Property<Brush> fill{this, "fill", {}};
+};
+
+class RectangleElementRender : public ElementRender {
+  public:
+    RectangleElementRender() : ElementRender() {};
+    virtual ~RectangleElementRender() {}
+
+    PropertyRender<Brush> fill{this};
 
     virtual bool render(uint32_t *target);
 };

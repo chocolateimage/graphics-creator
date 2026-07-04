@@ -39,6 +39,7 @@ set(graphicscreator_SRCS
     src/element.cpp
     src/scene.cpp
     src/timeline.cpp
+    src/brush.cpp
 )
 
 

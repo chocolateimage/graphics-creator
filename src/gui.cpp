@@ -1831,10 +1831,10 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         }
     }
     if (element) {
-        element->x = rect.x();
-        element->y = rect.y();
-        element->w = rect.width();
-        element->h = rect.height();
+        element->x.setConstant(rect.x());
+        element->y.setConstant(rect.y());
+        element->w.setConstant(rect.width());
+        element->h.setConstant(rect.height());
         scene->addElement(element);
         scene->selectElements({element});
     }
@@ -1853,7 +1853,14 @@ void NewMainWindow::renderTest() {
     uint32_t *frame = new uint32_t[scene->width * scene->height];
     memset(frame, 0, scene->width * scene->height * 4);
 
+    std::vector<ElementRender *> renderElements;
+
     for (auto element : scene->elements) {
+        ElementRender *render = (ElementRender *)element->toRender();
+        renderElements.push_back(render);
+    }
+
+    for (auto element : renderElements) {
         auto rect = element->getRenderBox();
         uint32_t *elementValues = new uint32_t[rect.w * rect.h];
         bool success = element->render(elementValues);
@@ -1874,6 +1881,10 @@ void NewMainWindow::renderTest() {
             }
         }
         delete[] elementValues;
+    }
+
+    for (auto element : renderElements) {
+        delete element;
     }
 
     QImage img = QImage((unsigned char *)frame, scene->width, scene->height,
