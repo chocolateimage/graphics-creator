@@ -1875,9 +1875,9 @@ void NewMainWindow::renderTest() {
 
         for (int y = std::max(0, -rect.y); y < maxY; y++) {
             for (int x = std::max(0, -rect.x); x < maxX; x++) {
-                // TODO: "over" or something
-                frame[pixelIndex(x + rect.x, y + rect.y, scene->width)] =
-                    elementValues[pixelIndex(x, y, rect.w)];
+                auto index = pixelIndex(x + rect.x, y + rect.y, scene->width);
+                frame[index] =
+                    over(frame[index], elementValues[pixelIndex(x, y, rect.w)]);
             }
         }
         delete[] elementValues;

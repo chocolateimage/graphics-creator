@@ -4,17 +4,8 @@
 #include <string>
 #include <vector>
 
-static constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
-                                    uint8_t alpha) {
-    return (alpha << 24) | (red << 16) | (green << 8) | blue;
-}
-
 static constexpr uint32_t makePixel(Color color) {
     return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
-}
-
-static constexpr int pixelIndex(int x, int y, int stride) {
-    return y * stride + x;
 }
 
 struct Rect {

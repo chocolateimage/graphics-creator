@@ -3,6 +3,15 @@
 #include <cmath>
 #include <cstdint>
 
+static constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
+                                    uint8_t alpha) {
+    return (alpha << 24) | (red << 16) | (green << 8) | blue;
+}
+
+static constexpr int pixelIndex(int x, int y, int stride) {
+    return y * stride + x;
+}
+
 static inline float mix(float t, float min, float max) {
     return (t * (max - min)) + min;
 }
@@ -196,4 +205,20 @@ static std::array<uint8_t, 4> over(double r1, double g1, double b1, double a1,
     double b = ((b2 / 255.) * a2 + (b1 / 255.) * t) / a;
     return {(uint8_t)(r * 255.), (uint8_t)(g * 255.), (uint8_t)(b * 255.),
             (uint8_t)(a * 255.)};
+}
+
+static constexpr std::array<uint8_t, 4> extractRGBA(uint32_t num) {
+    return {(uint8_t)(num >> 16), (uint8_t)(num >> 8), (uint8_t)num,
+            (uint8_t)(num >> 24)};
+}
+
+static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
+    auto [r1, g1, b1, a1] = extractRGBA(num1);
+    auto [r2, g2, b2, a2] = extractRGBA(num2);
+    if (a2 == 0)
+        return num1;
+    if (a2 == 255)
+        return num2;
+    auto [r3, g3, b3, a3] = over(r1, g1, b1, a1, r2, g2, b2, a2);
+    return makePixel(r3, g3, b3, a3);
 }

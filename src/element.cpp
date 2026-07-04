@@ -1,5 +1,6 @@
 #include "element.hpp"
 #include "brush.hpp"
+#include "math.hpp"
 #include <QDebug>
 
 PropertyBase::PropertyBase(const std::string &name) : name(name) {}
