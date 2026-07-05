@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "animatable/element/rectangle_element.hpp"
 #include "brush_input.hpp"
 #include "draggable_spinbox.hpp"
 #include "fontcombobox.hpp"
