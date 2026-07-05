@@ -39,6 +39,8 @@ set(graphicscreator_SRCS
     src/gui/video_file_button.cpp
     src/gui/brush_input.cpp
     src/gui/timeline.cpp
+    src/gui/property_window.cpp
+    src/gui/property_edit.cpp
     src/animatable/animatable.cpp
     src/animatable/effect.cpp
     src/animatable/element/element.cpp

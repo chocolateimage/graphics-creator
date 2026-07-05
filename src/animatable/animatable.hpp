@@ -13,6 +13,11 @@ class Animatable : public QObject {
 
     virtual AnimatableRender *createClass() = 0;
     AnimatableRender *toRender();
+
+    void _propertyUpdated(PropertyBase *property);
+
+  signals:
+    void propertyUpdated(PropertyBase *property);
 };
 
 class AnimatableRender : public QObject {

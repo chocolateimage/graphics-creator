@@ -8,6 +8,7 @@
 #include "lua_code.hpp"
 #include "lua_state.hpp"
 #include "math.hpp"
+#include "property_window.hpp"
 #include "render.hpp"
 #include "timeline.hpp"
 #include "variant.hpp"
@@ -1689,6 +1690,9 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     scene->width = 1280;
     scene->height = 720;
 
+    connect(scene, &Scene::elementUpdated, this,
+            &NewMainWindow::elementUpdated);
+
     this->resize(1200, 700);
 
     ads::CDockManager::setConfigFlag(ads::CDockManager::OpaqueSplitterResize,
@@ -1770,12 +1774,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     TimelineWidget *timeline = new TimelineWidget(scene);
     widgetTest2->setWidget(timeline);
 
-    ads::CDockWidget *widgetTest3 = dockManager->createDockWidget("Properties");
-    widgetTest3->setIcon(QIcon::fromTheme("settings-configure-symbolic"));
-    QLabel *test3 =
-        new QLabel("here you can change the properties of an elemenet");
-    test3->setWordWrap(true);
-    widgetTest3->setWidget(test3);
+    ads::CDockWidget *propertiesDockWidget =
+        dockManager->createDockWidget("Properties");
+    propertiesDockWidget->setIcon(
+        QIcon::fromTheme("settings-configure-symbolic"));
+    PropertyWindow *propertyWindow = new PropertyWindow(scene);
+    propertiesDockWidget->setWidget(propertyWindow);
 
     ads::CDockWidget *effectsDockWidget =
         dockManager->createDockWidget("Effects");
@@ -1787,7 +1791,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     auto sceneDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::CenterDockWidgetArea, sceneDockWidget);
     auto elementsDockArea = dockManager->addDockWidget(
-        ads::DockWidgetArea::RightDockWidgetArea, widgetTest3);
+        ads::DockWidgetArea::RightDockWidgetArea, propertiesDockWidget);
     auto effectsDockArea =
         dockManager->addDockWidget(ads::DockWidgetArea::BottomDockWidgetArea,
                                    effectsDockWidget, elementsDockArea);
@@ -1809,7 +1813,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     viewMenu->addAction(sceneDockWidget->toggleViewAction());
     viewMenu->addAction(widgetTest2->toggleViewAction());
-    viewMenu->addAction(widgetTest3->toggleViewAction());
+    viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
 }
 
@@ -1827,7 +1831,7 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         controlSelect->setChecked(true);
         if (!rect.isEmpty()) {
             RectangleElement *rectElement = new RectangleElement();
-            rectElement->name = "New Rectangle";
+            rectElement->setObjectName("New Rectangle");
             element = rectElement;
         }
     }
@@ -1841,6 +1845,8 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
     }
     rerender();
 }
+
+void NewMainWindow::elementUpdated(Element *element) { rerender(); }
 
 void NewMainWindow::rerender() { renderTest(); }
 

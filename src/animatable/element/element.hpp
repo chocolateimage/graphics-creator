@@ -23,11 +23,7 @@ class Element : public Animatable {
     Property<int> y{this, "y", 0};
     Property<int> w{this, "w", 100};
     Property<int> h{this, "h", 100};
-    std::string name;
     std::vector<Effect *> effects;
-
-    // TODO: "properties" that are named with strings so you can animate them
-    // ("x", "y", "fill", whatever)
 };
 
 class ElementRender : public AnimatableRender {

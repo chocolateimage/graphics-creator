@@ -16,3 +16,7 @@ AnimatableRender *Animatable::toRender() {
     }
     return instance;
 }
+
+void Animatable::_propertyUpdated(PropertyBase *property) {
+    emit propertyUpdated(property);
+}

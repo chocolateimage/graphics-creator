@@ -81,7 +81,7 @@ void TimelineWidget::updateContents() {
                                      "QPushButton:pressed {"
                                      "   background: rgba(128,128,128,0.3);"
                                      "}");
-        elementButton->setText(QString::fromStdString(element->name));
+        elementButton->setText(element->objectName());
         elementButton->setFixedHeight(OBJECT_TRACK_HEIGHT);
         elementButton->setFlat(!selected);
         connect(elementButton, &QPushButton::clicked, this, [this, element]() {
@@ -100,6 +100,10 @@ void TimelineWidget::updateContents() {
                 scene->selectElements({element});
             }
         });
+        connect(element, &Element::objectNameChanged, elementButton,
+                [elementButton](const QString &objectName) {
+                    elementButton->setText(objectName);
+                });
         timelineLeftLayout->addWidget(elementButton);
     }
 

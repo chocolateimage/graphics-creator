@@ -18,5 +18,6 @@ class Scene : public QObject {
   signals:
     void elementAdded(Element *element, int index);
     void elementRemoved(Element *element);
+    void elementUpdated(Element *element);
     void elementSelectionChanged(QList<Element *> elements);
 };
