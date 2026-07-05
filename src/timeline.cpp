@@ -1,11 +1,12 @@
 #include "timeline.hpp"
+#include <QApplication>
 #include <QEasingCurve>
 #include <QPainter>
+#include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSplitter>
 #include <QVBoxLayout>
-#include <QPushButton>
 
 TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     : QWidget(parent) {
@@ -29,7 +30,7 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     timelineLeftScrollArea->verticalScrollBar()->setEnabled(false);
     timelineLeftContents = new QWidget(timelineLeftScrollArea);
     timelineLeftLayout = new QVBoxLayout(timelineLeftContents);
-    timelineLeftLayout->setContentsMargins(0,0,0,0);
+    timelineLeftLayout->setContentsMargins(0, 0, 0, 0);
     timelineLeftLayout->setSpacing(0);
     timelineLeftScrollArea->setWidget(timelineLeftContents);
     timelineLeftScrollArea->setWidgetResizable(true);
@@ -38,6 +39,8 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     timelineMainScrollArea = new QScrollArea(splitter);
     timelineMainScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     timelineMainScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    connect(timelineMainScrollArea->verticalScrollBar(),
+            &QScrollBar::valueChanged, this, &TimelineWidget::timelineScrolled);
     timelineContent = new TimelineContentWidget(this, this);
     timelineMainScrollArea->setWidget(timelineContent);
     splitter->addWidget(timelineMainScrollArea);
@@ -49,33 +52,68 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
 
 void TimelineWidget::updateContents() {
     while (timelineLeftLayout->count() > 0) {
-            auto item = timelineLeftLayout->takeAt(0);
-            QWidget *widget = item->widget();
-            if (widget != nullptr) {
-                widget->setParent(nullptr);
-                widget->deleteLater();
+        auto item = timelineLeftLayout->takeAt(0);
+        QWidget *widget = item->widget();
+        if (widget != nullptr) {
+            widget->setParent(nullptr);
+            widget->deleteLater();
+        }
+        delete item;
+    }
+
+    timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
+
+    for (auto element : scene->elements) {
+        bool selected = scene->selectedElements.contains(element);
+        QPushButton *elementButton = new QPushButton(timelineLeftContents);
+        elementButton->setStyleSheet("QPushButton {"
+                                     "   text-align: left;"
+                                     "   padding-left: 8px;"
+                                     "   background: transparent;"
+                                     "   border-radius: 0px;"
+                                     "}"
+                                     "QPushButton:hover {"
+                                     "   background: rgba(128,128,128,0.1);"
+                                     "}"
+                                     "QPushButton[flat=\"false\"] {"
+                                     "   background: rgba(128,128,128,0.25);"
+                                     "}"
+                                     "QPushButton:pressed {"
+                                     "   background: rgba(128,128,128,0.3);"
+                                     "}");
+        elementButton->setText(QString::fromStdString(element->name));
+        elementButton->setFixedHeight(OBJECT_TRACK_HEIGHT);
+        elementButton->setFlat(!selected);
+        connect(elementButton, &QPushButton::clicked, this, [this, element]() {
+            auto modifiers = QApplication::queryKeyboardModifiers();
+            // TODO: Shift should select range
+            if (modifiers.testFlag(Qt::ControlModifier) ||
+                modifiers.testFlag(Qt::ShiftModifier)) {
+                QList<Element *> newSelected = scene->selectedElements;
+                if (newSelected.contains(element)) {
+                    newSelected.removeOne(element);
+                } else {
+                    newSelected.append(element);
+                }
+                scene->selectElements(newSelected);
+            } else {
+                scene->selectElements({element});
             }
-            delete item;
-        }
+        });
+        timelineLeftLayout->addWidget(elementButton);
+    }
 
+    timelineLeftLayout->addSpacing(64);
+    timelineLeftLayout->addStretch();
+    timelineLeftScrollArea->verticalScrollBar()->setValue(
+        timelineMainScrollArea->verticalScrollBar()->value());
 
-        timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
+    timelineContent->updateContents();
+}
 
-        for (auto element : scene->elements) {
-            QPushButton *elementButton = new QPushButton(timelineLeftContents);
-                elementButton->setStyleSheet("font-weight: bold; text-align: left; padding-left: 8px;");
-            elementButton->setText(QString::fromStdString(element->name));
-            elementButton->setFixedHeight(OBJECT_TRACK_HEIGHT);
-            elementButton->setFlat(true);
-            timelineLeftLayout->addWidget(elementButton);
-        }
-
-        timelineLeftLayout->addSpacing(64);
-        timelineLeftLayout->addStretch();
-        timelineLeftScrollArea->verticalScrollBar()->setValue(timelineMainScrollArea->verticalScrollBar()->value());
-
-        timelineContent->updateContents();
-
+void TimelineWidget::timelineScrolled() {
+    timelineLeftScrollArea->verticalScrollBar()->setValue(
+        timelineMainScrollArea->verticalScrollBar()->value());
 
     timelineContent->updateContents();
 }
@@ -95,7 +133,7 @@ void TimelineContentWidget::updateContents() {
         // height += PROPERTY_TRACK_HEIGHT * elements->propertyTracks.size();
     }
 
-    this->setFixedSize(secondsToPixels(5), height);
+    this->setFixedSize(secondsToPixels(5) + TIMELINE_START_OFFSET * 2, height);
     update();
 }
 
@@ -110,6 +148,9 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setRenderHint(QPainter::TextAntialiasing);
 
+    double startOffset = TIMELINE_START_OFFSET;
+    painter.translate(startOffset, 0);
+
     double curSec = 2;
 
     double yPos = 0;
@@ -119,7 +160,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     bool stripe = false;
     for (auto element : timelineWidget->scene->elements) {
         if (stripe) {
-            painter.fillRect(0, yPos, width(), OBJECT_TRACK_HEIGHT,
+            painter.fillRect(-startOffset, yPos, width(), OBJECT_TRACK_HEIGHT,
                              palette().alternateBase());
         }
         stripe = !stripe;
@@ -132,9 +173,10 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     }
 
     // --- Timeline Header ---
-    double headerPos = 0;
-    painter.fillRect(0, headerPos, width(), TIMELINE_HEADER_HEIGHT,
-                     palette().base());
+    double headerPos =
+        timelineWidget->timelineMainScrollArea->verticalScrollBar()->value();
+    painter.fillRect(-startOffset, headerPos, width(), TIMELINE_HEADER_HEIGHT,
+                     palette().window());
 
     // Seconds Text
     painter.setPen(QPen(palette().placeholderText(), 2));
