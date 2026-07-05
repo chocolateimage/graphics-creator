@@ -20,8 +20,8 @@ PropertyEdit::PropertyEdit(PropertyBase *property, QWidget *parent)
     auto variant = property->toVariant();
     auto variantType = variant.type();
     QWidget *widget{nullptr};
-    int min = 0;
-    int max = 1000;
+    int min = INT_MIN;
+    int max = INT_MAX;
 
     if (variantType == VariantTypeEnum::None) {
         auto line = new HorizontalLine(this);

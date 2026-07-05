@@ -30,11 +30,39 @@ template <typename T> class Property : public PropertyBase {
     T get() { return value; }
     virtual Variant toVariant() { return Variant{value}; };
     void setConstant(T value) {
+        if constexpr (std::is_arithmetic_v<T>) {
+            if (hasMin) {
+                if (value < min) {
+                    value = min;
+                }
+            }
+            if (hasMax) {
+                if (value > max) {
+                    value = max;
+                }
+            }
+        }
+
         this->value = value;
         animatable->_propertyUpdated(this);
     };
 
+    void setMin(T value) {
+        hasMin = true;
+        min = value;
+    }
+
+    void setax(T value) {
+        hasMax = true;
+        max = value;
+    }
+
     T value;
+
+    T min;
+    bool hasMin{false};
+    T max;
+    bool hasMax{false};
 };
 
 class PropertyRenderBase {

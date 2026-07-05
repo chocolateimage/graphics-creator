@@ -17,7 +17,10 @@ struct Rect {
 class Element : public Animatable {
     Q_OBJECT
   public:
-    Element() {};
+    Element() {
+        w.setMin(1);
+        h.setMin(1);
+    };
     ~Element();
     Property<int> x{this, "x", 0};
     Property<int> y{this, "y", 0};

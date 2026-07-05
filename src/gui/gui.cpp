@@ -1752,22 +1752,9 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     ads::CDockWidget *sceneDockWidget = dockManager->createDockWidget("Scene");
     sceneDockWidget->setIcon(QIcon::fromTheme("video-television-symbolic"));
-    // QLabel *test1 = new QLabel("This is the scene");
     scenePreviewWidget = new ImageViewer();
     connect(scenePreviewWidget, &ImageViewer::rectPicked, this,
             &NewMainWindow::sceneRectPicked);
-    QPixmap pix(1280, 720);
-    pix.fill(Qt::transparent);
-    {
-        QPainter painter(&pix);
-        painter.setRenderHint(QPainter::RenderHint::Antialiasing);
-        painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform);
-        painter.setRenderHint(QPainter::RenderHint::TextAntialiasing);
-        painter.setBrush(Qt::red);
-        painter.setPen(QPen(Qt::white, 64));
-        painter.drawRect(50, 50, 400, 400);
-    }
-    scenePreviewWidget->updateImage(pix.toImage());
     sceneDockWidget->setWidget(scenePreviewWidget);
 
     ads::CDockWidget *widgetTest2 = dockManager->createDockWidget("Timeline");
@@ -1815,6 +1802,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     viewMenu->addAction(widgetTest2->toggleViewAction());
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
+
+    rerender();
 }
 
 void NewMainWindow::controlsUpdated() {

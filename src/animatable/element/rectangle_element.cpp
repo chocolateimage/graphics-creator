@@ -3,10 +3,7 @@
 #include "brush.hpp"
 #include "math.hpp"
 
-RectangleElement::RectangleElement()
-    : Element() {
-
-      };
+RectangleElement::RectangleElement() : Element() { strokeWidth.setMin(0); };
 
 AnimatableRender *RectangleElement::createClass() {
     return new RectangleElementRender();
