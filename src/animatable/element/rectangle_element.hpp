@@ -10,6 +10,7 @@ class RectangleElement : public Element {
 
     Property<Brush> fill{this, "fill", {}};
     Property<int> strokeWidth{this, "strokeWidth", 16};
+    Property<int> roundness{this, "roundness", 0};
 };
 
 class RectangleElementRender : public ElementRender {
@@ -19,6 +20,7 @@ class RectangleElementRender : public ElementRender {
 
     PropertyRender<Brush> fill{this};
     PropertyRender<int> strokeWidth{this};
+    PropertyRender<int> roundness{this};
 
     virtual Rect getRenderBox();
 

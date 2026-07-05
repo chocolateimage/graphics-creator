@@ -74,6 +74,8 @@ class PropertyRenderBase {
 
 template <typename T> class PropertyRender : public PropertyRenderBase {
   public:
+    constexpr operator T() { return value; }
+
     PropertyRender(AnimatableRender *animatable) : PropertyRenderBase() {
         animatable->addProperty(this);
     };
