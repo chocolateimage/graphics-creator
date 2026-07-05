@@ -6,6 +6,7 @@
 class Scene : public QObject {
     Q_OBJECT
   public:
+    ~Scene();
     int width;
     int height;
     QList<Element *> elements;

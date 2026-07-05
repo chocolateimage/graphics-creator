@@ -1,5 +1,7 @@
 #include "scene.hpp"
 
+Scene::~Scene() { qDeleteAll(elements); }
+
 void Scene::addElement(Element *element) {
     insertElement(element, elements.length());
 }

@@ -1891,7 +1891,7 @@ void NewMainWindow::renderTest() {
     delete[] frame;
 }
 
-NewMainWindow::~NewMainWindow() {}
+NewMainWindow::~NewMainWindow() { delete scene; }
 
 int main(int argc, char **argv) {
     KIconTheme::initTheme();
