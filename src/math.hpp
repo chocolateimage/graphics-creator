@@ -16,6 +16,10 @@ static inline float mix(float t, float min, float max) {
     return (t * (max - min)) + min;
 }
 
+static double saturate(double x) { return std::max(std::min(x, 1.), 0.); }
+
+static double length(double x, double y) { return std::sqrt(x * x + y * y); }
+
 static double linear(double x) { return x; }
 
 static double easeInQuad(double x) { return x * x; }
@@ -221,4 +225,62 @@ static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
         return num2;
     auto [r3, g3, b3, a3] = over(r1, g1, b1, a1, r2, g2, b2, a2);
     return makePixel(r3, g3, b3, a3);
+}
+
+static double srgbToLinear(double x) {
+    if (x < 0.04045) {
+        return x * 0.0773993808;
+    }
+
+    return std::pow(x * 0.9478672986 + 0.0521327014, 2.4);
+}
+
+static double linearToSrgb(double x) {
+    if (x < 0.0031308) {
+        return x * 12.92;
+    }
+
+    return 1.055 * std::pow(x, 0.41666) - 0.055;
+}
+
+static std::array<double, 3> rgbToOklab(double r, double g, double b) {
+    r = srgbToLinear(r / 255.);
+    g = srgbToLinear(g / 255.);
+    b = srgbToLinear(b / 255.);
+
+    double l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+    double m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+    double s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+    l = std::cbrt(l);
+    m = std::cbrt(m);
+    s = std::cbrt(s);
+    return {l * 0.2104542553 + m * 0.7936177850 + s * -0.0040720468,
+            l * 1.9779984951 + m * -2.4285922050 + s * 0.4505937099,
+            l * 0.0259040371 + m * 0.7827717662 + s * -0.8086757660};
+}
+
+static std::array<uint8_t, 3> oklabToRgb(double L, double a, double b) {
+    double l = L + a * 0.3963377774 + b * 0.2158037573;
+    double m = L + a * -0.1055613458 + b * -0.0638541728;
+    double s = L + a * -0.0894841775 + b * -1.2914855480;
+    l = std::pow(l, 3);
+    m = std::pow(m, 3);
+    s = std::pow(s, 3);
+    double r = l * 4.0767416621 + m * -3.3077115913 + s * 0.2309699292;
+    double g = l * -1.2684380046 + m * 2.6097574011 + s * -0.3413193965;
+    b = l * -0.0041960863 + m * -0.7034186147 + s * 1.7076147010;
+    r = 255 * saturate(linearToSrgb(r));
+    g = 255 * saturate(linearToSrgb(g));
+    b = 255 * saturate(linearToSrgb(b));
+    return {(uint8_t)r, (uint8_t)g, (uint8_t)b};
+}
+
+static std::array<uint8_t, 4> mixColor(uint8_t r1, uint8_t g1, uint8_t b1,
+                                       uint8_t a1, uint8_t r2, uint8_t g2,
+                                       uint8_t b2, uint8_t a2, double x) {
+    auto [l1, oa1, ob1] = rgbToOklab(r1, g1, b1);
+    auto [l2, oa2, ob2] = rgbToOklab(r2, g2, b2);
+    auto [r, g, b] =
+        oklabToRgb(mix(x, l1, l2), mix(x, oa1, oa2), mix(x, ob1, ob2));
+    return {r, g, b, (uint8_t)mix(x, a1, a2)};
 }
