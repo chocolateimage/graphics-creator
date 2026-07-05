@@ -26,19 +26,19 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LuaJIT REQUIRED IMPORTED_TARGET luajit)
 
 set(graphicscreator_SRCS
-    src/gui.cpp
     src/render.cpp
     src/video.cpp
-    src/image_viewer.cpp
     src/lua_state.cpp
     src/variant.cpp
-    src/fontcombobox.cpp
-    src/draggable_spinbox.cpp
-    src/video_file_button.cpp
-    src/brush_input.cpp
     src/scene.cpp
-    src/timeline.cpp
     src/brush.cpp
+    src/gui/gui.cpp
+    src/gui/image_viewer.cpp
+    src/gui/fontcombobox.cpp
+    src/gui/draggable_spinbox.cpp
+    src/gui/video_file_button.cpp
+    src/gui/brush_input.cpp
+    src/gui/timeline.cpp
     src/animatable/animatable.cpp
     src/animatable/effect.cpp
     src/animatable/element/element.cpp
