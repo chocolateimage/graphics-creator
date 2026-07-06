@@ -7,7 +7,7 @@
 const double TIMELINE_HEADER_HEIGHT = 24;
 const double TIMELINE_START_OFFSET = 16;
 const double OBJECT_TRACK_HEIGHT = 16;
-const double PROPERTY_TRACK_HEIGHT = 24;
+const double PROPERTY_TRACK_HEIGHT = 16;
 
 class TimelineContentWidget;
 

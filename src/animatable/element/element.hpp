@@ -26,6 +26,7 @@ class Element : public Animatable {
     Property<int> y{this, "y", 0};
     Property<int> w{this, "w", 100};
     Property<int> h{this, "h", 100};
+    bool collapsed{true};
     std::vector<Effect *> effects;
 };
 

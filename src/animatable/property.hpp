@@ -13,6 +13,8 @@ class PropertyBase {
         qCritical() << "This is bad";
         return Variant{std::monostate{}};
     };
+    virtual bool isAnimatable() { return true; }
+    std::string getDisplayName() { return name; }
     Animatable *animatable;
     std::string name;
 };

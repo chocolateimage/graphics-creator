@@ -6,6 +6,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSplitter>
+#include <QTimer>
 #include <QVBoxLayout>
 
 TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
@@ -66,51 +67,107 @@ void TimelineWidget::updateContents() {
     for (auto element : scene->elements) {
         bool selected = scene->selectedElements.contains(element);
         QPushButton *elementButton = new QPushButton(timelineLeftContents);
-        elementButton->setStyleSheet("QPushButton {"
-                                     "   text-align: left;"
-                                     "   padding-left: 8px;"
-                                     "   background: transparent;"
-                                     "   border-radius: 0px;"
-                                     "}"
-                                     "QPushButton:hover {"
-                                     "   background: rgba(128,128,128,0.1);"
-                                     "}"
-                                     "QPushButton[flat=\"false\"] {"
-                                     "   background: rgba(128,128,128,0.25);"
-                                     "}"
-                                     "QPushButton:pressed {"
-                                     "   background: rgba(128,128,128,0.3);"
-                                     "}");
+        elementButton->setStyleSheet(
+            "QPushButton {"
+            "   text-align: left;"
+            "   padding-left: 8px;"
+            "   background: transparent;"
+            "   border-radius: 0px;"
+            "   font-weight: 600;"
+            "}"
+            "QPushButton:hover {"
+            "   background: rgba(128,128,128,0.1);"
+            "}"
+            "QPushButton[flat=\"false\"] {"
+            "   background: rgba(128,128,128,0.25);"
+            "   border-left: 3px solid palette(accent);"
+            "   padding-left: 5px;"
+            "}"
+            "QPushButton:pressed {"
+            "   background: rgba(128,128,128,0.3);"
+            "}");
+        if (element->collapsed) {
+            elementButton->setIcon(QIcon::fromTheme("arrow-right"));
+        } else {
+            elementButton->setIcon(QIcon::fromTheme("arrow-down"));
+        }
         elementButton->setText(element->objectName());
         elementButton->setFixedHeight(OBJECT_TRACK_HEIGHT);
         elementButton->setFlat(!selected);
-        connect(elementButton, &QPushButton::clicked, this, [this, element]() {
-            auto modifiers = QApplication::queryKeyboardModifiers();
-            // TODO: Shift should select range
-            if (modifiers.testFlag(Qt::ControlModifier) ||
-                modifiers.testFlag(Qt::ShiftModifier)) {
-                QList<Element *> newSelected = scene->selectedElements;
-                if (newSelected.contains(element)) {
-                    newSelected.removeOne(element);
-                } else {
-                    newSelected.append(element);
-                }
-                scene->selectElements(newSelected);
-            } else {
-                scene->selectElements({element});
-            }
-        });
+        connect(elementButton, &QPushButton::clicked, this,
+                [this, element, elementButton]() {
+                    QPoint pos = elementButton->mapFromGlobal(QCursor::pos());
+                    bool isInsideCollapsedButton =
+                        pos.y() < OBJECT_TRACK_HEIGHT && pos.x() < 32;
+                    if (isInsideCollapsedButton) {
+                        element->collapsed = !element->collapsed;
+                        QTimer::singleShot(0, this,
+                                           &TimelineWidget::updateContents);
+                        return;
+                    }
+
+                    auto modifiers = QApplication::queryKeyboardModifiers();
+                    // TODO: Shift should select range
+                    if (modifiers.testFlag(Qt::ControlModifier) ||
+                        modifiers.testFlag(Qt::ShiftModifier)) {
+                        QList<Element *> newSelected = scene->selectedElements;
+                        if (newSelected.contains(element)) {
+                            newSelected.removeOne(element);
+                        } else {
+                            newSelected.append(element);
+                        }
+                        scene->selectElements(newSelected);
+                    } else {
+                        scene->selectElements({element});
+                    }
+                });
         connect(element, &Element::objectNameChanged, elementButton,
                 [elementButton](const QString &objectName) {
                     elementButton->setText(objectName);
                 });
         timelineLeftLayout->addWidget(elementButton);
+
+        if (!element->collapsed) {
+            for (auto property : element->properties) {
+                if (!property->isAnimatable())
+                    continue;
+
+                QPushButton *propertyButton =
+                    new QPushButton(timelineLeftContents);
+                propertyButton->setStyleSheet(
+                    "QPushButton {"
+                    "   text-align: left;"
+                    "   padding-left: 50px;"
+                    "   background: transparent;"
+                    "   border-radius: 0px;"
+                    "}"
+                    "QPushButton[flat=\"false\"] {"
+                    "   background: rgba(128,128,128,0.1);"
+                    "   border-left: 3px solid palette(accent);"
+                    "   padding-left: 47px;"
+                    "}");
+                propertyButton->setText(
+                    QString::fromStdString(property->getDisplayName()));
+                propertyButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+                propertyButton->setFlat(!selected);
+                connect(propertyButton, &QPushButton::clicked, elementButton,
+                        &QPushButton::click);
+                timelineLeftLayout->addWidget(propertyButton);
+            }
+        }
     }
 
     timelineLeftLayout->addSpacing(64);
     timelineLeftLayout->addStretch();
-    timelineLeftScrollArea->verticalScrollBar()->setValue(
-        timelineMainScrollArea->verticalScrollBar()->value());
+
+    // TODO: This is really bad.
+    // The left contents shrink and grow again, and then the left scroll bar
+    // resets. For some reason after adding the items again, the layout doesn't
+    // change so I have to wait 1ms which sometimes works.
+    QTimer::singleShot(1, this, [this]() {
+        timelineLeftScrollArea->verticalScrollBar()->setValue(
+            timelineMainScrollArea->verticalScrollBar()->value());
+    });
 
     timelineContent->updateContents();
 }
@@ -132,9 +189,17 @@ TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
 
 void TimelineContentWidget::updateContents() {
     double height = TIMELINE_HEADER_HEIGHT;
-    for (auto elements : timelineWidget->scene->elements) {
+    for (auto element : timelineWidget->scene->elements) {
         height += OBJECT_TRACK_HEIGHT;
-        // height += PROPERTY_TRACK_HEIGHT * elements->propertyTracks.size();
+
+        if (element->collapsed)
+            continue;
+        for (auto property : element->properties) {
+            if (!property->isAnimatable())
+                continue;
+
+            height += PROPERTY_TRACK_HEIGHT;
+        }
     }
 
     this->setFixedSize(secondsToPixels(5) + TIMELINE_START_OFFSET * 2, height);
@@ -170,10 +235,23 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
         stripe = !stripe;
         yPos += OBJECT_TRACK_HEIGHT;
 
-        // if (element->collapsed)
-        //     continue;
+        if (element->collapsed)
+            continue;
 
         // --- Properties ---
+        for (auto properties : element->properties) {
+            if (!properties->isAnimatable())
+                continue;
+
+            if (stripe) {
+                painter.fillRect(-startOffset, yPos, width(),
+                                 PROPERTY_TRACK_HEIGHT,
+                                 palette().alternateBase());
+            }
+            stripe = !stripe;
+
+            yPos += PROPERTY_TRACK_HEIGHT;
+        }
     }
 
     // --- Timeline Header ---
