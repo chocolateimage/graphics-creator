@@ -23,6 +23,9 @@ class TimelineWidget : public QWidget {
     Scene *scene;
     void updateContents();
     void timelineScrolled();
+
+  protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 
 class TimelineContentWidget : public QWidget {

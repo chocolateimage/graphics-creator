@@ -8,6 +8,7 @@
 #include <QSplitter>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 
 TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     : QWidget(parent) {
@@ -49,6 +50,26 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     splitter->setSizes({250, 900});
 
     lay->addWidget(splitter);
+
+    timelineLeftContents->installEventFilter(this);
+}
+
+bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == timelineLeftContents) {
+        if (event->type() == QEvent::Wheel) {
+            QWheelEvent *oldEvent = (QWheelEvent *)event;
+            QWheelEvent *newEvent = new QWheelEvent(
+                oldEvent->position(), oldEvent->globalPosition(),
+                oldEvent->pixelDelta(), oldEvent->angleDelta(),
+                oldEvent->buttons(), oldEvent->modifiers(), oldEvent->phase(),
+                oldEvent->inverted(), oldEvent->source(),
+                oldEvent->pointingDevice());
+            QApplication::sendEvent(timelineMainScrollArea->verticalScrollBar(),
+                                    newEvent);
+        }
+        return true;
+    }
+    return QObject::eventFilter(obj, event);
 }
 
 void TimelineWidget::updateContents() {
