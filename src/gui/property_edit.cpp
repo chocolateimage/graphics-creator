@@ -17,7 +17,8 @@ PropertyEdit::PropertyEdit(PropertyBase *property, QWidget *parent)
     auto lay = new QHBoxLayout(this);
     lay->setContentsMargins(0, 0, 0, 0);
 
-    auto variant = property->toVariant();
+    // TODO: actual frameinfo
+    auto variant = property->toVariant({0});
     auto variantType = variant.type();
     QWidget *widget{nullptr};
     int min = INT_MIN;
@@ -237,5 +238,6 @@ PropertyEdit::PropertyEdit(PropertyBase *property, QWidget *parent)
 
 template <typename T> void PropertyEdit::set(T newValue) {
     auto property = (Property<T> *)this->property;
-    property->setConstant(newValue);
+    // TODO frameinfo actually
+    property->set(newValue, {0});
 }

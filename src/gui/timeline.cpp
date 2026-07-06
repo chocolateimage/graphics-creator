@@ -223,7 +223,10 @@ void TimelineContentWidget::updateContents() {
         }
     }
 
-    this->setFixedSize(secondsToPixels(5) + TIMELINE_START_OFFSET * 2, height);
+    this->setFixedSize(secondsToPixels(timelineWidget->scene->durationFrames /
+                                       timelineWidget->scene->frameRate) +
+                           TIMELINE_START_OFFSET * 2,
+                       height);
     update();
 }
 
@@ -260,8 +263,8 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
             continue;
 
         // --- Properties ---
-        for (auto properties : element->properties) {
-            if (!properties->isAnimatable())
+        for (auto property : element->properties) {
+            if (!property->isAnimatable())
                 continue;
 
             if (stripe) {
@@ -270,6 +273,26 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                                  palette().alternateBase());
             }
             stripe = !stripe;
+
+            for (auto keyframe : property->keyframes) {
+                // Diamonds
+
+                painter.setBrush(QColor(180, 180, 180));
+                painter.setPen(Qt::NoPen);
+
+                double kXPos = secondsToPixels(
+                    keyframe->frame * timelineWidget->scene->frameRate);
+                double kWidth = 10;
+                double kYPos =
+                    yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
+
+                QPolygonF polygon;
+                polygon << QPointF(kXPos, kYPos);
+                polygon << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth / 2.0);
+                polygon << QPointF(kXPos, kYPos + kWidth);
+                polygon << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth / 2.0);
+                painter.drawPolygon(polygon);
+            }
 
             yPos += PROPERTY_TRACK_HEIGHT;
         }
@@ -282,6 +305,9 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                      palette().window());
 
     // Seconds Text
+    QFont font = painter.font();
+    font.setPointSize(8);
+    painter.setFont(font);
     painter.setPen(QPen(palette().placeholderText(), 2));
     QFontMetrics metrics(painter.font());
     for (int x = 0; x <= width(); x += secondsToPixels()) {

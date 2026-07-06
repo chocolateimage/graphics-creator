@@ -1,4 +1,5 @@
 #pragma once
+#include "frame_info.hpp"
 #include <QObject>
 
 class PropertyBase;
@@ -12,7 +13,7 @@ class Animatable : public QObject {
     std::vector<PropertyBase *> properties;
 
     virtual AnimatableRender *createClass() = 0;
-    AnimatableRender *toRender();
+    AnimatableRender *toRender(const FrameInfo &frameInfo);
 
     void _propertyUpdated(PropertyBase *property);
 

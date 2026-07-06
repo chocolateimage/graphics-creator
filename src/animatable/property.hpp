@@ -1,20 +1,37 @@
 #pragma once
 #include "animatable.hpp"
+#include "frame_info.hpp"
 #include "variant.hpp"
 #include <QDebug>
 #include <string>
+
+class KeyframeBase {
+  public:
+    KeyframeBase(int frame) : frame(frame) {}
+    virtual ~KeyframeBase() {}
+    int frame;
+    // TODO: easing/curve/whatever
+};
+
+template <typename T> class Keyframe : public KeyframeBase {
+  public:
+    Keyframe(int frame, T value) : KeyframeBase(frame), value(value) {}
+    virtual ~Keyframe() {}
+    T value;
+};
 
 class PropertyBase {
   public:
     PropertyBase(const std::string &name, Animatable *animatable)
         : animatable(animatable), name(name) {}
     virtual ~PropertyBase() {}
-    virtual Variant toVariant() {
+    virtual Variant toVariant(const FrameInfo &frameInfo) {
         qCritical() << "This is bad";
         return Variant{std::monostate{}};
     };
     virtual bool isAnimatable() { return true; }
     std::string getDisplayName() { return name; }
+    std::vector<KeyframeBase *> keyframes;
     Animatable *animatable;
     std::string name;
 };
@@ -22,16 +39,20 @@ class PropertyBase {
 template <typename T> class Property : public PropertyBase {
   public:
     Property(Animatable *animatable, const std::string &name, T defaultValue)
-        : PropertyBase(name, animatable), value(defaultValue) {
+        : PropertyBase(name, animatable) {
+        keyframes.push_back(new Keyframe<T>(0, defaultValue));
         animatable->addProperty(this);
     }
     virtual ~Property() {}
 
-    // TODO: keyframes
-
-    T get() { return value; }
-    virtual Variant toVariant() { return Variant{value}; };
-    void setConstant(T value) {
+    T get(const FrameInfo &frameInfo) {
+        // TODO: interpolate
+        return ((Keyframe<T> *)keyframes[0])->value;
+    }
+    virtual Variant toVariant(const FrameInfo &frameInfo) {
+        return Variant{get(frameInfo)};
+    };
+    void set(T value, const FrameInfo &frameInfo) {
         if constexpr (std::is_arithmetic_v<T>) {
             if (hasMin) {
                 if (value < min) {
@@ -45,7 +66,11 @@ template <typename T> class Property : public PropertyBase {
             }
         }
 
-        this->value = value;
+        if (isAnimating) {
+            // TODO set/insert at right position
+        } else {
+            ((Keyframe<T> *)keyframes[0])->value = value;
+        }
         animatable->_propertyUpdated(this);
     };
 
@@ -59,7 +84,7 @@ template <typename T> class Property : public PropertyBase {
         max = value;
     }
 
-    T value;
+    bool isAnimating{false};
 
     T min;
     bool hasMin{false};
@@ -71,7 +96,7 @@ class PropertyRenderBase {
   public:
     PropertyRenderBase() {}
     virtual ~PropertyRenderBase() {}
-    virtual void set(PropertyBase *property) {};
+    virtual void set(PropertyBase *property, const FrameInfo &frameInfo) {};
 };
 
 template <typename T> class PropertyRender : public PropertyRenderBase {
@@ -84,9 +109,9 @@ template <typename T> class PropertyRender : public PropertyRenderBase {
     virtual ~PropertyRender() {}
 
     T get() { return value; }
-    virtual void set(PropertyBase *property) {
+    virtual void set(PropertyBase *property, const FrameInfo &frameInfo) {
         auto propertyTyped = dynamic_cast<Property<T> *>(property);
-        value = propertyTyped->get();
+        value = propertyTyped->get(frameInfo);
     }
 
     T value;

@@ -1690,6 +1690,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     scene = new Scene();
     scene->width = 1280;
     scene->height = 720;
+    scene->frameRate = 30;
+    scene->durationFrames = scene->frameRate * 5;
 
     connect(scene, &Scene::elementUpdated, this,
             &NewMainWindow::elementUpdated);
@@ -1836,10 +1838,10 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         }
     }
     if (element) {
-        element->x.setConstant(rect.x());
-        element->y.setConstant(rect.y());
-        element->w.setConstant(rect.width());
-        element->h.setConstant(rect.height());
+        element->x.set(rect.x(), {0});
+        element->y.set(rect.y(), {0});
+        element->w.set(rect.width(), {0});
+        element->h.set(rect.height(), {0});
         scene->addElement(element);
         scene->selectElements({element});
     }
@@ -1863,7 +1865,7 @@ void NewMainWindow::renderTest() {
     std::vector<ElementRender *> renderElements;
 
     for (auto element : scene->elements) {
-        ElementRender *render = (ElementRender *)element->toRender();
+        ElementRender *render = (ElementRender *)element->toRender({0});
         renderElements.push_back(render);
     }
 

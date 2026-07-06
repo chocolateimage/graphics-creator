@@ -9,6 +9,8 @@ class Scene : public QObject {
     ~Scene();
     int width;
     int height;
+    float frameRate;
+    int durationFrames;
     QList<Element *> elements;
     QList<Element *> selectedElements;
 
