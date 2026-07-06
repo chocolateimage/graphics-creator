@@ -9,7 +9,7 @@ class RectangleElement : public Element {
     virtual AnimatableRender *createClass();
 
     Property<Brush> fill{this, "fill", {}};
-    Property<int> strokeWidth{this, "strokeWidth", 16};
+    Property<int> strokeWidth{this, "strokeWidth", 0};
     Property<int> roundness{this, "roundness", 0};
 };
 

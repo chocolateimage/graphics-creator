@@ -47,6 +47,7 @@ class ImageViewer : public QWidget {
     QString pickText;
     QPoint startPickPosition;
     QPoint pickPosition;
+    QPoint getActualPickPosition();
     void updateCursor();
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

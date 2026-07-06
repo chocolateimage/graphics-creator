@@ -1,4 +1,5 @@
 #include "image_viewer.hpp"
+#include <QApplication>
 #include <QFileDialog>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
@@ -78,6 +79,18 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     lay->addWidget(cornerFrame);
 }
 
+QPoint ImageViewer::getActualPickPosition() {
+    if (startPickPosition.x() != -1 || startPickPosition.y() != -1) {
+        if (QApplication::queryKeyboardModifiers().testFlag(
+                Qt::ShiftModifier)) {
+            QPoint fullSize = (pickPosition - startPickPosition);
+            int size = (fullSize.x() + fullSize.y()) / 2;
+            return startPickPosition + QPoint(size, size);
+        }
+    }
+    return pickPosition;
+}
+
 void ImageViewer::saveFrameAsFile(QSize size) {
     QString path = QFileDialog::getSaveFileName(
         this, "Save frame", QString(), "PNG image (*.png);;All files (*.*)");
@@ -146,6 +159,7 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     painter.drawImage(fittedRect(), image);
 
     if (isPicking) {
+        QPoint pickPosition = getActualPickPosition();
         if (startPickPosition.x() == -1 && startPickPosition.y() == -1) {
             painter.setRenderHint(QPainter::RenderHint::Antialiasing, false);
             painter.setPen(QPen(QColor(0, 0, 0, 255),
@@ -302,7 +316,7 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
         if (event->button() == Qt::LeftButton) {
             if (pickType == PickType::Point) {
                 stopPicking();
-                emit pixelPicked(pickId, pickPosition);
+                emit pixelPicked(pickId, getActualPickPosition());
             } else if (pickType == PickType::Rect) {
                 startPickPosition = pickPosition;
                 update();
@@ -344,6 +358,7 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
     if (isPicking && pickType == PickType::Rect) {
         if (event->button() == Qt::LeftButton) {
             QRect rect;
+            QPoint pickPosition = getActualPickPosition();
             if (startPickPosition.x() > pickPosition.x()) {
                 rect.setX(pickPosition.x());
                 rect.setWidth(startPickPosition.x() - pickPosition.x() + 1);
