@@ -1715,11 +1715,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     QToolBar *toolBar = addToolBar("Controls");
     QActionGroup *controlsGroup = new QActionGroup(toolBar);
     controlSelect = toolBar->addAction(QIcon::fromTheme("select"), "Select");
+    controlSelect->setShortcut(QKeySequence("V"));
     toolBar->addSeparator();
     controlRectangle =
         toolBar->addAction(QIcon::fromTheme("draw-rectangle"), "Rectangle");
+    controlRectangle->setShortcut(QKeySequence("R"));
     controlEllipse =
         toolBar->addAction(QIcon::fromTheme("draw-circle"), "Ellipse");
+    controlEllipse->setShortcut(QKeySequence("E"));
     controlPolygon =
         toolBar->addAction(QIcon::fromTheme("draw-polygon"), "Polygon");
     controlLua = toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
