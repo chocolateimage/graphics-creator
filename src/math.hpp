@@ -20,6 +20,10 @@ static double saturate(double x) { return std::max(std::min(x, 1.), 0.); }
 
 static double length(double x, double y) { return std::sqrt(x * x + y * y); }
 
+static double distance(double x1, double y1, double x2, double y2) {
+    return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
 static double linearstep(double from, double to, double x) {
     return saturate((x - from) / (to - from));
 }

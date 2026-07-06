@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "brush_input.hpp"
 #include "draggable_spinbox.hpp"
@@ -1822,6 +1823,13 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
             RectangleElement *rectElement = new RectangleElement();
             rectElement->setObjectName("New Rectangle");
             element = rectElement;
+        }
+    } else if (controlEllipse->isChecked()) {
+        controlSelect->setChecked(true);
+        if (!rect.isEmpty()) {
+            EllipseElement *ellipseElement = new EllipseElement();
+            ellipseElement->setObjectName("New Ellipse");
+            element = ellipseElement;
         }
     }
     if (element) {
