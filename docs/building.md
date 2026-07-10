@@ -1,0 +1,27 @@
+# Building
+
+Platform specific instructions are below.
+
+1. Create build dir: `mkdir build`
+1. `cd build`
+1. Prepare (at the end you can choose Debug/Release): `cmake .. -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release`
+1. Build: `ninja`
+1. Run: `./graphics-creator`
+
+## Linux
+
+Install these packages:
+
+```bash
+# Arch
+pacman -S --needed cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit kiconthemes kwidgetsaddons ktexteditor
+```
+
+## Windows
+
+1. Install [MSYS2](https://www.msys2.org/)
+1. Open the UCRT64 terminal (NOT one of the other ones)
+1. Install these packages:
+   ```bash
+   pacboy -S --needed cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit kiconthemes kwidgetsaddons ktexteditor
+   ```

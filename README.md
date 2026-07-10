@@ -41,3 +41,7 @@ In case you are a developer and want to add a new feature to the program, or add
 
 - License of the templates: [MIT](data/templates/LICENSE)
 - License of the rest of the program: [GPLv3](LICENSE)
+
+## Building
+
+Infos on building can be found in [the building docs](docs/building.md).
