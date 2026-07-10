@@ -14,7 +14,7 @@ Install these packages:
 
 ```bash
 # Arch
-pacman -S --needed cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit kiconthemes kwidgetsaddons ktexteditor extra-cmake-modules
+pacman -S --needed cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit kiconthemes kwidgetsaddons ktexteditor extra-cmake-modules breeze breeze-icons
 ```
 
 ## Windows
@@ -27,5 +27,5 @@ pacman -S --needed cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit
    ```
 1. Install these packages:
    ```bash
-   pacboy -S --needed gcc cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit kiconthemes kwidgetsaddons ktexteditor extra-cmake-modules
+   pacboy -S --needed gcc cmake ninja qt6-base qt-advanced-docking-system ffmpeg luajit kiconthemes kwidgetsaddons ktexteditor extra-cmake-modules breeze breeze-icons
    ```
