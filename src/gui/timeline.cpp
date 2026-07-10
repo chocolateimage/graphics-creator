@@ -77,6 +77,7 @@ void TimelineWidget::updateContents() {
         auto item = timelineLeftLayout->takeAt(0);
         QWidget *widget = item->widget();
         if (widget != nullptr) {
+            widget->hide();
             widget->setParent(nullptr);
             widget->deleteLater();
         }
