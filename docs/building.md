@@ -1,7 +1,6 @@
 # Building
 
-Platform specific instructions are below.
-
+1. Follow [Linux](#Linux) or [Windows](#Windows) preparation instructions.
 1. Create build dir: `mkdir build`
 1. `cd build`
 1. Prepare (at the end you can choose Debug/Release): `cmake .. -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release`
