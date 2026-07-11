@@ -225,12 +225,12 @@ static constexpr std::array<uint8_t, 4> extractRGBA(uint32_t num) {
 }
 
 static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
-    auto [r1, g1, b1, a1] = extractRGBA(num1);
     auto [r2, g2, b2, a2] = extractRGBA(num2);
-    if (a2 == 0)
-        return num1;
     if (a2 == 255)
         return num2;
+    auto [r1, g1, b1, a1] = extractRGBA(num1);
+    if (a2 == 0)
+        return num1;
     auto [r3, g3, b3, a3] = over(r1, g1, b1, a1, r2, g2, b2, a2);
     return makePixel(r3, g3, b3, a3);
 }

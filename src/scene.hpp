@@ -17,9 +17,11 @@ class Scene : public QObject {
     QList<Element *> elements;
     QList<Element *> selectedElements;
     int currentFrame{0};
+    bool isPlaying();
     void startTimer();
     void stopTimer();
     void timerTicked();
+    void setFrame(int frame);
 
     void addElement(Element *element);
     void insertElement(Element *element, int index);

@@ -1,6 +1,7 @@
 #pragma once
 #include "scene.hpp"
 #include <QScrollArea>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -20,9 +21,14 @@ class TimelineWidget : public QWidget {
     QWidget *timelineLeftContents;
     QScrollArea *timelineLeftScrollArea;
     QScrollArea *timelineMainScrollArea;
+    QToolButton *playButton;
     Scene *scene;
     void updateContents();
     void timelineScrolled();
+
+  public slots:
+    void togglePlay();
+    void playbackStateChanged(bool playing);
 
   protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -36,6 +42,9 @@ class TimelineContentWidget : public QWidget {
     void updateContents();
     double secondsToPixels();
     double secondsToPixels(double seconds);
+
+  public slots:
+    void frameChanged(int frame);
 
   protected:
     void paintEvent(QPaintEvent *event) override;

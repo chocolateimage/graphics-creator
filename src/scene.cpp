@@ -48,10 +48,16 @@ void Scene::timerTicked() {
 
     if (newFrame >= durationFrames) {
         newFrame = 0;
-        startFrame = currentFrame;
+        startFrame = 0;
         elapsedTimer.restart();
     }
 
-    currentFrame = newFrame;
+    setFrame(newFrame);
+}
+
+void Scene::setFrame(int frame) {
+    currentFrame = frame;
     emit frameChanged(currentFrame);
 }
+
+bool Scene::isPlaying() { return timer->isActive(); }

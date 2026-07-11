@@ -24,7 +24,11 @@ class PropertyBase {
   public:
     PropertyBase(const std::string &name, Animatable *animatable)
         : animatable(animatable), name(name) {}
-    virtual ~PropertyBase() {}
+    virtual ~PropertyBase() {
+        for (auto keyframe : keyframes) {
+            delete keyframe;
+        }
+    }
     virtual Variant toVariant(const FrameInfo &frameInfo) {
         qCritical() << "This is bad";
         return Variant{std::monostate{}};
@@ -54,8 +58,38 @@ template <typename T> class Property : public PropertyBase {
     virtual ~Property() {}
 
     T get(const FrameInfo &frameInfo) {
-        // TODO: interpolate
-        return ((Keyframe<T> *)keyframes[0])->value;
+        if (!isAnimating || keyframes.size() == 1) {
+            return ((Keyframe<T> *)keyframes[0])->value;
+        }
+
+        Keyframe<T> *start = (Keyframe<T> *)keyframes[0];
+        Keyframe<T> *end = start;
+        size_t index = 0;
+        for (KeyframeBase *keyframe : keyframes) {
+            if (frameInfo.frameIndex >= keyframe->frame) {
+                start = (Keyframe<T> *)keyframe;
+                if (index == keyframes.size() - 1) {
+                    end = (Keyframe<T> *)keyframe;
+                } else {
+                    end = (Keyframe<T> *)keyframes[index + 1];
+                }
+            }
+            index++;
+        }
+
+        if constexpr (std::is_arithmetic_v<T>) {
+            float time = 0;
+
+            if (end->frame != start->frame) {
+                time = (float)(frameInfo.frameIndex - start->frame) /
+                       (end->frame - start->frame);
+            }
+
+            T newValue = start->value + (end->value - start->value) * time;
+            return newValue;
+        } else {
+            return start->value;
+        }
     }
     virtual Variant toVariant(const FrameInfo &frameInfo) {
         return Variant{get(frameInfo)};
@@ -75,7 +109,24 @@ template <typename T> class Property : public PropertyBase {
         }
 
         if (isAnimating) {
-            // TODO set/insert at right position
+            bool found = false;
+            int insertIndex = keyframes.size();
+            int index = 0;
+            for (auto _keyframe : keyframes) {
+                Keyframe<T> *keyframe = (Keyframe<T> *)_keyframe;
+                if (keyframe->frame == frameInfo.frameIndex) {
+                    keyframe->value = value;
+                    found = true;
+                } else if (keyframe->frame > frameInfo.frameIndex) {
+                    insertIndex = index;
+                    break;
+                }
+                index++;
+            }
+            if (!found) {
+                keyframes.insert(keyframes.begin() + insertIndex,
+                                 new Keyframe<T>(frameInfo.frameIndex, value));
+            }
         } else {
             ((Keyframe<T> *)keyframes[0])->value = value;
         }

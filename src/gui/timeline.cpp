@@ -9,6 +9,7 @@
 #include <QSpacerItem>
 #include <QSplitter>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
@@ -22,7 +23,30 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     connect(scene, &Scene::elementSelectionChanged, this,
             &TimelineWidget::updateContents);
 
-    auto lay = new QVBoxLayout(this);
+    auto mainLay = new QVBoxLayout(this);
+    mainLay->setContentsMargins(0, 0, 0, 0);
+    mainLay->setSpacing(0);
+
+    auto toolbar = new QFrame(this);
+    toolbar->setFrameShape(QFrame::Shape::StyledPanel);
+    toolbar->setFrameShadow(QFrame::Shadow::Plain);
+    QPalette palette = toolbar->palette();
+    palette.setColor(QPalette::ColorRole::Base, Qt::red);
+    toolbar->setPalette(palette);
+    auto toolbarLay = new QHBoxLayout(toolbar);
+    toolbarLay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    toolbarLay->setContentsMargins(12, 4, 12, 4);
+    playButton = new QToolButton(toolbar);
+    playbackStateChanged(false);
+    connect(scene, &Scene::playbackStateChanged, this,
+            &TimelineWidget::playbackStateChanged);
+    connect(playButton, &QToolButton::clicked, this,
+            &TimelineWidget::togglePlay);
+    toolbarLay->addWidget(playButton);
+    mainLay->addWidget(toolbar);
+
+    auto lay = new QVBoxLayout();
+    mainLay->addLayout(lay, 1);
     lay->setContentsMargins(0, 0, 0, 0);
 
     QSplitter *splitter = new QSplitter(this);
@@ -55,6 +79,24 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     lay->addWidget(splitter);
 
     timelineLeftContents->installEventFilter(this);
+}
+
+void TimelineWidget::togglePlay() {
+    if (scene->isPlaying()) {
+        scene->stopTimer();
+    } else {
+        scene->startTimer();
+    }
+}
+
+void TimelineWidget::playbackStateChanged(bool playing) {
+    if (playing) {
+        playButton->setIcon(QIcon::fromTheme("media-playback-pause"));
+        playButton->setToolTip("Pause");
+    } else {
+        playButton->setToolTip("Play");
+        playButton->setIcon(QIcon::fromTheme("media-playback-start"));
+    }
 }
 
 bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
@@ -242,7 +284,11 @@ TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
     new QVBoxLayout(this);
     setMouseTracking(true);
     updateContents();
+    connect(timelineWidget->scene, &Scene::frameChanged, this,
+            &TimelineContentWidget::frameChanged);
 }
+
+void TimelineContentWidget::frameChanged(int frame) { update(); }
 
 void TimelineContentWidget::updateContents() {
     double height = TIMELINE_HEADER_HEIGHT;
@@ -280,7 +326,8 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     double startOffset = TIMELINE_START_OFFSET;
     painter.translate(startOffset, 0);
 
-    double curSec = 2;
+    double curSec =
+        timelineWidget->scene->currentFrame / timelineWidget->scene->frameRate;
 
     double yPos = 0;
     yPos += TIMELINE_HEADER_HEIGHT;
@@ -318,7 +365,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                     painter.setPen(Qt::NoPen);
 
                     double kXPos = secondsToPixels(
-                        keyframe->frame * timelineWidget->scene->frameRate);
+                        keyframe->frame / timelineWidget->scene->frameRate);
                     double kWidth = 10;
                     double kYPos =
                         yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
@@ -368,20 +415,20 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     painter.setBrush(palette().accent());
     constexpr int markerWidth = 16;
     constexpr int markerHeight = 10;
+    int markerX = secondsToPixels(curSec);
     int markerY = headerPos + TIMELINE_HEADER_HEIGHT - markerHeight;
     QPolygonF polygon;
-    polygon << QPointF(secondsToPixels(curSec) - (markerWidth / 2.0), markerY);
-    polygon << QPointF(secondsToPixels(curSec) + (markerWidth / 2.0), markerY);
-    polygon << QPointF(secondsToPixels(curSec) + (markerWidth / 2.0),
+    polygon << QPointF(markerX - (markerWidth / 2.0), markerY);
+    polygon << QPointF(markerX + (markerWidth / 2.0), markerY);
+    polygon << QPointF(markerX + (markerWidth / 2.0),
                        markerY + markerHeight / 2.0);
-    polygon << QPointF(secondsToPixels(curSec), markerY + markerHeight);
-    polygon << QPointF(secondsToPixels(curSec) - (markerWidth / 2.0),
+    polygon << QPointF(markerX, markerY + markerHeight);
+    polygon << QPointF(markerX - (markerWidth / 2.0),
                        markerY + markerHeight / 2.0);
     painter.drawPolygon(polygon);
 
     painter.setPen(QPen(palette().accent(), 2));
-    painter.drawLine(secondsToPixels(curSec), markerY + 2,
-                     secondsToPixels(curSec), height());
+    painter.drawLine(markerX, markerY + 2, markerX, height());
 }
 
 void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {}

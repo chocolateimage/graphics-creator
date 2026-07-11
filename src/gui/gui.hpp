@@ -276,6 +276,7 @@ class NewMainWindow : public QMainWindow {
     void renderTest();
     void rerender();
     void elementUpdated(Element *element);
+    void frameChanged(int frame);
 
     Scene *scene;
 

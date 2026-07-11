@@ -12,8 +12,9 @@
 #include <QSlider>
 #include <QToolButton>
 
-PropertyEdit::PropertyEdit(PropertyBase *property, QWidget *parent)
-    : QWidget(parent), property(property) {
+PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
+                           QWidget *parent)
+    : QWidget(parent), property(property), scene(scene) {
     auto lay = new QHBoxLayout(this);
     lay->setContentsMargins(0, 0, 0, 0);
 
@@ -238,6 +239,5 @@ PropertyEdit::PropertyEdit(PropertyBase *property, QWidget *parent)
 
 template <typename T> void PropertyEdit::set(T newValue) {
     auto property = (Property<T> *)this->property;
-    // TODO frameinfo actually
-    property->set(newValue, {0});
+    property->set(newValue, {scene->currentFrame});
 }

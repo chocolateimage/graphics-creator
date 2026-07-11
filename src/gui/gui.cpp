@@ -1695,6 +1695,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     connect(scene, &Scene::elementUpdated, this,
             &NewMainWindow::elementUpdated);
+    connect(scene, &Scene::frameChanged, this, &NewMainWindow::frameChanged);
 
     this->resize(1200, 700);
 
@@ -1857,6 +1858,7 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
 }
 
 void NewMainWindow::elementUpdated(Element *element) { rerender(); }
+void NewMainWindow::frameChanged(int frame) { rerender(); }
 
 void NewMainWindow::rerender() { renderTest(); }
 
@@ -1867,13 +1869,16 @@ void NewMainWindow::renderTest() {
     // and instead of splitting a single frame into chunks, I will probably do
     // a whole frame per thread.
 
+    QElapsedTimer renderTime;
+    renderTime.start();
     uint32_t *frame = new uint32_t[scene->width * scene->height];
     memset(frame, 0, scene->width * scene->height * 4);
 
     std::vector<ElementRender *> renderElements;
 
     for (auto element : scene->elements) {
-        ElementRender *render = (ElementRender *)element->toRender({0});
+        ElementRender *render =
+            (ElementRender *)element->toRender({scene->currentFrame});
         renderElements.push_back(render);
     }
 
@@ -1904,6 +1909,7 @@ void NewMainWindow::renderTest() {
     for (auto element : renderElements) {
         delete element;
     }
+    qInfo() << "Render time:" << renderTime.nsecsElapsed() / 1000000. << "ms";
 
     QImage img = QImage((unsigned char *)frame, scene->width, scene->height,
                         scene->width * 4, QImage::Format_ARGB32)
