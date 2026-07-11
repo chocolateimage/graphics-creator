@@ -3,7 +3,33 @@
 #include "frame_info.hpp"
 #include "variant.hpp"
 #include <QDebug>
+#include <QEasingCurve>
+#include <QString>
 #include <string>
+
+template <class T, class = void> struct is_lerpable : std::false_type {};
+
+template <class T>
+struct is_lerpable<
+    T, std::void_t<decltype(std::declval<T>() + std::declval<T>()),
+                   decltype(std::declval<T>() - std::declval<T>()),
+                   decltype(std::declval<T>() * std::declval<float>())>>
+    : std::true_type {};
+
+template <> struct is_lerpable<Brush> : std::true_type {};
+
+template <typename T> inline T lerp(T a, T b, float value) {
+    return a * (1.f - value) + (b * value);
+}
+
+template <> inline Brush lerp(Brush a, Brush b, float value) {
+    return {
+        .brushType = a.brushType,
+        .color1 = lerp(a.color1, b.color1, value),
+        .color2 = lerp(a.color2, b.color2, value),
+        .angle = lerp(a.angle, b.angle, value),
+    };
+}
 
 class KeyframeBase {
   public:
@@ -12,7 +38,7 @@ class KeyframeBase {
     PropertyBase *property;
     virtual ~KeyframeBase() {}
     int frame;
-    // TODO: easing/curve/whatever
+    QEasingCurve easing{QEasingCurve::Linear};
 };
 
 template <typename T> class Keyframe : public KeyframeBase {
@@ -37,7 +63,28 @@ class PropertyBase {
         return Variant{std::monostate{}};
     };
     virtual bool isAnimatable() { return true; }
-    std::string getDisplayName() { return name; }
+    QString getDisplayName() {
+        QString label;
+        QString word;
+        int len = name.size();
+        for (int i = 0; i < len; i++) {
+            char character = name[i];
+            bool newWord = std::isupper(character);
+            if (newWord) {
+                label += " " + word;
+                word = "";
+            }
+
+            if (i == 0) {
+                character = std::toupper(character);
+            }
+
+            word += character;
+        }
+        label += " " + word;
+        label = label.trimmed();
+        return label;
+    }
     std::vector<KeyframeBase *> keyframes;
     Animatable *animatable;
     std::string name;
@@ -110,15 +157,25 @@ template <typename T> class Property : public PropertyBase {
             index++;
         }
 
-        if constexpr (std::is_arithmetic_v<T>) {
+        if constexpr (is_lerpable<T>::value) {
             float time = 0;
 
             if (end->frame != start->frame) {
                 time = (float)(frameInfo.frameIndex - start->frame) /
                        (end->frame - start->frame);
+
+                if (time == 1) {
+                    return end->value;
+                }
+
+                time = start->easing.valueForProgress(time);
             }
 
-            T newValue = start->value + (end->value - start->value) * time;
+            if (time == 0) {
+                return start->value;
+            }
+
+            T newValue = lerp(start->value, end->value, time);
             return newValue;
         } else {
             return start->value;

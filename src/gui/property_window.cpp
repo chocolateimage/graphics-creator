@@ -57,7 +57,6 @@ void PropertyWindow::selectedElementsUpdated(
 
     for (auto property : element->properties) {
         PropertyEdit *propertyEdit = new PropertyEdit(property, scene, this);
-        formLayout->addRow(QString::fromStdString(property->getDisplayName()),
-                           propertyEdit);
+        formLayout->addRow(property->getDisplayName(), propertyEdit);
     }
 }

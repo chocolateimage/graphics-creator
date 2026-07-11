@@ -1,9 +1,11 @@
 #include "timeline.hpp"
 #include <KIconColors>
 #include <KIconLoader>
+#include <QActionGroup>
 #include <QApplication>
 #include <QEasingCurve>
 #include <QLabel>
+#include <QMenu>
 #include <QPainter>
 #include <QPushButton>
 #include <QScrollArea>
@@ -265,8 +267,7 @@ void TimelineWidget::updateContents() {
                 propertyLayout->addWidget(toggleAnimationButton);
 
                 QLabel *label = new QLabel(propertyButton);
-                label->setText(
-                    QString::fromStdString(property->getDisplayName()));
+                label->setText(property->getDisplayName());
                 propertyLayout->addWidget(label);
 
                 timelineLeftLayout->addWidget(propertyButton);
@@ -379,6 +380,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                 for (auto keyframe : property->keyframes) {
                     // Diamonds
                     bool isSelected = selectedKeyframes.contains(keyframe);
+                    bool isLinear = keyframe->easing == QEasingCurve::Linear;
 
                     double kXPos = secondsToPixels(
                         keyframe->frame / timelineWidget->scene->frameRate);
@@ -387,16 +389,30 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                         yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
 
                     QPolygonF polygon;
-                    polygon << QPointF(kXPos, kYPos);
-                    polygon
-                        << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth / 2.0);
-                    polygon << QPointF(kXPos, kYPos + kWidth);
-                    polygon
-                        << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth / 2.0);
+
+                    if (isLinear) {
+                        polygon << QPointF(kXPos, kYPos);
+                        polygon << QPointF(kXPos + kWidth / 2.0,
+                                           kYPos + kWidth / 2.0);
+                        polygon << QPointF(kXPos, kYPos + kWidth);
+                        polygon << QPointF(kXPos - kWidth / 2.0,
+                                           kYPos + kWidth / 2.0);
+                    } else {
+                        polygon << QPointF(kXPos - kWidth / 2.0, kYPos);
+                        polygon << QPointF(kXPos + kWidth / 2.0, kYPos);
+                        polygon << QPointF(kXPos + 1, kYPos + kWidth / 2.0);
+                        polygon
+                            << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth);
+                        polygon
+                            << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth);
+                        polygon << QPointF(kXPos - 1, kYPos + kWidth / 2.0);
+                    }
+
                     if (isSelected) {
                         painter.setBrush(Qt::NoBrush);
                         painter.setPen(
-                            QPen(palette().accent().color().lighter(), 3));
+                            QPen(palette().accent().color().lighter(), 3,
+                                 Qt::SolidLine, Qt::SquareCap, Qt::RoundJoin));
                         painter.drawPolygon(polygon);
                     }
                     painter.setBrush(QColor(128, 128, 128));
@@ -497,6 +513,124 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
                 selectedKeyframes.append(keyframe.keyframe);
                 break;
             }
+        }
+    } else if (event->buttons() & Qt::RightButton) {
+        KeyframeBase *hoveredKeyframe{nullptr};
+        selectedKeyframes.clear();
+        for (auto keyframe : keyframeData) {
+            QRect keyframeRect =
+                QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
+            keyframeRect.adjust(-2, -2, 2, 2);
+            if (keyframeRect.contains(event->pos())) {
+                hoveredKeyframe = keyframe.keyframe;
+                selectedKeyframes.append(hoveredKeyframe);
+                break;
+            }
+        }
+        update();
+
+        if (hoveredKeyframe) {
+            QMenu menu;
+
+            menu.addSection(hoveredKeyframe->property->getDisplayName() +
+                            QStringLiteral(" at frame ") +
+                            QString::number(hoveredKeyframe->frame));
+
+            QMenu *easingMenu = menu.addMenu("Easings");
+            QList<QString> typeNames = {
+                QStringLiteral("Linear"),
+
+                QStringLiteral("Sine In"),        QStringLiteral("Sine Out"),
+                QStringLiteral("Sine In Out"),
+
+                QStringLiteral("Quad In"),        QStringLiteral("Quad Out"),
+                QStringLiteral("Quad In Out"),
+
+                QStringLiteral("Cubic In"),       QStringLiteral("Cubic Out"),
+                QStringLiteral("Cubic In Out"),
+
+                QStringLiteral("Quart In"),       QStringLiteral("Quart Out"),
+                QStringLiteral("Quart In Out"),
+
+                QStringLiteral("Quint In"),       QStringLiteral("Quint Out"),
+                QStringLiteral("Quint In Out"),
+
+                QStringLiteral("Expo In"),        QStringLiteral("Expo Out"),
+                QStringLiteral("Expo In Out"),
+
+                QStringLiteral("Circ In"),        QStringLiteral("Circ Out"),
+                QStringLiteral("Circ In Out"),
+
+                QStringLiteral("Back In"),        QStringLiteral("Back Out"),
+                QStringLiteral("Back In Out"),
+
+                QStringLiteral("Elastic In"),     QStringLiteral("Elastic Out"),
+                QStringLiteral("Elastic In Out"),
+
+                QStringLiteral("Bounce In"),      QStringLiteral("Bounce Out"),
+                QStringLiteral("Bounce In Out"),
+            };
+            QList<QEasingCurve::Type> types = {
+                QEasingCurve::Linear,
+
+                QEasingCurve::InSine,       QEasingCurve::OutSine,
+                QEasingCurve::InOutSine,
+
+                QEasingCurve::InQuad,       QEasingCurve::OutQuad,
+                QEasingCurve::InOutQuad,
+
+                QEasingCurve::InCubic,      QEasingCurve::OutCubic,
+                QEasingCurve::InOutCubic,
+
+                QEasingCurve::InQuart,      QEasingCurve::OutQuart,
+                QEasingCurve::InOutQuart,
+
+                QEasingCurve::InQuint,      QEasingCurve::OutQuint,
+                QEasingCurve::InOutQuint,
+
+                QEasingCurve::InExpo,       QEasingCurve::OutExpo,
+                QEasingCurve::InOutExpo,
+
+                QEasingCurve::InCirc,       QEasingCurve::OutCirc,
+                QEasingCurve::InOutCirc,
+
+                QEasingCurve::InBack,       QEasingCurve::OutBack,
+                QEasingCurve::InOutBack,
+
+                QEasingCurve::InElastic,    QEasingCurve::OutElastic,
+                QEasingCurve::InOutElastic,
+
+                QEasingCurve::InBounce,     QEasingCurve::OutBounce,
+                QEasingCurve::InOutBounce,
+            };
+
+            QActionGroup *group = new QActionGroup(easingMenu);
+            for (int i = 0; i < types.size(); i++) {
+                QEasingCurve::Type type = types[i];
+                QAction *action = easingMenu->addAction(
+                    QIcon::fromTheme(i == 0 ? "linear" : "smooth"),
+                    typeNames[i]);
+                action->setCheckable(true);
+                action->setChecked(hoveredKeyframe->easing.type() == type);
+                connect(
+                    action, &QAction::triggered, action,
+                    [hoveredKeyframe, type] {
+                        hoveredKeyframe->easing = type;
+                        hoveredKeyframe->property->animatable->_propertyUpdated(
+                            hoveredKeyframe->property);
+                    });
+
+                group->addAction(action);
+            }
+
+            QAction *deleteAction =
+                menu.addAction(QIcon::fromTheme("delete"), "Delete");
+            connect(
+                deleteAction, &QAction::triggered, this, [hoveredKeyframe]() {
+                    hoveredKeyframe->property->remove(hoveredKeyframe->frame);
+                });
+
+            menu.exec(event->globalPosition().toPoint());
         }
     }
 }
