@@ -18,8 +18,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
     auto lay = new QHBoxLayout(this);
     lay->setContentsMargins(0, 0, 0, 0);
 
-    // TODO: actual frameinfo
-    auto variant = property->toVariant({0});
+    auto variant = property->toVariant({scene->currentFrame});
     auto variantType = variant.type();
     QWidget *widget{nullptr};
     int min = INT_MIN;
@@ -40,6 +39,15 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         widget = input;
     } else if (variantType == VariantTypeEnum::Int) {
         bool hasSlider = false;
+
+        auto propertyTyped = (Property<int> *)property;
+
+        if (propertyTyped->hasMin) {
+            min = propertyTyped->min;
+        }
+        if (propertyTyped->hasMax) {
+            max = propertyTyped->max;
+        }
 
         if (hasSlider) {
             auto input = new QSlider(this);

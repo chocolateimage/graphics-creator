@@ -29,12 +29,14 @@ void Scene::startTimer() {
     startFrame = currentFrame;
     elapsedTimer.restart();
     emit playbackStateChanged(true);
+    emit framesChanging(true);
     timer->start();
 }
 
 void Scene::stopTimer() {
     timer->stop();
     emit playbackStateChanged(false);
+    emit framesChanging(false);
 }
 
 void Scene::timerTicked() {
@@ -56,8 +58,11 @@ void Scene::timerTicked() {
 }
 
 void Scene::setFrame(int frame) {
-    currentFrame = frame;
-    emit frameChanged(currentFrame);
+    int newFrame = std::max(0, std::min(frame, durationFrames));
+    if (currentFrame != newFrame) {
+        currentFrame = newFrame;
+        emit frameChanged(currentFrame);
+    }
 }
 
 bool Scene::isPlaying() { return timer->isActive(); }

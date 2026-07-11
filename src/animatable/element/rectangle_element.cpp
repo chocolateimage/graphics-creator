@@ -29,6 +29,7 @@ bool RectangleElementRender::render(uint32_t *target) {
     int h = this->h;
     int strokeWidth = this->strokeWidth;
     int roundness = std::min(this->roundness.get(), std::min(h / 2, w / 2));
+    auto fill = this->fill.get();
 
     for (int y = 0; y < strokeWidth; y++) {
         for (int x = 0; x < w + strokeWidth * 2; x++) {
@@ -49,7 +50,7 @@ bool RectangleElementRender::render(uint32_t *target) {
 
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
-            Color c = getBrushPixel(fill.get(), x, y, w, h);
+            Color c = getBrushPixel(fill, x, y, w, h);
 
             if (roundness > 0) {
                 float sdf = roundedRect(x - w * 0.5f, y - h * 0.5f, w * 0.5f,

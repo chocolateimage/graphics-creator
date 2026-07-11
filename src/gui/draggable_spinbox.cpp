@@ -25,12 +25,13 @@ bool DraggableSpinBox::eventFilter(QObject *obj, QEvent *event) {
             if (isHolding) {
                 float moved = mouseEvent->position().x() - holdStartPos.x();
                 if (isDragging) {
-                    setValue(holdStartValue + moved);
+                    int oldStartValue = holdStartValue;
                     if ((QCursor::pos() - holdAfterDragStartPos)
                             .manhattanLength() > 100) {
                         holdStartValue = value();
                         QCursor::setPos(holdAfterDragStartPos);
                     }
+                    setValue(oldStartValue + moved);
                     return true;
                 } else {
                     if (qAbs(moved) >= QApplication::startDragDistance()) {

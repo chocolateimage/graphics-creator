@@ -11,4 +11,5 @@ class PropertyWindow : public QWidget {
     QFormLayout *formLayout;
 
     void selectedElementsUpdated(QList<Element *> selectedElements);
+    void framesChanging(bool changing);
 };

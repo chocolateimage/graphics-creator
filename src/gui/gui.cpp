@@ -1903,6 +1903,7 @@ void NewMainWindow::renderTest() {
                     over(frame[index], elementValues[pixelIndex(x, y, rect.w)]);
             }
         }
+
         delete[] elementValues;
     }
 

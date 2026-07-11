@@ -1,4 +1,6 @@
 #include "timeline.hpp"
+#include <KIconColors>
+#include <KIconLoader>
 #include <QApplication>
 #include <QEasingCurve>
 #include <QLabel>
@@ -137,6 +139,10 @@ void TimelineWidget::updateContents() {
                    &TimelineWidget::updateContents);
         connect(element, &Element::propertyIsAnimatingUpdated, this,
                 &TimelineWidget::updateContents);
+        disconnect(element, &Element::propertyUpdated, timelineContent,
+                   &TimelineContentWidget::updatePaint);
+        connect(element, &Element::propertyUpdated, timelineContent,
+                &TimelineContentWidget::updatePaint);
         bool selected = scene->selectedElements.contains(element);
         QPushButton *elementButton = new QPushButton(timelineLeftContents);
         elementButton->setStyleSheet(
@@ -240,8 +246,10 @@ void TimelineWidget::updateContents() {
                 QPushButton *toggleAnimationButton =
                     new QPushButton(propertyButton);
                 if (property->isAnimating) {
+                    KIconColors colors;
+                    colors.setText(palette().accent().color());
                     toggleAnimationButton->setIcon(
-                        QIcon::fromTheme("keyframe"));
+                        KDE::icon("keyframe", colors));
                     toggleAnimationButton->setToolTip("Animation enabled");
                 } else {
                     toggleAnimationButton->setIcon(
@@ -251,7 +259,9 @@ void TimelineWidget::updateContents() {
                 toggleAnimationButton->setFlat(true);
                 toggleAnimationButton->setFixedWidth(32);
                 connect(toggleAnimationButton, &QPushButton::clicked, this,
-                        [property]() { property->toggleAnimating(); });
+                        [this, property]() {
+                            property->toggleAnimating({scene->currentFrame});
+                        });
                 propertyLayout->addWidget(toggleAnimationButton);
 
                 QLabel *label = new QLabel(propertyButton);
@@ -282,6 +292,7 @@ TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
                                              QWidget *parent)
     : QWidget(parent), timelineWidget(timelineWidget) {
     new QVBoxLayout(this);
+    setFocusPolicy(Qt::ClickFocus);
     setMouseTracking(true);
     updateContents();
     connect(timelineWidget->scene, &Scene::frameChanged, this,
@@ -289,6 +300,8 @@ TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
 }
 
 void TimelineContentWidget::frameChanged(int frame) { update(); }
+
+void TimelineContentWidget::updatePaint() { update(); }
 
 void TimelineContentWidget::updateContents() {
     double height = TIMELINE_HEADER_HEIGHT;
@@ -318,6 +331,10 @@ double TimelineContentWidget::secondsToPixels(double seconds) {
     return seconds * secondsToPixels();
 }
 
+double TimelineContentWidget::headerPos() {
+    return timelineWidget->timelineMainScrollArea->verticalScrollBar()->value();
+}
+
 void TimelineContentWidget::paintEvent(QPaintEvent *) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -334,6 +351,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 
     // --- Elements ---
     bool stripe = false;
+    keyframeData.clear();
     for (auto element : timelineWidget->scene->elements) {
         if (stripe) {
             painter.fillRect(-startOffset, yPos, width(), OBJECT_TRACK_HEIGHT,
@@ -360,9 +378,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
             if (property->isAnimating) {
                 for (auto keyframe : property->keyframes) {
                     // Diamonds
-
-                    painter.setBrush(QColor(180, 180, 180));
-                    painter.setPen(Qt::NoPen);
+                    bool isSelected = selectedKeyframes.contains(keyframe);
 
                     double kXPos = secondsToPixels(
                         keyframe->frame / timelineWidget->scene->frameRate);
@@ -377,7 +393,23 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                     polygon << QPointF(kXPos, kYPos + kWidth);
                     polygon
                         << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth / 2.0);
+                    if (isSelected) {
+                        painter.setBrush(Qt::NoBrush);
+                        painter.setPen(
+                            QPen(palette().accent().color().lighter(), 3));
+                        painter.drawPolygon(polygon);
+                    }
+                    painter.setBrush(QColor(128, 128, 128));
+                    painter.setPen(Qt::NoPen);
                     painter.drawPolygon(polygon);
+
+                    keyframeData.append({
+                        .keyframe = keyframe,
+                        .x = kXPos + TIMELINE_START_OFFSET - kWidth / 2.0,
+                        .y = kYPos,
+                        .w = kWidth,
+                        .h = kWidth,
+                    });
                 }
             }
 
@@ -386,8 +418,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     }
 
     // --- Timeline Header ---
-    double headerPos =
-        timelineWidget->timelineMainScrollArea->verticalScrollBar()->value();
+    double headerPos = this->headerPos();
     painter.fillRect(-startOffset, headerPos, width(), TIMELINE_HEADER_HEIGHT,
                      palette().window());
 
@@ -429,10 +460,98 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 
     painter.setPen(QPen(palette().accent(), 2));
     painter.drawLine(markerX, markerY + 2, markerX, height());
+
+    if (selecting) {
+        painter.resetTransform();
+        painter.setPen(palette().accent().color());
+        QColor selectionFill = palette().accent().color();
+        selectionFill.setAlpha(60);
+        painter.setBrush(selectionFill);
+        painter.drawRect(QRect(selectStart, selectEnd).normalized());
+    }
 }
 
-void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {}
+void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
+    mouseHeader = false;
+    selecting = false;
+    double headerPos = this->headerPos();
+    if (event->buttons() & Qt::LeftButton) {
+        if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
+            mouseHeader = true;
+            timelineWidget->scene->setFrame(
+                (event->pos().x() - TIMELINE_START_OFFSET) / secondsToPixels() *
+                timelineWidget->scene->frameRate);
+            emit timelineWidget->scene->framesChanging(true);
+            event->accept();
+            return;
+        }
 
-void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {}
+        selecting = true;
+        selectStart = event->pos() - QPoint(1, 1);
+        selectEnd = selectStart;
+        selectedKeyframes.clear();
+        for (auto keyframe : keyframeData) {
+            QRect keyframeRect =
+                QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
+            if (keyframeRect.contains(selectStart)) {
+                selectedKeyframes.append(keyframe.keyframe);
+                break;
+            }
+        }
+    }
+}
 
-void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {}
+void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton) {
+        if (mouseHeader) {
+            timelineWidget->scene->setFrame(
+                (event->pos().x() - TIMELINE_START_OFFSET) / secondsToPixels() *
+                timelineWidget->scene->frameRate);
+            event->accept();
+            return;
+        }
+
+        if (selecting) {
+            selectEnd = event->pos() - QPoint(1, 1);
+            selectedKeyframes.clear();
+            QRect selectionRect = QRect(selectStart, selectEnd).normalized();
+            for (auto keyframe : keyframeData) {
+                QRect keyframeRect =
+                    QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
+                if (selectionRect.intersects(keyframeRect)) {
+                    selectedKeyframes.append(keyframe.keyframe);
+                }
+            }
+            update();
+        }
+    }
+}
+
+void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {
+    if (mouseHeader) {
+        emit timelineWidget->scene->framesChanging(false);
+    }
+    if (selecting) {
+        selecting = false;
+        update();
+    }
+}
+
+void TimelineContentWidget::keyPressEvent(QKeyEvent *event) {
+    if (event->isAutoRepeat()) {
+        return QWidget::keyPressEvent(event);
+    }
+
+    if (event->matches(QKeySequence::Delete)) {
+        if (!selectedKeyframes.isEmpty()) {
+            for (auto keyframe : selectedKeyframes) {
+                keyframe->property->remove(keyframe->frame);
+            }
+            selectedKeyframes.clear();
+            update();
+        }
+        return;
+    }
+
+    return QWidget::keyPressEvent(event);
+}

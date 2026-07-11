@@ -8,7 +8,19 @@ PropertyWindow::PropertyWindow(Scene *scene) : scene(scene) {
     formLayout = new QFormLayout(this);
     connect(scene, &Scene::elementSelectionChanged, this,
             &PropertyWindow::selectedElementsUpdated);
+    connect(scene, &Scene::framesChanging, this,
+            &PropertyWindow::framesChanging);
     selectedElementsUpdated({});
+}
+
+void PropertyWindow::framesChanging(bool changing) {
+    if (changing) {
+        setDisabled(true);
+        return;
+    }
+
+    setDisabled(false);
+    selectedElementsUpdated(scene->selectedElements);
 }
 
 void PropertyWindow::selectedElementsUpdated(

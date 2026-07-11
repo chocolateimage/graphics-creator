@@ -35,6 +35,10 @@ class Scene : public QObject {
     void frameChanged(int frame);
     void playbackStateChanged(bool playing);
 
+    // Called true when frames are rapidly being changed
+    // (during playback/when scrubbing). Called false when it stops.
+    void framesChanging(bool changing);
+
   private:
     QChronoTimer *timer;
     int startFrame;

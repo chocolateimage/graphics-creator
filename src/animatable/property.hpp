@@ -7,7 +7,9 @@
 
 class KeyframeBase {
   public:
-    KeyframeBase(int frame) : frame(frame) {}
+    KeyframeBase(PropertyBase *property, int frame)
+        : property(property), frame(frame) {}
+    PropertyBase *property;
     virtual ~KeyframeBase() {}
     int frame;
     // TODO: easing/curve/whatever
@@ -15,7 +17,8 @@ class KeyframeBase {
 
 template <typename T> class Keyframe : public KeyframeBase {
   public:
-    Keyframe(int frame, T value) : KeyframeBase(frame), value(value) {}
+    Keyframe(PropertyBase *property, int frame, T value)
+        : KeyframeBase(property, frame), value(value) {}
     virtual ~Keyframe() {}
     T value;
 };
@@ -38,13 +41,43 @@ class PropertyBase {
     std::vector<KeyframeBase *> keyframes;
     Animatable *animatable;
     std::string name;
-    void toggleAnimating() {
+    void toggleAnimating(const FrameInfo &frameInfo) {
         isAnimating = !isAnimating;
+        if (isAnimating) {
+            keyframes[0]->frame = frameInfo.frameIndex;
+        } else {
+            while (keyframes.size() > 1) {
+                delete keyframes.back();
+                keyframes.pop_back();
+            }
+        }
         animatable->_propertyIsAnimatingUpdated(this);
         if (!isAnimating) {
             animatable->_propertyUpdated(this);
         }
     }
+
+    bool remove(int frame) {
+        if (!isAnimating)
+            return false;
+
+        for (auto it = keyframes.begin(); it != keyframes.end(); it++) {
+            if ((*it)->frame != frame) {
+                continue;
+            }
+
+            if (keyframes.size() == 1) {
+                toggleAnimating({frame});
+            } else {
+                delete *it;
+                keyframes.erase(it);
+                animatable->_propertyUpdated(this);
+            }
+            return true;
+        }
+        return false;
+    }
+
     bool isAnimating{false};
 };
 
@@ -52,7 +85,7 @@ template <typename T> class Property : public PropertyBase {
   public:
     Property(Animatable *animatable, const std::string &name, T defaultValue)
         : PropertyBase(name, animatable) {
-        keyframes.push_back(new Keyframe<T>(0, defaultValue));
+        keyframes.push_back(new Keyframe<T>(this, 0, defaultValue));
         animatable->addProperty(this);
     }
     virtual ~Property() {}
@@ -124,8 +157,9 @@ template <typename T> class Property : public PropertyBase {
                 index++;
             }
             if (!found) {
-                keyframes.insert(keyframes.begin() + insertIndex,
-                                 new Keyframe<T>(frameInfo.frameIndex, value));
+                keyframes.insert(
+                    keyframes.begin() + insertIndex,
+                    new Keyframe<T>(this, frameInfo.frameIndex, value));
             }
         } else {
             ((Keyframe<T> *)keyframes[0])->value = value;
@@ -165,7 +199,7 @@ template <typename T> class PropertyRender : public PropertyRenderBase {
     };
     virtual ~PropertyRender() {}
 
-    T get() { return value; }
+    inline T get() { return value; }
     virtual void set(PropertyBase *property, const FrameInfo &frameInfo) {
         auto propertyTyped = dynamic_cast<Property<T> *>(property);
         value = propertyTyped->get(frameInfo);
