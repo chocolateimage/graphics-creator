@@ -1,10 +1,12 @@
 #include "timeline.hpp"
 #include <QApplication>
 #include <QEasingCurve>
+#include <QLabel>
 #include <QPainter>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSpacerItem>
 #include <QSplitter>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -31,6 +33,7 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
         Qt::ScrollBarAlwaysOff);
     timelineLeftScrollArea->verticalScrollBar()->setEnabled(false);
     timelineLeftContents = new QWidget(timelineLeftScrollArea);
+    timelineLeftContents->setMinimumHeight(100000);
     timelineLeftLayout = new QVBoxLayout(timelineLeftContents);
     timelineLeftLayout->setContentsMargins(0, 0, 0, 0);
     timelineLeftLayout->setSpacing(0);
@@ -86,7 +89,12 @@ void TimelineWidget::updateContents() {
 
     timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
 
+    bool stripe = false;
     for (auto element : scene->elements) {
+        disconnect(element, &Element::propertyIsAnimatingUpdated, this,
+                   &TimelineWidget::updateContents);
+        connect(element, &Element::propertyIsAnimatingUpdated, this,
+                &TimelineWidget::updateContents);
         bool selected = scene->selectedElements.contains(element);
         QPushButton *elementButton = new QPushButton(timelineLeftContents);
         elementButton->setStyleSheet(
@@ -149,6 +157,8 @@ void TimelineWidget::updateContents() {
                 });
         timelineLeftLayout->addWidget(elementButton);
 
+        stripe = !stripe;
+
         if (!element->collapsed) {
             for (auto property : element->properties) {
                 if (!property->isAnimatable())
@@ -156,25 +166,59 @@ void TimelineWidget::updateContents() {
 
                 QPushButton *propertyButton =
                     new QPushButton(timelineLeftContents);
+                propertyButton->setObjectName("property");
+                QString background = "transparent";
+                QString backgroundSelected = "rgba(128,128,128,0.1)";
+                if (stripe) {
+                    background = "palette(alternate-base)";
+                    backgroundSelected = "rgba(128,128,128,0.13)";
+                }
                 propertyButton->setStyleSheet(
-                    "QPushButton {"
+                    "#property {"
                     "   text-align: left;"
-                    "   padding-left: 50px;"
-                    "   background: transparent;"
+                    "   background: " +
+                    background +
+                    ";"
                     "   border-radius: 0px;"
                     "}"
-                    "QPushButton[flat=\"false\"] {"
-                    "   background: rgba(128,128,128,0.1);"
+                    "#property[flat=\"false\"] {"
+                    "   background: " +
+                    backgroundSelected +
+                    ";"
                     "   border-left: 3px solid palette(accent);"
-                    "   padding-left: 47px;"
                     "}");
-                propertyButton->setText(
-                    QString::fromStdString(property->getDisplayName()));
                 propertyButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
                 propertyButton->setFlat(!selected);
                 connect(propertyButton, &QPushButton::clicked, elementButton,
                         &QPushButton::click);
+
+                QHBoxLayout *propertyLayout = new QHBoxLayout(propertyButton);
+                propertyLayout->setContentsMargins(24, 0, 0, 0);
+
+                QPushButton *toggleAnimationButton =
+                    new QPushButton(propertyButton);
+                if (property->isAnimating) {
+                    toggleAnimationButton->setIcon(
+                        QIcon::fromTheme("keyframe"));
+                    toggleAnimationButton->setToolTip("Animation enabled");
+                } else {
+                    toggleAnimationButton->setIcon(
+                        QIcon::fromTheme("keyframe-disable"));
+                    toggleAnimationButton->setToolTip("Animation disabled");
+                }
+                toggleAnimationButton->setFlat(true);
+                toggleAnimationButton->setFixedWidth(32);
+                connect(toggleAnimationButton, &QPushButton::clicked, this,
+                        [property]() { property->toggleAnimating(); });
+                propertyLayout->addWidget(toggleAnimationButton);
+
+                QLabel *label = new QLabel(propertyButton);
+                label->setText(
+                    QString::fromStdString(property->getDisplayName()));
+                propertyLayout->addWidget(label);
+
                 timelineLeftLayout->addWidget(propertyButton);
+                stripe = !stripe;
             }
         }
     }
@@ -182,16 +226,7 @@ void TimelineWidget::updateContents() {
     timelineLeftLayout->addSpacing(64);
     timelineLeftLayout->addStretch();
 
-    // TODO: This is really bad.
-    // The left contents shrink and grow again, and then the left scroll bar
-    // resets. For some reason after adding the items again, the layout doesn't
-    // change so I have to wait 1ms which sometimes works.
-    QTimer::singleShot(1, this, [this]() {
-        timelineLeftScrollArea->verticalScrollBar()->setValue(
-            timelineMainScrollArea->verticalScrollBar()->value());
-    });
-
-    timelineContent->updateContents();
+    timelineScrolled();
 }
 
 void TimelineWidget::timelineScrolled() {
@@ -275,24 +310,28 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
             }
             stripe = !stripe;
 
-            for (auto keyframe : property->keyframes) {
-                // Diamonds
+            if (property->isAnimating) {
+                for (auto keyframe : property->keyframes) {
+                    // Diamonds
 
-                painter.setBrush(QColor(180, 180, 180));
-                painter.setPen(Qt::NoPen);
+                    painter.setBrush(QColor(180, 180, 180));
+                    painter.setPen(Qt::NoPen);
 
-                double kXPos = secondsToPixels(
-                    keyframe->frame * timelineWidget->scene->frameRate);
-                double kWidth = 10;
-                double kYPos =
-                    yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
+                    double kXPos = secondsToPixels(
+                        keyframe->frame * timelineWidget->scene->frameRate);
+                    double kWidth = 10;
+                    double kYPos =
+                        yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
 
-                QPolygonF polygon;
-                polygon << QPointF(kXPos, kYPos);
-                polygon << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth / 2.0);
-                polygon << QPointF(kXPos, kYPos + kWidth);
-                polygon << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth / 2.0);
-                painter.drawPolygon(polygon);
+                    QPolygonF polygon;
+                    polygon << QPointF(kXPos, kYPos);
+                    polygon
+                        << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth / 2.0);
+                    polygon << QPointF(kXPos, kYPos + kWidth);
+                    polygon
+                        << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth / 2.0);
+                    painter.drawPolygon(polygon);
+                }
             }
 
             yPos += PROPERTY_TRACK_HEIGHT;
@@ -309,34 +348,39 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     QFont font = painter.font();
     font.setPointSize(8);
     painter.setFont(font);
-    painter.setPen(QPen(palette().placeholderText(), 2));
     QFontMetrics metrics(painter.font());
     for (int x = 0; x <= width(); x += secondsToPixels()) {
         int second = x / secondsToPixels();
-        QString text = QString::number(second);
+        QString text = QString::number(second) + "s";
+        painter.setPen(QPen(palette().placeholderText(), 2));
+        painter.setBrush(Qt::NoBrush);
         painter.drawText(x - 64, headerPos, 128, TIMELINE_HEADER_HEIGHT,
-                         Qt::AlignCenter, text);
+                         Qt::AlignHCenter | Qt::AlignTop, text);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(palette().placeholderText().color().darker());
+        constexpr int lineHeight = 8;
+        painter.drawRect(x, headerPos + TIMELINE_HEADER_HEIGHT - lineHeight, 1,
+                         lineHeight);
     }
 
     // Position Marker
     painter.setPen(Qt::NoPen);
     painter.setBrush(palette().accent());
-    int markerWidth = 16;
+    constexpr int markerWidth = 16;
+    constexpr int markerHeight = 10;
+    int markerY = headerPos + TIMELINE_HEADER_HEIGHT - markerHeight;
     QPolygonF polygon;
-    polygon << QPointF(secondsToPixels(curSec) - (markerWidth / 2.0),
-                       headerPos);
+    polygon << QPointF(secondsToPixels(curSec) - (markerWidth / 2.0), markerY);
+    polygon << QPointF(secondsToPixels(curSec) + (markerWidth / 2.0), markerY);
     polygon << QPointF(secondsToPixels(curSec) + (markerWidth / 2.0),
-                       headerPos);
-    polygon << QPointF(secondsToPixels(curSec) + (markerWidth / 2.0),
-                       headerPos + TIMELINE_HEADER_HEIGHT / 2.0);
-    polygon << QPointF(secondsToPixels(curSec),
-                       headerPos + TIMELINE_HEADER_HEIGHT);
+                       markerY + markerHeight / 2.0);
+    polygon << QPointF(secondsToPixels(curSec), markerY + markerHeight);
     polygon << QPointF(secondsToPixels(curSec) - (markerWidth / 2.0),
-                       headerPos + TIMELINE_HEADER_HEIGHT / 2.0);
+                       markerY + markerHeight / 2.0);
     painter.drawPolygon(polygon);
 
     painter.setPen(QPen(palette().accent(), 2));
-    painter.drawLine(secondsToPixels(curSec), headerPos,
+    painter.drawLine(secondsToPixels(curSec), markerY + 2,
                      secondsToPixels(curSec), height());
 }
 

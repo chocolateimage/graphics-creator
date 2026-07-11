@@ -4,10 +4,10 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-const double TIMELINE_HEADER_HEIGHT = 24;
-const double TIMELINE_START_OFFSET = 16;
-const double OBJECT_TRACK_HEIGHT = 16;
-const double PROPERTY_TRACK_HEIGHT = 16;
+constexpr double TIMELINE_HEADER_HEIGHT = 24;
+constexpr double TIMELINE_START_OFFSET = 16;
+constexpr double OBJECT_TRACK_HEIGHT = 16;
+constexpr double PROPERTY_TRACK_HEIGHT = 16;
 
 class TimelineContentWidget;
 

@@ -17,6 +17,10 @@ AnimatableRender *Animatable::toRender(const FrameInfo &frameInfo) {
     return instance;
 }
 
+void Animatable::_propertyIsAnimatingUpdated(PropertyBase *property) {
+    emit propertyIsAnimatingUpdated(property);
+}
+
 void Animatable::_propertyUpdated(PropertyBase *property) {
     emit propertyUpdated(property);
 }

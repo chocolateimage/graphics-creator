@@ -1,5 +1,12 @@
 #include "scene.hpp"
 
+Scene::Scene() {
+    timer = new QChronoTimer(this);
+    timer->setTimerType(Qt::PreciseTimer);
+    timer->setInterval(std::chrono::milliseconds(3));
+    connect(timer, &QChronoTimer::timeout, this, &Scene::timerTicked);
+}
+
 Scene::~Scene() { qDeleteAll(elements); }
 
 void Scene::addElement(Element *element) {
@@ -16,4 +23,35 @@ void Scene::insertElement(Element *element, int index) {
 void Scene::selectElements(QList<Element *> elements) {
     selectedElements = elements;
     emit elementSelectionChanged(elements);
+}
+
+void Scene::startTimer() {
+    startFrame = currentFrame;
+    elapsedTimer.restart();
+    emit playbackStateChanged(true);
+    timer->start();
+}
+
+void Scene::stopTimer() {
+    timer->stop();
+    emit playbackStateChanged(false);
+}
+
+void Scene::timerTicked() {
+    int msecElapsed = elapsedTimer.elapsed();
+    int framesElapsed = msecElapsed / 1000.0 * frameRate;
+    int newFrame = startFrame + framesElapsed;
+
+    if (currentFrame == newFrame) {
+        return;
+    }
+
+    if (newFrame >= durationFrames) {
+        newFrame = 0;
+        startFrame = currentFrame;
+        elapsedTimer.restart();
+    }
+
+    currentFrame = newFrame;
+    emit frameChanged(currentFrame);
 }

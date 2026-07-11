@@ -34,6 +34,14 @@ class PropertyBase {
     std::vector<KeyframeBase *> keyframes;
     Animatable *animatable;
     std::string name;
+    void toggleAnimating() {
+        isAnimating = !isAnimating;
+        animatable->_propertyIsAnimatingUpdated(this);
+        if (!isAnimating) {
+            animatable->_propertyUpdated(this);
+        }
+    }
+    bool isAnimating{false};
 };
 
 template <typename T> class Property : public PropertyBase {
@@ -79,12 +87,10 @@ template <typename T> class Property : public PropertyBase {
         min = value;
     }
 
-    void setax(T value) {
+    void setMax(T value) {
         hasMax = true;
         max = value;
     }
-
-    bool isAnimating{false};
 
     T min;
     bool hasMin{false};

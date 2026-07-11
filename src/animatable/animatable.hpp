@@ -16,9 +16,11 @@ class Animatable : public QObject {
     AnimatableRender *toRender(const FrameInfo &frameInfo);
 
     void _propertyUpdated(PropertyBase *property);
+    void _propertyIsAnimatingUpdated(PropertyBase *property);
 
   signals:
     void propertyUpdated(PropertyBase *property);
+    void propertyIsAnimatingUpdated(PropertyBase *property);
 };
 
 class AnimatableRender : public QObject {

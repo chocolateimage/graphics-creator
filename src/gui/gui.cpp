@@ -1729,6 +1729,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         toolBar->addAction(QIcon::fromTheme("draw-polygon"), "Polygon");
     controlLua = toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
 
+    editMenu->addSeparator();
+
+    editMenu->addAction(controlSelect);
+    editMenu->addAction(controlRectangle);
+    editMenu->addAction(controlEllipse);
+    editMenu->addAction(controlPolygon);
+    editMenu->addAction(controlLua);
+
     controlSelect->setActionGroup(controlsGroup);
     controlRectangle->setActionGroup(controlsGroup);
     controlEllipse->setActionGroup(controlsGroup);
