@@ -30,6 +30,8 @@ EffectsWindow::EffectsWindow(Scene *scene) : scene(scene) {
     mainLayout->setSpacing(0);
 
     QFrame *topFrame = new QFrame(mainWidget);
+    topFrame->setBackgroundRole(QPalette::Mid);
+    topFrame->setAutoFillBackground(true);
     QHBoxLayout *topLayout = new QHBoxLayout(topFrame);
     topLayout->setContentsMargins(8, 0, 8, 0);
     effectCountLabel = new QLabel(topFrame);
@@ -124,7 +126,8 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
         effectButton->setObjectName("effectButton");
         effectButton->setStyleSheet(
             "#effectButton {border-radius: 0px; border-top: 1px solid "
-            "palette(light); background: palette(mid);}");
+            "palette(light); border-bottom: 1px solid palette(light); "
+            "background: palette(mid);}");
 
         QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
         effectButtonLayout->setContentsMargins(8, 0, 0, 0);
