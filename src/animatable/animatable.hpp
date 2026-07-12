@@ -13,7 +13,7 @@ class Animatable : public QObject {
     std::vector<PropertyBase *> properties;
 
     virtual AnimatableRender *createClass() = 0;
-    AnimatableRender *toRender(const FrameInfo &frameInfo);
+    virtual AnimatableRender *toRender(const FrameInfo &frameInfo);
 
     void _propertyUpdated(PropertyBase *property);
     void _propertyIsAnimatingUpdated(PropertyBase *property);

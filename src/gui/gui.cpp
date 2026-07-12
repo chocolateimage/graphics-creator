@@ -3,6 +3,7 @@
 #include "animatable/element/rectangle_element.hpp"
 #include "brush_input.hpp"
 #include "draggable_spinbox.hpp"
+#include "effects_window.hpp"
 #include "fontcombobox.hpp"
 #include "line.hpp"
 #include "lua.hpp"
@@ -1772,9 +1773,10 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &NewMainWindow::sceneRectPicked);
     sceneDockWidget->setWidget(scenePreviewWidget);
 
-    ads::CDockWidget *widgetTest2 = dockManager->createDockWidget("Timeline");
+    ads::CDockWidget *timelineDockWidget =
+        dockManager->createDockWidget("Timeline");
     TimelineWidget *timeline = new TimelineWidget(scene);
-    widgetTest2->setWidget(timeline);
+    timelineDockWidget->setWidget(timeline);
 
     ads::CDockWidget *propertiesDockWidget =
         dockManager->createDockWidget("Properties");
@@ -1786,9 +1788,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     ads::CDockWidget *effectsDockWidget =
         dockManager->createDockWidget("Effects");
     effectsDockWidget->setIcon(QIcon::fromTheme("special-effects-symbolic"));
-    QLabel *test4 = new QLabel("effects on an element");
-    test4->setWordWrap(true);
-    effectsDockWidget->setWidget(test4);
+    EffectsWindow *effectsWindow = new EffectsWindow(scene);
+    effectsDockWidget->setWidget(effectsWindow);
 
     auto sceneDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::CenterDockWidgetArea, sceneDockWidget);
@@ -1798,7 +1799,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         dockManager->addDockWidget(ads::DockWidgetArea::BottomDockWidgetArea,
                                    effectsDockWidget, elementsDockArea);
     auto timelineDockArea = dockManager->addDockWidget(
-        ads::DockWidgetArea::BottomDockWidgetArea, widgetTest2);
+        ads::DockWidgetArea::BottomDockWidgetArea, timelineDockWidget);
 
     QSizePolicy policy = sceneDockArea->sizePolicy();
     policy.setHorizontalStretch(1);
@@ -1814,7 +1815,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     timelineDockArea->setSizePolicy(policy);
 
     viewMenu->addAction(sceneDockWidget->toggleViewAction());
-    viewMenu->addAction(widgetTest2->toggleViewAction());
+    viewMenu->addAction(timelineDockWidget->toggleViewAction());
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
 
@@ -1851,7 +1852,7 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         element->y.set(rect.y(), {0});
         element->w.set(rect.width(), {0});
         element->h.set(rect.height(), {0});
-        scene->addElement(element);
+        scene->insertElement(element, 0);
         scene->selectElements({element});
     }
     rerender();
@@ -1879,13 +1880,17 @@ void NewMainWindow::renderTest() {
     for (auto element : scene->elements) {
         ElementRender *render =
             (ElementRender *)element->toRender({scene->currentFrame});
-        renderElements.push_back(render);
+        renderElements.insert(renderElements.begin(), render);
     }
 
     for (auto element : renderElements) {
         auto rect = element->getRenderBox();
         uint32_t *elementValues = new uint32_t[rect.w * rect.h];
         memset(elementValues, 0, rect.w * rect.h * 4);
+
+        Rect finalRect = rect;
+        uint32_t *finalValues = elementValues;
+
         bool success = element->render(elementValues);
 
         if (!success) {
@@ -1893,18 +1898,37 @@ void NewMainWindow::renderTest() {
             continue;
         }
 
-        int maxY = std::min(scene->height, rect.y + rect.h) - rect.y;
-        int maxX = std::min(scene->width, rect.x + rect.w) - rect.x;
+        for (auto effect : element->effects) {
+            Rect effectBox = effect->getRenderBox();
+            uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
+            memset(effectValues, 0, effectBox.w * effectBox.h * 4);
 
-        for (int y = std::max(0, -rect.y); y < maxY; y++) {
-            for (int x = std::max(0, -rect.x); x < maxX; x++) {
-                auto index = pixelIndex(x + rect.x, y + rect.y, scene->width);
-                frame[index] =
-                    over(frame[index], elementValues[pixelIndex(x, y, rect.w)]);
+            bool success = effect->render(finalValues, finalRect, effectValues);
+            if (!success) {
+                delete[] effectValues;
+                continue;
+            }
+
+            delete[] finalValues;
+            finalValues = effectValues;
+            finalRect = effectBox;
+        }
+
+        int maxY =
+            std::min(scene->height, finalRect.y + finalRect.h) - finalRect.y;
+        int maxX =
+            std::min(scene->width, finalRect.x + finalRect.w) - finalRect.x;
+
+        for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
+            for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
+                auto index =
+                    pixelIndex(x + finalRect.x, y + finalRect.y, scene->width);
+                frame[index] = over(frame[index],
+                                    finalValues[pixelIndex(x, y, finalRect.w)]);
             }
         }
 
-        delete[] elementValues;
+        delete[] finalValues;
     }
 
     for (auto element : renderElements) {

@@ -41,8 +41,11 @@ set(graphicscreator_SRCS
     src/gui/timeline.cpp
     src/gui/property_window.cpp
     src/gui/property_edit.cpp
+    src/gui/effects_window.cpp
     src/animatable/animatable.cpp
-    src/animatable/effect.cpp
+    src/animatable/effect/effect.cpp
+    src/animatable/effect/invert_effect.cpp
+    src/animatable/effect/blur_effect.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp
     src/animatable/element/ellipse_element.cpp

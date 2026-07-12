@@ -1,6 +1,6 @@
 #pragma once
 #include "animatable/animatable.hpp"
-#include "animatable/effect.hpp"
+#include "animatable/effect/effect.hpp"
 #include "animatable/property.hpp"
 #include "variant.hpp"
 #include <QObject>
@@ -9,10 +9,6 @@
 static constexpr uint32_t makePixel(Color color) {
     return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
-
-struct Rect {
-    int x, y, w, h;
-};
 
 class Element : public Animatable {
     Q_OBJECT
@@ -28,6 +24,13 @@ class Element : public Animatable {
     Property<int> h{this, "h", 100};
     bool collapsed{true};
     std::vector<Effect *> effects;
+
+    AnimatableRender *toRender(const FrameInfo &frameInfo) override;
+    void addEffect(Effect *effect);
+    void insertEffect(Effect *effect, int index);
+
+  signals:
+    void effectAdded(Effect *effect, int index);
 };
 
 class ElementRender : public AnimatableRender {
@@ -40,6 +43,7 @@ class ElementRender : public AnimatableRender {
     PropertyRender<int> y{this};
     PropertyRender<int> w{this};
     PropertyRender<int> h{this};
+    std::vector<EffectRender *> effects;
 
     virtual Rect getRenderBox();
 

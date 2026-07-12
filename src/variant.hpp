@@ -64,6 +64,10 @@ struct Easing {
     std::string easingCurve;
 };
 
+struct Rect {
+    int x, y, w, h;
+};
+
 struct Brush {
     enum Type {
         SingleColor,

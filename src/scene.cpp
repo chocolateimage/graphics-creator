@@ -18,6 +18,8 @@ void Scene::insertElement(Element *element, int index) {
     emit elementAdded(element, index);
     connect(element, &Element::propertyUpdated, this,
             [this, element]() { emit elementUpdated(element); });
+    connect(element, &Element::effectAdded, this,
+            [this, element]() { emit elementUpdated(element); });
 }
 
 void Scene::selectElements(QList<Element *> elements) {
