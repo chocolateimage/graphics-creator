@@ -42,3 +42,9 @@ Element::~Element() {
         delete effect;
     }
 }
+
+ElementRender::~ElementRender() {
+    for (auto effect : effects) {
+        delete effect;
+    }
+}

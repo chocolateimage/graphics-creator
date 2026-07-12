@@ -41,7 +41,7 @@ class ElementRender : public AnimatableRender {
     Q_OBJECT
   public:
     ElementRender() {};
-    ~ElementRender() {};
+    ~ElementRender();
 
     PropertyRender<int> x{this};
     PropertyRender<int> y{this};
