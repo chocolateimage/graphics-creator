@@ -176,6 +176,18 @@ template <typename T> class Property : public PropertyBase {
             }
 
             T newValue = lerp(start->value, end->value, time);
+            if constexpr (std::is_arithmetic_v<T>) {
+                if (hasMin) {
+                    if (newValue < min) {
+                        newValue = min;
+                    }
+                }
+                if (hasMax) {
+                    if (newValue > max) {
+                        newValue = max;
+                    }
+                }
+            }
             return newValue;
         } else {
             return start->value;
