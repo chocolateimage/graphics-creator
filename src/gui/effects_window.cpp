@@ -1,6 +1,7 @@
 #include "effects_window.hpp"
 #include "animatable/effect/blur_effect.hpp"
 #include "animatable/effect/invert_effect.hpp"
+#include "animatable/effect/wave_effect.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
 #include <QFormLayout>
@@ -167,6 +168,9 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QMenu *tools = menu->addMenu("Tools");
     action = tools->addAction("Invert");
     action->setData("invert");
+    QMenu *style = menu->addMenu("Style");
+    action = style->addAction("Wave");
+    action->setData("wave");
 
     connect(menu, &QMenu::triggered, this, &EffectsWindow::addEffectTriggered);
 
@@ -181,6 +185,8 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
         effect = new InvertEffect();
     } else if (effectType == "blur") {
         effect = new BlurEffect();
+    } else if (effectType == "wave") {
+        effect = new WaveEffect();
     }
 
     if (effect) {
