@@ -591,7 +591,7 @@ void MainWindow::loadLate() {
     connect(loopButton, &QToolButton::toggled, this,
             &MainWindow::updateButtons);
 
-    previewWidget = new ImageViewer(this);
+    previewWidget = new ImageViewer(nullptr, this);
     connect(previewWidget, &ImageViewer::pixelPicked, this,
             &MainWindow::pixelPicked);
     previewWidget->setMinimumSize(10, 10);
@@ -1768,7 +1768,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     ads::CDockWidget *sceneDockWidget = dockManager->createDockWidget("Scene");
     sceneDockWidget->setIcon(QIcon::fromTheme("video-television-symbolic"));
-    scenePreviewWidget = new ImageViewer();
+    scenePreviewWidget = new ImageViewer(scene);
     connect(scenePreviewWidget, &ImageViewer::rectPicked, this,
             &NewMainWindow::sceneRectPicked);
     sceneDockWidget->setWidget(scenePreviewWidget);

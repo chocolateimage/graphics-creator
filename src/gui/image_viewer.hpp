@@ -1,4 +1,5 @@
 #pragma once
+#include "scene.hpp"
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
 #include <QToolButton>
@@ -23,7 +24,7 @@ class ImageViewer : public QWidget {
         Rect,
     };
 
-    explicit ImageViewer(QWidget *parent = nullptr);
+    explicit ImageViewer(Scene *scene, QWidget *parent = nullptr);
     void updateImage(QImage img);
     void beginPicking(const QString &id, const QString &infoText,
                       PickType pickType);
@@ -49,6 +50,9 @@ class ImageViewer : public QWidget {
     QPoint pickPosition;
     QPoint getActualPickPosition();
     void updateCursor();
+    Scene *scene;
+    QPointF pixelToViewport(QPointF pos);
+
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -58,6 +62,9 @@ class ImageViewer : public QWidget {
     void closeEvent(QCloseEvent *event) override;
     void enterEvent(QEnterEvent *event) override;
     void leaveEvent(QEvent *event) override;
+
+  private slots:
+    void elementSelectionChanged(QList<Element *> elements);
 
   signals:
     void pixelPicked(QString id, QPoint position);

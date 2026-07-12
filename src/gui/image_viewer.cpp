@@ -30,7 +30,8 @@ void TransparentCornerFrame::leaveEvent(QEvent *event) {
     opacityEffect->setOpacity(0.3);
 }
 
-ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
+ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
+    : QWidget(parent), scene(scene) {
     setAttribute(Qt::WidgetAttribute::WA_MouseTracking);
     setWindowTitle("Preview");
 
@@ -77,6 +78,15 @@ ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent) {
     });
     frameLay->addWidget(saveFrameButton);
     lay->addWidget(cornerFrame);
+
+    if (scene) {
+        connect(scene, &Scene::elementSelectionChanged, this,
+                &ImageViewer::elementSelectionChanged);
+    }
+}
+
+void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
+    update();
 }
 
 QPoint ImageViewer::getActualPickPosition() {
@@ -227,6 +237,33 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
                          rectHeight / 2, Qt::AlignCenter | Qt::TextWordWrap,
                          "Left click to confirm. Right click to cancel.");
     }
+
+    if (scene) {
+        FrameInfo fi = {scene->currentFrame};
+        painter.setPen(QPen(palette().accent(), 2));
+        painter.setBrush(Qt::NoBrush);
+
+        for (auto element : scene->selectedElements) {
+            QPointF pos{(qreal)element->x.get(fi), (qreal)element->y.get(fi)};
+            QPointF bottomRight = pos + QPointF{(qreal)element->w.get(fi),
+                                                (qreal)element->h.get(fi)};
+            pos = pixelToViewport(pos);
+            QPointF size = pixelToViewport(bottomRight) - pos;
+            painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+        }
+    }
+}
+
+QPointF ImageViewer::pixelToViewport(QPointF pos) {
+    QRectF fitRect = fittedRect();
+    pos = QPointF(pos.x() / image.width() * fitRect.width(),
+                  pos.y() / image.height() * fitRect.height());
+    pos += fitRect.topLeft();
+    pos += movePos;
+    pos += {width() / -2.f, height() / -2.f};
+    pos *= zoom;
+    pos += {width() / 2.f, height() / 2.f};
+    return pos;
 }
 
 QRectF ImageViewer::fittedRect() {
