@@ -6,8 +6,12 @@ class ElementRender;
 
 class EffectRender : public AnimatableRender {
   public:
-    virtual Rect getRenderBox();
+    virtual Rect getRenderBox(const Rect &lastBox);
+    Rect renderBox;
     ElementRender *element;
+
+    int currentFrame{0};
+    double currentSeconds{0};
 
     virtual bool render(const uint32_t *source, const Rect &sourceRect,
                         uint32_t *target) = 0;

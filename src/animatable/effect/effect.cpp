@@ -1,4 +1,3 @@
 #include "effect.hpp"
-#include "animatable/element/element.hpp"
 
-Rect EffectRender::getRenderBox() { return element->getRenderBox(); }
+Rect EffectRender::getRenderBox(const Rect &lastBox) { return lastBox; }

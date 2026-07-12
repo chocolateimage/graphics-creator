@@ -1899,7 +1899,11 @@ void NewMainWindow::renderTest() {
         }
 
         for (auto effect : element->effects) {
-            Rect effectBox = effect->getRenderBox();
+            Rect effectBox = effect->getRenderBox(finalRect);
+            effect->currentFrame = scene->currentFrame;
+            effect->currentSeconds =
+                (double)scene->currentFrame / scene->durationFrames;
+            effect->renderBox = effectBox;
             uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
             memset(effectValues, 0, effectBox.w * effectBox.h * 4);
 
