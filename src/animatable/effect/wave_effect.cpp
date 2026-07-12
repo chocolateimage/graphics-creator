@@ -1,4 +1,5 @@
 #include "wave_effect.hpp"
+#include "animatable/element/element.hpp"
 #include "math.hpp"
 
 WaveEffect::WaveEffect() {
@@ -16,13 +17,15 @@ bool WaveEffectRender::render(const uint32_t *source, const Rect &sourceRect,
     int extend = this->extend;
     int infrequency = this->infrequency;
     int speed = this->speed;
+    int mxo = sourceRect.x - element->x;
     for (int y = 0; y < rect.h; y++) {
         for (int x = 0; x < rect.w; x++) {
             int sx = x;
-            int sy =
-                y +
-                sin((double)x / infrequency + currentSeconds * speed) * extend -
-                extend;
+            int mx = x + mxo;
+            int sy = y +
+                     sin((double)mx / infrequency + currentSeconds * speed) *
+                         extend -
+                     extend;
 
             if (sy < 0 || sy >= sourceRect.h) {
                 continue;
