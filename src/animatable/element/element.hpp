@@ -28,9 +28,13 @@ class Element : public Animatable {
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     void addEffect(Effect *effect);
     void insertEffect(Effect *effect, int index);
+    void removeEffect(Effect *effect);
 
   signals:
     void effectAdded(Effect *effect, int index);
+    void effectRemoved(Effect *effect);
+    void effectListUpdated();
+    void effectPropertyUpdated(Effect *effect, PropertyBase *property);
 };
 
 class ElementRender : public AnimatableRender {

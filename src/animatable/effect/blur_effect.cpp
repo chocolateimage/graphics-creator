@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QElapsedTimer>
 
+BlurEffect::BlurEffect() { radius.setMin(0); }
+
 AnimatableRender *BlurEffect::createClass() { return new BlurEffectRender(); }
 
 Rect BlurEffectRender::getRenderBox(const Rect &lastBox) {

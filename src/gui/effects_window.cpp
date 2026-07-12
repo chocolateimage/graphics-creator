@@ -3,16 +3,62 @@
 #include "animatable/effect/invert_effect.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
+#include <QFormLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
 
 EffectsWindow::EffectsWindow(Scene *scene) : scene(scene) {
-    mainLayout = new QVBoxLayout(this);
+    stackedWidget = new QStackedWidget(this);
+    topMainLayout = new QVBoxLayout(this);
+    topMainLayout->setContentsMargins(0, 0, 0, 0);
+    topMainLayout->addWidget(stackedWidget);
+
+    errorLabel = new QLabel();
+    errorLabel->setAlignment(Qt::AlignCenter);
+    errorLabel->setDisabled(true);
+    errorLabel->setWordWrap(true);
+    stackedWidget->addWidget(errorLabel);
+
+    mainWidget = new QWidget();
+    stackedWidget->addWidget(mainWidget);
+    mainLayout = new QVBoxLayout(mainWidget);
     mainLayout->setAlignment(Qt::AlignTop);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
+
+    QFrame *topFrame = new QFrame(mainWidget);
+    QHBoxLayout *topLayout = new QHBoxLayout(topFrame);
+    topLayout->setContentsMargins(8, 0, 8, 0);
+    effectCountLabel = new QLabel(topFrame);
+    effectCountLabel->setDisabled(true);
+    effectCountLabel->setWordWrap(true);
+    topLayout->addWidget(effectCountLabel);
+    topLayout->addStretch();
+    QPushButton *addButton = new QPushButton("Add effect", topFrame);
+    addButton->setMenu(createEffectsMenu(addButton));
+    addButton->menu()->setMinimumWidth(addButton->width());
+    addButton->setFlat(true);
+    topLayout->addWidget(addButton);
+    mainLayout->addWidget(topFrame);
+
+    mainLayout->addWidget(new HorizontalLine(mainWidget));
+
+    scrollArea = new QScrollArea(mainWidget);
+    scrollArea->setWidgetResizable(true);
+    scrollContents = new QWidget(scrollArea);
+    scrollArea->setWidget(scrollContents);
+
+    scrollArea->show();
+    scrollArea->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
+    mainLayout->addWidget(scrollArea, 1);
+
+    effectsLayout = new QVBoxLayout(scrollContents);
+    effectsLayout->setAlignment(Qt::AlignTop);
+    effectsLayout->setContentsMargins(0, 0, 0, 0);
+    effectsLayout->setSpacing(0);
+
     connect(scene, &Scene::elementSelectionChanged, this,
             &EffectsWindow::selectedElementsUpdated);
     connect(scene, &Scene::framesChanging, this,
@@ -37,8 +83,8 @@ void EffectsWindow::effectListUpdated() {
 void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
     disconnect(effectUpdateConnection);
 
-    while (mainLayout->count() > 0) {
-        auto item = mainLayout->takeAt(0);
+    while (effectsLayout->count() > 0) {
+        auto item = effectsLayout->takeAt(0);
         QWidget *widget = item->widget();
         if (widget != nullptr) {
             widget->hide();
@@ -49,46 +95,65 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
     }
 
     if (selectedElements.size() == 0) {
-        QLabel *lbl = new QLabel("No elements selected", this);
-        lbl->setDisabled(true);
-        lbl->setWordWrap(true);
-        mainLayout->addWidget(lbl);
+        errorLabel->setText("No elements selected");
+        stackedWidget->setCurrentIndex(0);
         return;
     }
 
     if (selectedElements.size() > 1) {
-        QLabel *lbl = new QLabel(
-            "Multiple elements cannot be edited at the same time", this);
-        lbl->setDisabled(true);
-        lbl->setWordWrap(true);
-        mainLayout->addWidget(lbl);
+        errorLabel->setText(
+            "Multiple elements cannot be edited at the same time");
+        stackedWidget->setCurrentIndex(0);
         return;
     }
 
     Element *element = selectedElements.first();
-    QFrame *topFrame = new QFrame(this);
-    QHBoxLayout *topLayout = new QHBoxLayout(topFrame);
-    topLayout->setContentsMargins(8, 0, 8, 0);
-    QLabel *lbl = new QLabel(topFrame);
+
     int effectCount = element->effects.size();
     if (effectCount == 1) {
-        lbl->setText(QString::number(effectCount) + " effect");
+        effectCountLabel->setText(QString::number(effectCount) + " effect");
     } else {
-        lbl->setText(QString::number(effectCount) + " effects");
+        effectCountLabel->setText(QString::number(effectCount) + " effects");
     }
-    lbl->setDisabled(true);
-    lbl->setWordWrap(true);
-    topLayout->addWidget(lbl);
-    topLayout->addStretch();
-    QPushButton *addButton = new QPushButton("Add effect", topFrame);
-    addButton->setMenu(createEffectsMenu(addButton));
-    addButton->setFlat(true);
-    topLayout->addWidget(addButton);
-    mainLayout->addWidget(topFrame);
 
-    mainLayout->addWidget(new HorizontalLine(this));
+    for (Effect *effect : element->effects) {
+        QString name = effect->effectName();
+        QPushButton *effectButton = new QPushButton(scrollContents);
+        effectButton->setFlat(true);
+        effectButton->setObjectName("effectButton");
+        effectButton->setStyleSheet(
+            "#effectButton {border-radius: 0px; border-top: 1px solid "
+            "palette(light); background: palette(mid);}");
 
-    effectUpdateConnection = connect(element, &Element::effectAdded, this,
+        QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
+        effectButtonLayout->setContentsMargins(8, 0, 0, 0);
+
+        QLabel *lbl = new QLabel(name, effectButton);
+        effectButtonLayout->addWidget(lbl);
+        effectButtonLayout->addStretch();
+
+        QPushButton *deleteButton = new QPushButton(effectButton);
+        deleteButton->setFlat(true);
+        deleteButton->setIcon(QIcon::fromTheme("window-close"));
+        connect(deleteButton, &QPushButton::clicked, this,
+                [element, effect]() { element->removeEffect(effect); });
+        effectButtonLayout->addWidget(deleteButton);
+
+        effectsLayout->addWidget(effectButton);
+
+        QWidget *propertiesWidget = new QWidget(scrollContents);
+        QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
+        for (auto property : effect->properties) {
+            PropertyEdit *propertyEdit =
+                new PropertyEdit(property, scene, propertiesWidget);
+            propertiesLayout->addRow(property->getDisplayName(), propertyEdit);
+        }
+        effectsLayout->addWidget(propertiesWidget);
+    }
+
+    stackedWidget->setCurrentIndex(1);
+
+    effectUpdateConnection = connect(element, &Element::effectListUpdated, this,
                                      &EffectsWindow::effectListUpdated);
 }
 
@@ -96,12 +161,15 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QMenu *menu = new QMenu(parent);
 
     QAction *action;
-    action = menu->addAction("Blur");
+    QMenu *blurs = menu->addMenu("Blur");
+    action = blurs->addAction("Box Blur");
     action->setData("blur");
-    action = menu->addAction("Invert");
+    QMenu *tools = menu->addMenu("Tools");
+    action = tools->addAction("Invert");
     action->setData("invert");
 
     connect(menu, &QMenu::triggered, this, &EffectsWindow::addEffectTriggered);
+
     return menu;
 }
 

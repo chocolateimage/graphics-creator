@@ -225,7 +225,7 @@ static constexpr std::array<uint8_t, 4> extractRGBA(uint32_t num) {
 }
 
 static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
-    if (num2 >> 24 == 255)
+    if (num2 >> 24 == 255 || num1 >> 24 == 0)
         return num2;
     auto [r2, g2, b2, a2] = extractRGBA(num2);
     if (a2 == 0)

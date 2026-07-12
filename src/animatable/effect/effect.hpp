@@ -20,4 +20,8 @@ class EffectRender : public AnimatableRender {
 class Effect : public Animatable {
   public:
     virtual ~Effect() {}
+
+    bool collapsed{false};
+
+    virtual QString effectName() = 0;
 };

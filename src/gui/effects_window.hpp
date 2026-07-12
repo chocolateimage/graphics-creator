@@ -1,6 +1,9 @@
 #pragma once
 #include "scene.hpp"
+#include <QLabel>
 #include <QMenu>
+#include <QScrollArea>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -9,7 +12,16 @@ class EffectsWindow : public QWidget {
   public:
     explicit EffectsWindow(Scene *scene);
     Scene *scene;
+    QStackedWidget *stackedWidget;
+    QWidget *mainWidget;
+    QLabel *errorLabel;
+    QVBoxLayout *topMainLayout;
     QVBoxLayout *mainLayout;
+    QScrollArea *scrollArea;
+    QWidget *scrollContents;
+    QLabel *effectCountLabel;
+
+    QVBoxLayout *effectsLayout;
 
     QMenu *createEffectsMenu(QWidget *parent);
 

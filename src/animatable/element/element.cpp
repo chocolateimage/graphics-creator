@@ -21,8 +21,20 @@ void Element::addEffect(Effect *effect) {
 }
 
 void Element::insertEffect(Effect *effect, int index) {
+    connect(effect, &Effect::propertyUpdated, this,
+            [this, effect](PropertyBase *property) {
+                emit effectPropertyUpdated(effect, property);
+            });
     effects.insert(effects.begin() + index, effect);
     emit effectAdded(effect, index);
+    emit effectListUpdated();
+}
+
+void Element::removeEffect(Effect *effect) {
+    effects.erase(std::find(effects.begin(), effects.end(), effect));
+    emit effectRemoved(effect);
+    emit effectListUpdated();
+    delete effect;
 }
 
 Element::~Element() {

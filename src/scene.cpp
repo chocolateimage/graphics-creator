@@ -18,7 +18,9 @@ void Scene::insertElement(Element *element, int index) {
     emit elementAdded(element, index);
     connect(element, &Element::propertyUpdated, this,
             [this, element]() { emit elementUpdated(element); });
-    connect(element, &Element::effectAdded, this,
+    connect(element, &Element::effectPropertyUpdated, this,
+            [this, element]() { emit elementUpdated(element); });
+    connect(element, &Element::effectListUpdated, this,
             [this, element]() { emit elementUpdated(element); });
 }
 
