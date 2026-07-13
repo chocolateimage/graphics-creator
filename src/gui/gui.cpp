@@ -1938,7 +1938,10 @@ void NewMainWindow::renderTest() {
     for (auto element : renderElements) {
         delete element;
     }
-    qInfo() << "Render time:" << renderTime.nsecsElapsed() / 1000000. << "ms";
+    qInfo() << "Render time:"
+            << qPrintable(QString("%1").arg(
+                   renderTime.nsecsElapsed() / 1000000., 0, 'f', 1))
+            << "ms";
 
     QImage img = QImage((unsigned char *)frame, scene->width, scene->height,
                         scene->width * 4, QImage::Format_ARGB32)

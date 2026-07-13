@@ -12,5 +12,7 @@ class InvertEffect : public Effect {
   public:
     ~InvertEffect() {}
     QString effectName() override { return "Invert"; };
-    AnimatableRender *createClass() override;
+    AnimatableRender *createClass() override {
+        return new InvertEffectRender();
+    };
 };

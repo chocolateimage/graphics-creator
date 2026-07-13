@@ -47,6 +47,7 @@ set(graphicscreator_SRCS
     src/animatable/effect/invert_effect.cpp
     src/animatable/effect/blur_effect.cpp
     src/animatable/effect/wave_effect.cpp
+    src/animatable/effect/grid_effect.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp
     src/animatable/element/ellipse_element.cpp

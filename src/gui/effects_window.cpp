@@ -1,5 +1,6 @@
 #include "effects_window.hpp"
 #include "animatable/effect/blur_effect.hpp"
+#include "animatable/effect/grid_effect.hpp"
 #include "animatable/effect/invert_effect.hpp"
 #include "animatable/effect/wave_effect.hpp"
 #include "line.hpp"
@@ -174,6 +175,9 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QMenu *style = menu->addMenu("Style");
     action = style->addAction("Wave");
     action->setData("wave");
+    QMenu *generate = menu->addMenu("Generate");
+    action = generate->addAction("Grid");
+    action->setData("grid");
 
     connect(menu, &QMenu::triggered, this, &EffectsWindow::addEffectTriggered);
 
@@ -190,6 +194,8 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
         effect = new BlurEffect();
     } else if (effectType == "wave") {
         effect = new WaveEffect();
+    } else if (effectType == "grid") {
+        effect = new GridEffect();
     }
 
     if (effect) {

@@ -3,12 +3,12 @@
 #include <cmath>
 #include <cstdint>
 
-static constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
+inline constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
                                     uint8_t alpha) {
     return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
-static constexpr inline int pixelIndex(int x, int y, int stride) {
+inline constexpr int pixelIndex(int x, int y, int stride) {
     return y * stride + x;
 }
 
