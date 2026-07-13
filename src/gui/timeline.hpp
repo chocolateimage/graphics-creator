@@ -1,5 +1,6 @@
 #pragma once
 #include "scene.hpp"
+#include <QPushButton>
 #include <QScrollArea>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -25,6 +26,10 @@ class TimelineWidget : public QWidget {
     Scene *scene;
     void updateContents();
     void timelineScrolled();
+
+  private:
+    void addProperty(PropertyBase *property, bool *stripe,
+                     QPushButton *elementButton);
 
   public slots:
     void togglePlay();

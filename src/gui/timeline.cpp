@@ -122,6 +122,8 @@ bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
 }
 
 void TimelineWidget::updateContents() {
+    qInfo() << "updateContents";
+
     while (timelineLeftLayout->count() > 0) {
         auto item = timelineLeftLayout->takeAt(0);
         QWidget *widget = item->widget();
@@ -137,9 +139,9 @@ void TimelineWidget::updateContents() {
 
     bool stripe = false;
     for (auto element : scene->elements) {
-        disconnect(element, &Element::propertyIsAnimatingUpdated, this,
+        disconnect(element, &Element::effectListUpdated, this,
                    &TimelineWidget::updateContents);
-        connect(element, &Element::propertyIsAnimatingUpdated, this,
+        connect(element, &Element::effectListUpdated, this,
                 &TimelineWidget::updateContents);
         disconnect(element, &Element::propertyUpdated, timelineContent,
                    &TimelineContentWidget::updatePaint);
@@ -211,67 +213,16 @@ void TimelineWidget::updateContents() {
 
         if (!element->collapsed) {
             for (auto property : element->properties) {
-                if (!property->isAnimatable())
+                addProperty(property, &stripe, elementButton);
+            }
+
+            for (auto effect : element->effects) {
+                if (effect->collapsed)
                     continue;
 
-                QPushButton *propertyButton =
-                    new QPushButton(timelineLeftContents);
-                propertyButton->setObjectName("property");
-                QString background = "transparent";
-                QString backgroundSelected = "rgba(128,128,128,0.1)";
-                if (stripe) {
-                    background = "palette(alternate-base)";
-                    backgroundSelected = "rgba(128,128,128,0.13)";
+                for (auto property : effect->properties) {
+                    addProperty(property, &stripe, elementButton);
                 }
-                propertyButton->setStyleSheet(
-                    "#property {"
-                    "   text-align: left;"
-                    "   background: " +
-                    background +
-                    ";"
-                    "   border-radius: 0px;"
-                    "}"
-                    "#property[flat=\"false\"] {"
-                    "   background: " +
-                    backgroundSelected +
-                    ";"
-                    "   border-left: 3px solid palette(accent);"
-                    "}");
-                propertyButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
-                propertyButton->setFlat(!selected);
-                connect(propertyButton, &QPushButton::clicked, elementButton,
-                        &QPushButton::click);
-
-                QHBoxLayout *propertyLayout = new QHBoxLayout(propertyButton);
-                propertyLayout->setContentsMargins(24, 0, 0, 0);
-
-                QPushButton *toggleAnimationButton =
-                    new QPushButton(propertyButton);
-                if (property->isAnimating) {
-                    KIconColors colors;
-                    colors.setText(palette().accent().color());
-                    toggleAnimationButton->setIcon(
-                        KDE::icon("keyframe", colors));
-                    toggleAnimationButton->setToolTip("Animation enabled");
-                } else {
-                    toggleAnimationButton->setIcon(
-                        QIcon::fromTheme("keyframe-disable"));
-                    toggleAnimationButton->setToolTip("Animation disabled");
-                }
-                toggleAnimationButton->setFlat(true);
-                toggleAnimationButton->setFixedWidth(32);
-                connect(toggleAnimationButton, &QPushButton::clicked, this,
-                        [this, property]() {
-                            property->toggleAnimating({scene->currentFrame});
-                        });
-                propertyLayout->addWidget(toggleAnimationButton);
-
-                QLabel *label = new QLabel(propertyButton);
-                label->setText(property->getDisplayName());
-                propertyLayout->addWidget(label);
-
-                timelineLeftLayout->addWidget(propertyButton);
-                stripe = !stripe;
             }
         }
     }
@@ -280,6 +231,84 @@ void TimelineWidget::updateContents() {
     timelineLeftLayout->addStretch();
 
     timelineScrolled();
+}
+
+void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
+                                 QPushButton *elementButton) {
+    if (!property->isAnimatable()) {
+        return;
+    }
+
+    QPushButton *propertyButton = new QPushButton(timelineLeftContents);
+    propertyButton->setObjectName("property");
+    QString background = "transparent";
+    QString backgroundSelected = "rgba(128,128,128,0.1)";
+    if (*stripe) {
+        background = "palette(alternate-base)";
+        backgroundSelected = "rgba(128,128,128,0.13)";
+    }
+    propertyButton->setStyleSheet("#property {"
+                                  "   text-align: left;"
+                                  "   background: " +
+                                  background +
+                                  ";"
+                                  "   border-radius: 0px;"
+                                  "}"
+                                  "#property[flat=\"false\"] {"
+                                  "   background: " +
+                                  backgroundSelected +
+                                  ";"
+                                  "   border-left: 3px solid palette(accent);"
+                                  "}");
+    propertyButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+    propertyButton->setFlat(elementButton->isFlat());
+    connect(propertyButton, &QPushButton::clicked, elementButton,
+            &QPushButton::click);
+
+    QHBoxLayout *propertyLayout = new QHBoxLayout(propertyButton);
+    propertyLayout->setContentsMargins(24, 0, 0, 0);
+
+    QPushButton *toggleAnimationButton = new QPushButton(propertyButton);
+
+    auto updateAnimating =
+        [this, property, toggleAnimationButton](PropertyBase *updatedProperty) {
+            if (property != updatedProperty) {
+                return;
+            }
+
+            if (property->isAnimating) {
+                KIconColors colors;
+                colors.setText(palette().accent().color());
+                toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
+                toggleAnimationButton->setToolTip("Animation enabled");
+            } else {
+                toggleAnimationButton->setIcon(
+                    QIcon::fromTheme("keyframe-disable"));
+                toggleAnimationButton->setToolTip("Animation disabled");
+            }
+
+            timelineContent->updateContents();
+        };
+
+    updateAnimating(property);
+
+    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated,
+            propertyButton, updateAnimating);
+
+    toggleAnimationButton->setFlat(true);
+    toggleAnimationButton->setFixedWidth(32);
+    connect(toggleAnimationButton, &QPushButton::clicked, this,
+            [this, property]() {
+                property->toggleAnimating({scene->currentFrame});
+            });
+    propertyLayout->addWidget(toggleAnimationButton);
+
+    QLabel *label = new QLabel(propertyButton);
+    label->setText(property->getDisplayName());
+    propertyLayout->addWidget(label);
+
+    timelineLeftLayout->addWidget(propertyButton);
+    *stripe = !*stripe;
 }
 
 void TimelineWidget::timelineScrolled() {
@@ -363,6 +392,8 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 
         if (element->collapsed)
             continue;
+
+        // TODO: effect properties
 
         // --- Properties ---
         for (auto property : element->properties) {
