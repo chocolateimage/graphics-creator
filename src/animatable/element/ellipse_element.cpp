@@ -19,7 +19,7 @@ bool EllipseElementRender::render(uint32_t *target) {
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
             Color c = getBrushPixel(fill.get(), x, y, w, h);
-            float d = distance((double)x / w, (double)y / h, .5, .5);
+            float d = distance((x + 1.) / (w + 1), (y + 1.) / (h + 1), .5, .5);
 
             c.a *= linearstep(.5, .5 - stepDistance, d);
 
