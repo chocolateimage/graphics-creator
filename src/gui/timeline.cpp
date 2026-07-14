@@ -619,18 +619,45 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             return;
         }
 
-        selecting = true;
         selectStart = event->pos() - QPoint(1, 1);
         selectEnd = selectStart;
-        selectedKeyframes.clear();
+
+        // TODO: click should select keyframe but only on release and when not
+        // moving or selecting (maybe combine with select or something?)
+
+        // selectedKeyframes.clear();
+        // for (auto keyframe : keyframeData) {
+        //     QRect keyframeRect =
+        //         QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
+        //     if (keyframeRect.contains(selectStart)) {
+        //         selectedKeyframes.append(keyframe.keyframe);
+        //         break;
+        //     }
+        // }
+
+        KeyframeBase *clickedKeyframe{nullptr};
         for (auto keyframe : keyframeData) {
             QRect keyframeRect =
                 QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
             if (keyframeRect.contains(selectStart)) {
-                selectedKeyframes.append(keyframe.keyframe);
+                clickedKeyframe = keyframe.keyframe;
                 break;
             }
         }
+
+        if (clickedKeyframe) {
+            isMovingKeyframes = true;
+            selectStart = event->pos();
+
+            if (!selectedKeyframes.contains(clickedKeyframe)) {
+                selectedKeyframes.clear();
+                selectedKeyframes.append(clickedKeyframe);
+            }
+        } else {
+            selecting = true;
+        }
+
+        update();
     } else if (event->buttons() & Qt::RightButton) {
         KeyframeBase *hoveredKeyframe{nullptr};
         selectedKeyframes.clear();
@@ -772,6 +799,25 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
                 if (selectionRect.intersects(keyframeRect)) {
                     selectedKeyframes.append(keyframe.keyframe);
                 }
+            }
+            update();
+        }
+
+        if (isMovingKeyframes) {
+            // TODO: maybe not good? probably need a constant start frame for
+            // each keyframe and then add the frames since the start of the
+            // mouse move instead of changing the start each pixel
+            selectEnd = event->pos();
+            QPoint moved = selectEnd - selectStart;
+            selectStart = selectEnd;
+
+            int x = moved.x();
+            double seconds = x / secondsToPixels();
+            int frames = seconds * timelineWidget->scene->frameRate;
+            for (auto keyframe : selectedKeyframes) {
+                // TODO: not good. problems with overlapping, sorting, whatever
+
+                keyframe->frame += frames;
             }
             update();
         }

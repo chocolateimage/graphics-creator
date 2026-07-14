@@ -76,6 +76,7 @@ class TimelineContentWidget : public QWidget {
     bool selecting{};
     QPoint selectStart;
     QPoint selectEnd;
+    bool isMovingKeyframes{false};
 
     void paintProperty(QPainter &painter, PropertyBase *property, bool *stripe,
                        int startOffset, double *yPos);
