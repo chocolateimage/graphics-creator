@@ -147,6 +147,10 @@ void TimelineWidget::updateContents() {
                    &TimelineContentWidget::updatePaint);
         connect(element, &Element::propertyUpdated, timelineContent,
                 &TimelineContentWidget::updatePaint);
+        disconnect(element, &Element::effectPropertyUpdated, timelineContent,
+                   &TimelineContentWidget::updatePaint);
+        connect(element, &Element::effectPropertyUpdated, timelineContent,
+                &TimelineContentWidget::updatePaint);
         bool selected = scene->selectedElements.contains(element);
         QPushButton *elementButton = new QPushButton(timelineLeftContents);
         elementButton->setStyleSheet(
@@ -213,15 +217,60 @@ void TimelineWidget::updateContents() {
 
         if (!element->collapsed) {
             for (auto property : element->properties) {
-                addProperty(property, &stripe, elementButton);
+                addProperty(property, &stripe, elementButton, 24);
             }
 
             for (auto effect : element->effects) {
+                if (effect->properties.empty())
+                    continue;
+
+                QPushButton *effectButton =
+                    new QPushButton(timelineLeftContents);
+                QString background = "transparent";
+                QString backgroundSelected = "rgba(128,128,128,0.1)";
+                if (stripe) {
+                    background = "palette(alternate-base)";
+                    backgroundSelected = "rgba(128,128,128,0.13)";
+                }
+                effectButton->setStyleSheet(
+                    "QPushButton {"
+                    "   text-align: left;"
+                    "   padding-left: 32px;"
+                    "   background: " +
+                    background +
+                    ";"
+                    "   border-radius: 0px;"
+                    "   font-weight: 600;"
+                    "}"
+                    "QPushButton[flat=\"false\"] {"
+                    "   background: " +
+                    backgroundSelected +
+                    ";"
+                    "   border-left: 3px solid palette(accent);"
+                    "   padding-left: 29px;"
+                    "}");
+                if (effect->collapsed) {
+                    effectButton->setIcon(QIcon::fromTheme("arrow-right"));
+                } else {
+                    effectButton->setIcon(QIcon::fromTheme("arrow-down"));
+                }
+                effectButton->setText(effect->effectName());
+                effectButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+                effectButton->setFlat(!selected);
+                connect(effectButton, &QPushButton::clicked, this,
+                        [this, effect]() {
+                            effect->collapsed = !effect->collapsed;
+                            QTimer::singleShot(0, this,
+                                               &TimelineWidget::updateContents);
+                        });
+                timelineLeftLayout->addWidget(effectButton);
+                stripe = !stripe;
+
                 if (effect->collapsed)
                     continue;
 
                 for (auto property : effect->properties) {
-                    addProperty(property, &stripe, elementButton);
+                    addProperty(property, &stripe, elementButton, 48);
                 }
             }
         }
@@ -234,7 +283,7 @@ void TimelineWidget::updateContents() {
 }
 
 void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
-                                 QPushButton *elementButton) {
+                                 QPushButton *elementButton, int indent) {
     if (!property->isAnimatable()) {
         return;
     }
@@ -266,7 +315,7 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
             &QPushButton::click);
 
     QHBoxLayout *propertyLayout = new QHBoxLayout(propertyButton);
-    propertyLayout->setContentsMargins(24, 0, 0, 0);
+    propertyLayout->setContentsMargins(indent, 0, 0, 0);
 
     QPushButton *toggleAnimationButton = new QPushButton(propertyButton);
 
@@ -340,11 +389,29 @@ void TimelineContentWidget::updateContents() {
 
         if (element->collapsed)
             continue;
+
         for (auto property : element->properties) {
             if (!property->isAnimatable())
                 continue;
 
             height += PROPERTY_TRACK_HEIGHT;
+        }
+
+        for (auto effect : element->effects) {
+            if (effect->properties.empty())
+                continue;
+
+            height += PROPERTY_TRACK_HEIGHT;
+
+            if (effect->collapsed)
+                continue;
+
+            for (auto property : effect->properties) {
+                if (!property->isAnimatable())
+                    continue;
+
+                height += PROPERTY_TRACK_HEIGHT;
+            }
         }
     }
 
@@ -363,6 +430,69 @@ double TimelineContentWidget::secondsToPixels(double seconds) {
 
 double TimelineContentWidget::headerPos() {
     return timelineWidget->timelineMainScrollArea->verticalScrollBar()->value();
+}
+
+void TimelineContentWidget::paintProperty(QPainter &painter,
+                                          PropertyBase *property, bool *stripe,
+                                          int startOffset, double *yPos) {
+    if (!property->isAnimatable())
+        return;
+
+    if (*stripe) {
+        painter.fillRect(-startOffset, *yPos, width(), PROPERTY_TRACK_HEIGHT,
+                         palette().alternateBase());
+    }
+    *stripe = !*stripe;
+
+    if (property->isAnimating) {
+        for (auto keyframe : property->keyframes) {
+            // Diamonds
+            bool isSelected = selectedKeyframes.contains(keyframe);
+            bool isLinear = keyframe->easing == QEasingCurve::Linear;
+
+            double kXPos = secondsToPixels(keyframe->frame /
+                                           timelineWidget->scene->frameRate);
+            double kWidth = 10;
+            double kYPos = *yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
+
+            QPolygonF polygon;
+
+            if (isLinear) {
+                polygon << QPointF(kXPos, kYPos);
+                polygon << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth / 2.0);
+                polygon << QPointF(kXPos, kYPos + kWidth);
+                polygon << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth / 2.0);
+            } else {
+                polygon << QPointF(kXPos - kWidth / 2.0, kYPos);
+                polygon << QPointF(kXPos + kWidth / 2.0, kYPos);
+                polygon << QPointF(kXPos + 1, kYPos + kWidth / 2.0);
+                polygon << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth);
+                polygon << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth);
+                polygon << QPointF(kXPos - 1, kYPos + kWidth / 2.0);
+            }
+
+            if (isSelected) {
+                painter.setBrush(Qt::NoBrush);
+                painter.setPen(QPen(palette().accent().color().lighter(), 3,
+                                    Qt::SolidLine, Qt::SquareCap,
+                                    Qt::RoundJoin));
+                painter.drawPolygon(polygon);
+            }
+            painter.setBrush(QColor(128, 128, 128));
+            painter.setPen(Qt::NoPen);
+            painter.drawPolygon(polygon);
+
+            keyframeData.append({
+                .keyframe = keyframe,
+                .x = kXPos + TIMELINE_START_OFFSET - kWidth / 2.0,
+                .y = kYPos,
+                .w = kWidth,
+                .h = kWidth,
+            });
+        }
+    }
+
+    *yPos += PROPERTY_TRACK_HEIGHT;
 }
 
 void TimelineContentWidget::paintEvent(QPaintEvent *) {
@@ -393,11 +523,14 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
         if (element->collapsed)
             continue;
 
-        // TODO: effect properties
-
         // --- Properties ---
         for (auto property : element->properties) {
-            if (!property->isAnimatable())
+            paintProperty(painter, property, &stripe, startOffset, &yPos);
+        }
+
+        // --- Effects ---
+        for (auto effect : element->effects) {
+            if (effect->properties.empty())
                 continue;
 
             if (stripe) {
@@ -406,61 +539,14 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                                  palette().alternateBase());
             }
             stripe = !stripe;
-
-            if (property->isAnimating) {
-                for (auto keyframe : property->keyframes) {
-                    // Diamonds
-                    bool isSelected = selectedKeyframes.contains(keyframe);
-                    bool isLinear = keyframe->easing == QEasingCurve::Linear;
-
-                    double kXPos = secondsToPixels(
-                        keyframe->frame / timelineWidget->scene->frameRate);
-                    double kWidth = 10;
-                    double kYPos =
-                        yPos + PROPERTY_TRACK_HEIGHT / 2.0 - kWidth / 2.0;
-
-                    QPolygonF polygon;
-
-                    if (isLinear) {
-                        polygon << QPointF(kXPos, kYPos);
-                        polygon << QPointF(kXPos + kWidth / 2.0,
-                                           kYPos + kWidth / 2.0);
-                        polygon << QPointF(kXPos, kYPos + kWidth);
-                        polygon << QPointF(kXPos - kWidth / 2.0,
-                                           kYPos + kWidth / 2.0);
-                    } else {
-                        polygon << QPointF(kXPos - kWidth / 2.0, kYPos);
-                        polygon << QPointF(kXPos + kWidth / 2.0, kYPos);
-                        polygon << QPointF(kXPos + 1, kYPos + kWidth / 2.0);
-                        polygon
-                            << QPointF(kXPos + kWidth / 2.0, kYPos + kWidth);
-                        polygon
-                            << QPointF(kXPos - kWidth / 2.0, kYPos + kWidth);
-                        polygon << QPointF(kXPos - 1, kYPos + kWidth / 2.0);
-                    }
-
-                    if (isSelected) {
-                        painter.setBrush(Qt::NoBrush);
-                        painter.setPen(
-                            QPen(palette().accent().color().lighter(), 3,
-                                 Qt::SolidLine, Qt::SquareCap, Qt::RoundJoin));
-                        painter.drawPolygon(polygon);
-                    }
-                    painter.setBrush(QColor(128, 128, 128));
-                    painter.setPen(Qt::NoPen);
-                    painter.drawPolygon(polygon);
-
-                    keyframeData.append({
-                        .keyframe = keyframe,
-                        .x = kXPos + TIMELINE_START_OFFSET - kWidth / 2.0,
-                        .y = kYPos,
-                        .w = kWidth,
-                        .h = kWidth,
-                    });
-                }
-            }
-
             yPos += PROPERTY_TRACK_HEIGHT;
+
+            if (effect->collapsed)
+                continue;
+
+            for (auto property : effect->properties) {
+                paintProperty(painter, property, &stripe, startOffset, &yPos);
+            }
         }
     }
 

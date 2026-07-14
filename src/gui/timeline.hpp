@@ -29,7 +29,7 @@ class TimelineWidget : public QWidget {
 
   private:
     void addProperty(PropertyBase *property, bool *stripe,
-                     QPushButton *elementButton);
+                     QPushButton *elementButton, int indent);
 
   public slots:
     void togglePlay();
@@ -76,4 +76,7 @@ class TimelineContentWidget : public QWidget {
     bool selecting{};
     QPoint selectStart;
     QPoint selectEnd;
+
+    void paintProperty(QPainter &painter, PropertyBase *property, bool *stripe,
+                       int startOffset, double *yPos);
 };
