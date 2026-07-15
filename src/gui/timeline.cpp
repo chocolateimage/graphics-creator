@@ -607,6 +607,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
     mouseHeader = false;
     selecting = false;
+    isMovingKeyframes = false;
     double headerPos = this->headerPos();
     if (event->buttons() & Qt::LeftButton) {
         if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
@@ -619,21 +620,9 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             return;
         }
 
+        mouseClickStart = event->pos();
         selectStart = event->pos() - QPoint(1, 1);
         selectEnd = selectStart;
-
-        // TODO: click should select keyframe but only on release and when not
-        // moving or selecting (maybe combine with select or something?)
-
-        // selectedKeyframes.clear();
-        // for (auto keyframe : keyframeData) {
-        //     QRect keyframeRect =
-        //         QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
-        //     if (keyframeRect.contains(selectStart)) {
-        //         selectedKeyframes.append(keyframe.keyframe);
-        //         break;
-        //     }
-        // }
 
         KeyframeBase *clickedKeyframe{nullptr};
         for (auto keyframe : keyframeData) {
@@ -827,6 +816,20 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
 void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (mouseHeader) {
         emit timelineWidget->scene->framesChanging(false);
+    }
+    if (selecting || isMovingKeyframes) {
+        if ((mouseClickStart - event->pos()).isNull()) {
+            selectedKeyframes.clear();
+            for (auto keyframe : keyframeData) {
+                QRect keyframeRect =
+                    QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
+                if (keyframeRect.contains(mouseClickStart)) {
+                    selectedKeyframes.append(keyframe.keyframe);
+                    break;
+                }
+            }
+            update();
+        }
     }
     if (selecting) {
         selecting = false;
