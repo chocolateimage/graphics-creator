@@ -2,6 +2,7 @@
 #include "animatable/effect/blur_effect.hpp"
 #include "animatable/effect/grid_effect.hpp"
 #include "animatable/effect/invert_effect.hpp"
+#include "animatable/effect/scale_effect.hpp"
 #include "animatable/effect/wave_effect.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
@@ -172,6 +173,8 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QMenu *tools = menu->addMenu("Tools");
     action = tools->addAction("Invert");
     action->setData("invert");
+    action = tools->addAction("Scale");
+    action->setData("scale");
     QMenu *style = menu->addMenu("Style");
     action = style->addAction("Wave");
     action->setData("wave");
@@ -196,6 +199,8 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
         effect = new WaveEffect();
     } else if (effectType == "grid") {
         effect = new GridEffect();
+    } else if (effectType == "scale") {
+        effect = new ScaleEffect();
     }
 
     if (effect) {

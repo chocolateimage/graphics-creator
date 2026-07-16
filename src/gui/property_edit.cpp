@@ -69,6 +69,15 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         }
     } else if (variantType == VariantTypeEnum::Double) {
         auto input = new DraggableDoubleSpinBox(this);
+
+        auto propertyTyped = (Property<double> *)property;
+        if (propertyTyped->hasMin) {
+            min = propertyTyped->min;
+        }
+        if (propertyTyped->hasMax) {
+            max = propertyTyped->max;
+        }
+
         input->setMinimum(min);
         input->setMaximum(max);
         input->setValue(variant.get<double>());
