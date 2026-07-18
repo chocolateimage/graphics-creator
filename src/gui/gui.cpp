@@ -1706,6 +1706,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         ads::CDockManager::DefaultAutoHideConfig);
 
     QMenuBar *menuBar = new QMenuBar(this);
+
+    QMenu *fileMenu = menuBar->addMenu("File");
+
+    QAction *quitAction = fileMenu->addAction("Quit");
+    quitAction->setShortcut(QKeySequence::Quit);
+    quitAction->setIcon(QIcon::fromTheme("application-exit"));
+    connect(quitAction, &QAction::triggered, this, &NewMainWindow::close);
+
     QMenu *editMenu = menuBar->addMenu("Edit");
     QAction *undoAction = undoStack->createUndoAction(this);
     undoAction->setShortcut(QKeySequence::Undo);
