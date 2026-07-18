@@ -51,7 +51,12 @@ class ImageViewer : public QWidget {
     QPoint getActualPickPosition();
     void updateCursor();
     Scene *scene;
+
     QPointF pixelToViewport(QPointF pos);
+    QPoint viewportToPixel(QPointF pos);
+
+    bool isMovingElements{false};
+    QPoint startMovePosition;
 
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -65,6 +70,7 @@ class ImageViewer : public QWidget {
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
+    void playbackStateChanged(bool playing);
 
   signals:
     void pixelPicked(QString id, QPoint position);

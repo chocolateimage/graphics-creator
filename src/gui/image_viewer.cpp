@@ -82,12 +82,16 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     if (scene) {
         connect(scene, &Scene::elementSelectionChanged, this,
                 &ImageViewer::elementSelectionChanged);
+        connect(scene, &Scene::playbackStateChanged, this,
+                &ImageViewer::playbackStateChanged);
     }
 }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
     update();
 }
+
+void ImageViewer::playbackStateChanged(bool playing) { update(); }
 
 QPoint ImageViewer::getActualPickPosition() {
     if (startPickPosition.x() != -1 || startPickPosition.y() != -1) {
@@ -238,7 +242,7 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
                          "Left click to confirm. Right click to cancel.");
     }
 
-    if (scene) {
+    if (scene && !scene->isPlaying()) {
         FrameInfo fi = {scene->currentFrame};
         painter.setPen(QPen(palette().accent(), 2));
         painter.setBrush(Qt::NoBrush);
@@ -266,6 +270,18 @@ QPointF ImageViewer::pixelToViewport(QPointF pos) {
     return pos;
 }
 
+QPoint ImageViewer::viewportToPixel(QPointF pos) {
+    QRectF fitRect = fittedRect();
+    pos -= {width() / 2.f, height() / 2.f};
+    pos /= zoom;
+    pos -= {width() / -2.f, height() / -2.f};
+    pos -= movePos;
+    pos -= fitRect.topLeft();
+    pos = QPointF(pos.x() / fitRect.width() * image.width(),
+                  pos.y() / fitRect.height() * image.height());
+    return {qFloor(pos.x()), qFloor(pos.y())};
+}
+
 QRectF ImageViewer::fittedRect() {
     float w = width();
     float h = height();
@@ -290,16 +306,26 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     if (isPicking) {
         QRectF fitRect = fittedRect();
         QPointF pos = current;
-        pos -= {width() / 2.f, height() / 2.f};
-        pos /= zoom;
-        pos -= {width() / -2.f, height() / -2.f};
-        pos -= movePos;
-        pos -= fitRect.topLeft();
-        pos = QPointF(pos.x() / fitRect.width() * image.width(),
-                      pos.y() / fitRect.height() * image.height());
-        pickPosition = {qFloor(pos.x()), qFloor(pos.y())};
+        pickPosition = viewportToPixel(current);
 
         update();
+    }
+
+    if (isMovingElements) {
+        QPoint newPos = viewportToPixel(current);
+        QPoint diff = newPos - startMovePosition;
+        startMovePosition = newPos;
+
+        FrameInfo frameInfo{scene->currentFrame};
+
+        for (auto element : scene->selectedElements) {
+            element->blockSignals(true);
+            element->x.set(element->x.get(frameInfo) + diff.x(), frameInfo);
+            element->blockSignals(false);
+            element->y.set(element->y.get(frameInfo) + diff.y(), frameInfo);
+        }
+
+        return;
     }
 
     if (!dragging)
@@ -370,8 +396,46 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
         }
     }
 
-    if (event->button() == Qt::LeftButton ||
-        event->button() == Qt::MiddleButton) {
+    if (event->button() == Qt::LeftButton) {
+        if (scene && !scene->isPlaying()) {
+            Element *clickedElement{nullptr};
+            startMovePosition = viewportToPixel(event->position());
+
+            FrameInfo frameInfo = {scene->currentFrame};
+            for (auto element : scene->elements) {
+                int x = element->x.get(frameInfo);
+                int y = element->y.get(frameInfo);
+                int w = element->w.get(frameInfo);
+                int h = element->h.get(frameInfo);
+                if (QRect(x, y, w, h).contains(startMovePosition)) {
+                    clickedElement = element;
+                    break;
+                }
+            }
+
+            if (clickedElement) {
+                isMovingElements = true;
+                if (event->modifiers().testFlag(Qt::ControlModifier) ||
+                    event->modifiers().testFlag(Qt::ShiftModifier)) {
+                    QList<Element *> newSelected = scene->selectedElements;
+                    if (newSelected.contains(clickedElement)) {
+                        newSelected.removeOne(clickedElement);
+                    } else {
+                        newSelected.append(clickedElement);
+                    }
+                    scene->selectElements(newSelected);
+                } else {
+                    if (!scene->selectedElements.contains(clickedElement)) {
+                        scene->selectElements({clickedElement});
+                    }
+                }
+            } else {
+                scene->selectElements({});
+            }
+        }
+    }
+
+    if (event->button() == Qt::MiddleButton) {
         if (!dragging && zoom != 1) {
             dragging = true;
             lastDragMousePos = event->position();
@@ -416,8 +480,13 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
         }
     }
 
-    if (event->button() == Qt::LeftButton ||
-        event->button() == Qt::MiddleButton) {
+    if (event->button() == Qt::LeftButton) {
+        if (isMovingElements) {
+            isMovingElements = false;
+        }
+    }
+
+    if (event->button() == Qt::MiddleButton) {
         if (dragging) {
             dragging = false;
             QGuiApplication::restoreOverrideCursor();
@@ -472,9 +541,5 @@ void ImageViewer::updateCursor() {
         return;
     }
 
-    if (zoom == 1) {
-        setCursor(Qt::CursorShape::ArrowCursor);
-    } else {
-        setCursor(Qt::CursorShape::OpenHandCursor);
-    }
+    setCursor(Qt::CursorShape::ArrowCursor);
 }

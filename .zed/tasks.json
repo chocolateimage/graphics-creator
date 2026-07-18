@@ -1,0 +1,6 @@
+[
+  {
+    "label": "Build and launch",
+    "command": "cd build && ninja && ./graphics-creator",
+  },
+]
