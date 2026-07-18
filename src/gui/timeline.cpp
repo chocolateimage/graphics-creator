@@ -443,7 +443,6 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
     *stripe = !*stripe;
 
     if (property->isAnimating) {
-        int index = 0;
         for (auto keyframe : property->keyframes) {
             // Diamonds
             bool isSelected = selectedKeyframes.contains(keyframe);
@@ -481,10 +480,6 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
             painter.setPen(Qt::NoPen);
             painter.drawPolygon(polygon);
 
-            painter.setBrush(Qt::NoBrush);
-            painter.setPen(QColor(255, 255, 255));
-            painter.drawText(kXPos, kYPos, QString::number(index));
-
             keyframeData.append({
                 .keyframe = keyframe,
                 .x = kXPos + TIMELINE_START_OFFSET - kWidth / 2.0,
@@ -492,8 +487,6 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
                 .w = kWidth,
                 .h = kWidth,
             });
-
-            index++;
         }
     }
 
@@ -607,6 +600,20 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
         painter.setBrush(selectionFill);
         painter.drawRect(QRect(selectStart, selectEnd).normalized());
     }
+
+    if (isMovingKeyframes && hasMoved) {
+        painter.resetTransform();
+
+        painter.setBrush(Qt::NoBrush);
+        painter.setPen(palette().text().color());
+
+        for (auto keyframe : keyframeData) {
+            if (selectedKeyframes.contains(keyframe.keyframe)) {
+                painter.drawText(keyframe.x, keyframe.y,
+                                 QString::number(keyframe.keyframe->frame));
+            }
+        }
+    }
 }
 
 void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
@@ -614,6 +621,7 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
     selecting = false;
     isMovingKeyframes = false;
     handleMouseRelease = true;
+    hasMoved = false;
     double headerPos = this->headerPos();
     if (event->buttons() & Qt::LeftButton) {
         if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
@@ -813,6 +821,7 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
         }
 
         if (isMovingKeyframes) {
+            hasMoved = true;
             selectEnd = event->pos();
             QPoint moved = selectEnd - selectStart;
 
@@ -825,7 +834,7 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
             int index = 0;
             for (auto keyframe : selectedKeyframes) {
                 if (startKeyframePositions[index] + frames < 0) {
-                    frames += frames - startKeyframePositions[index];
+                    frames = -startKeyframePositions[index];
                 }
                 index++;
             }
@@ -860,6 +869,11 @@ void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {
     }
     if (selecting) {
         selecting = false;
+        update();
+    }
+
+    if (isMovingKeyframes) {
+        isMovingKeyframes = false;
         update();
     }
 }

@@ -78,6 +78,7 @@ class TimelineContentWidget : public QWidget {
     QPoint selectEnd;
     QPoint mouseClickStart;
     bool isMovingKeyframes{false};
+    bool hasMoved{false};
     bool handleMouseRelease{false};
     QList<int> startKeyframePositions;
 
