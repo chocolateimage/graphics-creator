@@ -1,5 +1,6 @@
 #include "effects_window.hpp"
 #include "animatable/effect/blur_effect.hpp"
+#include "animatable/effect/crt_effect.hpp"
 #include "animatable/effect/grid_effect.hpp"
 #include "animatable/effect/invert_effect.hpp"
 #include "animatable/effect/scale_effect.hpp"
@@ -178,6 +179,8 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QMenu *style = menu->addMenu("Style");
     action = style->addAction("Wave");
     action->setData("wave");
+    action = style->addAction("MattiasCRT");
+    action->setData("crt");
     QMenu *generate = menu->addMenu("Generate");
     action = generate->addAction("Grid");
     action->setData("grid");
@@ -201,6 +204,8 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
         effect = new GridEffect();
     } else if (effectType == "scale") {
         effect = new ScaleEffect();
+    } else if (effectType == "crt") {
+        effect = new CrtEffect();
     }
 
     if (effect) {

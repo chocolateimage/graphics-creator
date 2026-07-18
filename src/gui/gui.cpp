@@ -1910,7 +1910,7 @@ void NewMainWindow::renderTest() {
             Rect effectBox = effect->getRenderBox(finalRect);
             effect->currentFrame = scene->currentFrame;
             effect->currentSeconds =
-                (double)scene->currentFrame / scene->durationFrames;
+                (double)scene->currentFrame / scene->frameRate;
             effect->renderBox = effectBox;
             uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
             memset(effectValues, 0, effectBox.w * effectBox.h * 4);

@@ -23,7 +23,7 @@ class WaveEffect : public Effect {
 
     Property<int> extend{this, "extend", 100};
     Property<int> infrequency{this, "infrequency", 100};
-    Property<int> speed{this, "speed", 30};
+    Property<int> speed{this, "speed", 5};
 
     AnimatableRender *createClass() override { return new WaveEffectRender(); }
 };
