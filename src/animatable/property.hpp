@@ -125,6 +125,37 @@ class PropertyBase {
         return false;
     }
 
+    bool move(int from, int to) {
+        if (from == to)
+            return false;
+
+        if (to < 0)
+            return false;
+
+        KeyframeBase *fromKeyframe{nullptr};
+        for (auto keyframe : keyframes) {
+            if (keyframe->frame == to) {
+                return false;
+            }
+            if (keyframe->frame == from) {
+                fromKeyframe = keyframe;
+            }
+        }
+
+        if (!fromKeyframe)
+            return false;
+
+        fromKeyframe->frame = to;
+
+        std::sort(keyframes.begin(), keyframes.end(),
+                  [](KeyframeBase *a, KeyframeBase *b) {
+                      return a->frame < b->frame;
+                  });
+
+        animatable->_propertyUpdated(this);
+        return true;
+    }
+
     bool isAnimating{false};
 };
 

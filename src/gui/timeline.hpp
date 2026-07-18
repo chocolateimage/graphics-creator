@@ -78,6 +78,8 @@ class TimelineContentWidget : public QWidget {
     QPoint selectEnd;
     QPoint mouseClickStart;
     bool isMovingKeyframes{false};
+    bool handleMouseRelease{false};
+    QList<int> startKeyframePositions;
 
     void paintProperty(QPainter &painter, PropertyBase *property, bool *stripe,
                        int startOffset, double *yPos);

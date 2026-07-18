@@ -122,8 +122,6 @@ bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
 }
 
 void TimelineWidget::updateContents() {
-    qInfo() << "updateContents";
-
     while (timelineLeftLayout->count() > 0) {
         auto item = timelineLeftLayout->takeAt(0);
         QWidget *widget = item->widget();
@@ -445,6 +443,7 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
     *stripe = !*stripe;
 
     if (property->isAnimating) {
+        int index = 0;
         for (auto keyframe : property->keyframes) {
             // Diamonds
             bool isSelected = selectedKeyframes.contains(keyframe);
@@ -482,6 +481,10 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
             painter.setPen(Qt::NoPen);
             painter.drawPolygon(polygon);
 
+            painter.setBrush(Qt::NoBrush);
+            painter.setPen(QColor(255, 255, 255));
+            painter.drawText(kXPos, kYPos, QString::number(index));
+
             keyframeData.append({
                 .keyframe = keyframe,
                 .x = kXPos + TIMELINE_START_OFFSET - kWidth / 2.0,
@@ -489,6 +492,8 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
                 .w = kWidth,
                 .h = kWidth,
             });
+
+            index++;
         }
     }
 
@@ -608,6 +613,7 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
     mouseHeader = false;
     selecting = false;
     isMovingKeyframes = false;
+    handleMouseRelease = true;
     double headerPos = this->headerPos();
     if (event->buttons() & Qt::LeftButton) {
         if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
@@ -638,9 +644,23 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             isMovingKeyframes = true;
             selectStart = event->pos();
 
-            if (!selectedKeyframes.contains(clickedKeyframe)) {
-                selectedKeyframes.clear();
-                selectedKeyframes.append(clickedKeyframe);
+            if (event->modifiers().testAnyFlag(Qt::ControlModifier)) {
+                if (selectedKeyframes.contains(clickedKeyframe)) {
+                    selectedKeyframes.removeOne(clickedKeyframe);
+                } else {
+                    selectedKeyframes.append(clickedKeyframe);
+                }
+                handleMouseRelease = false;
+            } else {
+                if (!selectedKeyframes.contains(clickedKeyframe)) {
+                    selectedKeyframes.clear();
+                    selectedKeyframes.append(clickedKeyframe);
+                }
+            }
+
+            startKeyframePositions.clear();
+            for (auto keyframe : selectedKeyframes) {
+                startKeyframePositions.append(keyframe->frame);
             }
         } else {
             selecting = true;
@@ -793,20 +813,27 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
         }
 
         if (isMovingKeyframes) {
-            // TODO: maybe not good? probably need a constant start frame for
-            // each keyframe and then add the frames since the start of the
-            // mouse move instead of changing the start each pixel
             selectEnd = event->pos();
             QPoint moved = selectEnd - selectStart;
-            selectStart = selectEnd;
 
             int x = moved.x();
             double seconds = x / secondsToPixels();
             int frames = seconds * timelineWidget->scene->frameRate;
-            for (auto keyframe : selectedKeyframes) {
-                // TODO: not good. problems with overlapping, sorting, whatever
+            if (frames == 0)
+                return;
 
-                keyframe->frame += frames;
+            int index = 0;
+            for (auto keyframe : selectedKeyframes) {
+                if (startKeyframePositions[index] + frames < 0) {
+                    frames += frames - startKeyframePositions[index];
+                }
+                index++;
+            }
+            index = 0;
+            for (auto keyframe : selectedKeyframes) {
+                keyframe->property->move(
+                    keyframe->frame, startKeyframePositions[index] + frames);
+                index++;
             }
             update();
         }
@@ -817,7 +844,7 @@ void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (mouseHeader) {
         emit timelineWidget->scene->framesChanging(false);
     }
-    if (selecting || isMovingKeyframes) {
+    if ((selecting || isMovingKeyframes) && handleMouseRelease) {
         if ((mouseClickStart - event->pos()).isNull()) {
             selectedKeyframes.clear();
             for (auto keyframe : keyframeData) {
