@@ -42,18 +42,18 @@ bool BlurEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             if (leftX >= 0 && leftX < sourceRect.w) {
                 uint32_t color =
                     source[pixelIndex(leftX, y - radius, sourceRect.w)];
-                leftR = color >> 16;
-                leftG = color >> 8;
-                leftB = color;
                 leftA = color >> 24;
+                leftR = ((color >> 16) & 0xff) * leftA / 255;
+                leftG = ((color >> 8) & 0xff) * leftA / 255;
+                leftB = (color & 0xff) * leftA / 255;
             }
             if (rightX >= 0 && rightX < sourceRect.w) {
                 uint32_t color =
                     source[pixelIndex(rightX, y - radius, sourceRect.w)];
-                rightR = color >> 16;
-                rightG = color >> 8;
-                rightB = color;
                 rightA = color >> 24;
+                rightR = ((color >> 16) & 0xff) * rightA / 255;
+                rightG = ((color >> 8) & 0xff) * rightA / 255;
+                rightB = (color & 0xff) * rightA / 255;
             }
 
             r += rightR - leftR;
@@ -61,8 +61,19 @@ bool BlurEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             b += rightB - leftB;
             a += rightA - leftA;
 
-            tempValues[pixelIndex(x, y, rect.w)] = makePixel(
-                r / windowSize, g / windowSize, b / windowSize, a / windowSize);
+            int finalR = r / windowSize;
+            int finalG = g / windowSize;
+            int finalB = b / windowSize;
+            int finalA = a / windowSize;
+
+            if (finalA > 0) {
+                finalR = finalR * 255 / finalA;
+                finalG = finalG * 255 / finalA;
+                finalB = finalB * 255 / finalA;
+            }
+
+            tempValues[pixelIndex(x, y, rect.w)] =
+                makePixel(finalR, finalG, finalB, finalA);
         }
     }
 
@@ -85,17 +96,17 @@ bool BlurEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             uint8_t rightA = 0;
             if (topY >= 0 && topY < rect.h) {
                 uint32_t color = tempValues[pixelIndex(x, topY, rect.w)];
-                leftR = color >> 16;
-                leftG = color >> 8;
-                leftB = color;
                 leftA = color >> 24;
+                leftR = ((color >> 16) & 0xff) * leftA / 255;
+                leftG = ((color >> 8) & 0xff) * leftA / 255;
+                leftB = (color & 0xff) * leftA / 255;
             }
             if (bottomY >= 0 && bottomY < rect.h) {
                 uint32_t color = tempValues[pixelIndex(x, bottomY, rect.w)];
-                rightR = color >> 16;
-                rightG = color >> 8;
-                rightB = color;
                 rightA = color >> 24;
+                rightR = ((color >> 16) & 0xff) * rightA / 255;
+                rightG = ((color >> 8) & 0xff) * rightA / 255;
+                rightB = (color & 0xff) * rightA / 255;
             }
 
             r += rightR - leftR;
@@ -103,8 +114,19 @@ bool BlurEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             b += rightB - leftB;
             a += rightA - leftA;
 
-            target[pixelIndex(x, y, rect.w)] = makePixel(
-                r / windowSize, g / windowSize, b / windowSize, a / windowSize);
+            int finalR = r / windowSize;
+            int finalG = g / windowSize;
+            int finalB = b / windowSize;
+            int finalA = a / windowSize;
+
+            if (finalA > 0) {
+                finalR = finalR * 255 / finalA;
+                finalG = finalG * 255 / finalA;
+                finalB = finalB * 255 / finalA;
+            }
+
+            target[pixelIndex(x, y, rect.w)] =
+                makePixel(finalR, finalG, finalB, finalA);
         }
     }
 
