@@ -43,17 +43,13 @@ set(graphicscreator_SRCS
     src/gui/property_edit.cpp
     src/gui/effects_window.cpp
     src/animatable/animatable.cpp
-    src/animatable/effect/effect.cpp
-    src/animatable/effect/invert_effect.cpp
-    src/animatable/effect/blur_effect.cpp
-    src/animatable/effect/wave_effect.cpp
-    src/animatable/effect/grid_effect.cpp
-    src/animatable/effect/scale_effect.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp
     src/animatable/element/ellipse_element.cpp
     src/resources/graphics-creator.rc
 )
+
+add_subdirectory(src/animatable/effect)
 
 
 add_executable(graphics-creator WIN32 ${graphicscreator_SRCS})

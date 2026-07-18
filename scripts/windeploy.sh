@@ -1,6 +1,15 @@
 #!/bin/bash
 
+# ----------------------------------
+# Run this script in UCRT64 in MSYS2
+# ----------------------------------
+
 set -e
+
+if [ ! -d "src" ]; then
+    echo "Run this script in the root: ./scripts/windeploy.sh"
+    exit 1
+fi
 
 rm -rf deploy
 mkdir -p deploybuild
