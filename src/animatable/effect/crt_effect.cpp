@@ -29,11 +29,11 @@ bool CrtEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             uvX = uvX * 0.92 + 0.04;
             uvY = uvY * 0.92 + 0.04;
 
-            if (uvX < 0 || uvX >= 1 || uvY < 0 || uvY >= 1)
-                continue;
-
             int sx = uvX * w;
             int sy = (1 - uvY) * h;
+
+            if (sx < 0 || sx >= w || sy < 0 || sy >= h)
+                continue;
 
             uint32_t num = source[pixelIndex(sx, sy, w)];
             double r, g, b;

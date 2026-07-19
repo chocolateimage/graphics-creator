@@ -58,6 +58,12 @@ void Scene::timerTicked() {
         elapsedTimer.restart();
     }
 
+    if (!canContinuePlayback()) {
+        startFrame = currentFrame;
+        elapsedTimer.restart();
+        return;
+    }
+
     setFrame(newFrame);
 }
 

@@ -325,6 +325,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
             element->y.set(element->y.get(frameInfo) + diff.y(), frameInfo);
         }
 
+        update();
+
         return;
     }
 

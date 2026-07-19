@@ -16,6 +16,94 @@
 #include <QMenuBar>
 #include <QToolBar>
 
+void FramePreviewThread::run() {
+    while (stayAlive) {
+        QThread::msleep(3);
+        FramePreviewTask *task;
+        {
+            QMutexLocker lock(&window->openTasksMutex);
+            if (window->openTasks.isEmpty()) {
+                continue;
+            }
+
+            task = window->openTasks.front();
+            window->openTasks.pop_front();
+        }
+
+        QElapsedTimer renderTime;
+        renderTime.start();
+        uint32_t *frame = new uint32_t[task->width * task->height];
+        memset(frame, 0, task->width * task->height * 4);
+
+        for (auto element : task->renderElements) {
+            auto rect = element->getRenderBox();
+            uint32_t *elementValues = new uint32_t[rect.w * rect.h];
+            memset(elementValues, 0, rect.w * rect.h * 4);
+
+            Rect finalRect = rect;
+            uint32_t *finalValues = elementValues;
+
+            bool success = element->render(elementValues);
+
+            if (!success) {
+                delete[] elementValues;
+                continue;
+            }
+
+            for (auto effect : element->effects) {
+                Rect effectBox = effect->getRenderBox(finalRect);
+                effect->currentFrame = task->frame;
+                effect->currentSeconds = task->seconds;
+                effect->renderBox = effectBox;
+                uint32_t *effectValues =
+                    new uint32_t[effectBox.w * effectBox.h];
+                memset(effectValues, 0, effectBox.w * effectBox.h * 4);
+
+                bool success =
+                    effect->render(finalValues, finalRect, effectValues);
+                if (!success) {
+                    delete[] effectValues;
+                    continue;
+                }
+
+                delete[] finalValues;
+                finalValues = effectValues;
+                finalRect = effectBox;
+            }
+
+            int maxY =
+                std::min(task->height, finalRect.y + finalRect.h) - finalRect.y;
+            int maxX =
+                std::min(task->width, finalRect.x + finalRect.w) - finalRect.x;
+
+            for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
+                for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
+                    auto index = pixelIndex(x + finalRect.x, y + finalRect.y,
+                                            task->width);
+                    frame[index] =
+                        over(frame[index],
+                             finalValues[pixelIndex(x, y, finalRect.w)]);
+                }
+            }
+
+            delete[] finalValues;
+        }
+
+        task->values = frame;
+
+        for (auto element : task->renderElements) {
+            delete element;
+        }
+
+        qInfo() << "Render time:"
+                << qPrintable(QString("%1").arg(
+                       renderTime.nsecsElapsed() / 1000000., 0, 'f', 1))
+                << "ms";
+
+        emit taskDone(task);
+    }
+}
+
 class TestCommand : public QUndoCommand {
   public:
     TestCommand() { setText("add rectangle"); }
@@ -30,7 +118,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     scene->height = 720;
     scene->frameRate = 30;
     scene->durationFrames = scene->frameRate * 5;
+    scene->canContinuePlayback = [this]() {
+        return !renderingFrames.contains(scene->currentFrame);
+    };
 
+    connect(scene, &Scene::elementAdded, this, &NewMainWindow::elementAdded);
     connect(scene, &Scene::elementUpdated, this,
             &NewMainWindow::elementUpdated);
     connect(scene, &Scene::frameChanged, this, &NewMainWindow::frameChanged);
@@ -164,7 +256,51 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
 
+    for (int i = 0; i < std::max(1, QThread::idealThreadCount() - 1); i++) {
+        createThread();
+    }
+
     rerender();
+}
+
+void NewMainWindow::createThread() {
+    FramePreviewThread *thread = new FramePreviewThread(this);
+    thread->window = this;
+    connect(thread, &FramePreviewThread::taskDone, this,
+            &NewMainWindow::taskCompleted);
+    previewThreads.append(thread);
+
+    connect(thread, &FramePreviewThread::finished, thread, [this, thread]() {
+        previewThreads.removeOne(thread);
+        thread->deleteLater();
+    });
+
+    thread->start();
+}
+
+void NewMainWindow::taskCompleted(FramePreviewTask *task) {
+    auto it = savedFrames.find(task->frame);
+    SavedFrame savedFrame{
+        .values = task->values,
+        .id = task->id,
+    };
+    if (it != savedFrames.end()) {
+        if (it->second.id > task->id) {
+            delete[] task->values;
+            delete task;
+            return;
+        }
+
+        delete[] it->second.values;
+        it->second = savedFrame;
+    } else {
+        savedFrames.emplace(task->frame, savedFrame);
+    }
+    renderingFrames.remove(task->frame);
+    if (task->frame == scene->currentFrame) {
+        updatePreview();
+    }
+    delete task;
 }
 
 void NewMainWindow::controlsUpdated() {
@@ -203,99 +339,93 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
     rerender();
 }
 
-void NewMainWindow::elementUpdated(Element *element) { rerender(); }
-void NewMainWindow::frameChanged(int frame) { rerender(); }
-
-void NewMainWindow::rerender() { renderTest(); }
-
-void NewMainWindow::renderTest() {
-    // TODO: this is bad this is bad this is bad
-    // This should be in a render thread. The data (like elements) should
-    // probably be copied to avoid crashing.
-    // and instead of splitting a single frame into chunks, I will probably do
-    // a whole frame per thread.
-
-    QElapsedTimer renderTime;
-    renderTime.start();
-    uint32_t *frame = new uint32_t[scene->width * scene->height];
-    memset(frame, 0, scene->width * scene->height * 4);
-
-    std::vector<ElementRender *> renderElements;
-
-    for (auto element : scene->elements) {
-        ElementRender *render =
-            (ElementRender *)element->toRender({scene->currentFrame});
-        renderElements.insert(renderElements.begin(), render);
-    }
-
-    for (auto element : renderElements) {
-        auto rect = element->getRenderBox();
-        uint32_t *elementValues = new uint32_t[rect.w * rect.h];
-        memset(elementValues, 0, rect.w * rect.h * 4);
-
-        Rect finalRect = rect;
-        uint32_t *finalValues = elementValues;
-
-        bool success = element->render(elementValues);
-
-        if (!success) {
-            delete[] elementValues;
-            continue;
-        }
-
-        for (auto effect : element->effects) {
-            Rect effectBox = effect->getRenderBox(finalRect);
-            effect->currentFrame = scene->currentFrame;
-            effect->currentSeconds =
-                (double)scene->currentFrame / scene->frameRate;
-            effect->renderBox = effectBox;
-            uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
-            memset(effectValues, 0, effectBox.w * effectBox.h * 4);
-
-            bool success = effect->render(finalValues, finalRect, effectValues);
-            if (!success) {
-                delete[] effectValues;
-                continue;
-            }
-
-            delete[] finalValues;
-            finalValues = effectValues;
-            finalRect = effectBox;
-        }
-
-        int maxY =
-            std::min(scene->height, finalRect.y + finalRect.h) - finalRect.y;
-        int maxX =
-            std::min(scene->width, finalRect.x + finalRect.w) - finalRect.x;
-
-        for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
-            for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
-                auto index =
-                    pixelIndex(x + finalRect.x, y + finalRect.y, scene->width);
-                frame[index] = over(frame[index],
-                                    finalValues[pixelIndex(x, y, finalRect.w)]);
-            }
-        }
-
-        delete[] finalValues;
-    }
-
-    for (auto element : renderElements) {
-        delete element;
-    }
-    qInfo() << "Render time:"
-            << qPrintable(QString("%1").arg(
-                   renderTime.nsecsElapsed() / 1000000., 0, 'f', 1))
-            << "ms";
-
-    QImage img = QImage((unsigned char *)frame, scene->width, scene->height,
-                        scene->width * 4, QImage::Format_ARGB32)
-                     .copy();
-    scenePreviewWidget->updateImage(img);
-    delete[] frame;
+void NewMainWindow::elementAdded(Element *element, int index) {
+    elementUpdated(element); // hack
 }
 
-NewMainWindow::~NewMainWindow() { delete scene; }
+void NewMainWindow::elementUpdated(Element *element) {
+    for (int i = 0; i < scene->durationFrames; i++) {
+        invalidateFrame(i);
+    }
+    rerender();
+}
+
+void NewMainWindow::frameChanged(int frame) { rerender(); }
+
+void NewMainWindow::rerender() {
+    if (!createTask(scene->currentFrame)) {
+        updatePreview();
+    }
+}
+
+bool NewMainWindow::createTask(int frame) {
+    auto it = savedFrames.find(frame);
+    if (it != savedFrames.end()) {
+        return false;
+    }
+
+    renderingFrames.insert(frame);
+
+    FramePreviewTask *task = new FramePreviewTask();
+    task->width = scene->width;
+    task->height = scene->height;
+    task->frame = frame;
+    task->seconds = frame / scene->frameRate;
+    task->id = ++globalId;
+
+    for (auto element : scene->elements) {
+        ElementRender *render = (ElementRender *)element->toRender({frame});
+        task->renderElements.insert(task->renderElements.begin(), render);
+    }
+
+    {
+        QMutexLocker lock(&openTasksMutex);
+        for (int i = 0; i < openTasks.length(); i++) {
+            if (openTasks[i]->frame == frame) {
+                openTasks.removeAt(i);
+                i--;
+            }
+        }
+        openTasks.append(task);
+    }
+
+    return true;
+}
+
+void NewMainWindow::updatePreview() {
+    auto it = savedFrames.find(scene->currentFrame);
+    if (it == savedFrames.end()) {
+        return;
+    }
+
+    QImage img = QImage((uchar *)it->second.values, scene->width, scene->height,
+                        scene->width * 4, QImage::Format_ARGB32)
+                     .copy();
+
+    scenePreviewWidget->updateImage(img);
+}
+
+void NewMainWindow::invalidateFrame(int frame) {
+    auto it = savedFrames.find(frame);
+    if (it == savedFrames.end())
+        return;
+
+    delete[] it->second.values;
+    savedFrames.erase(it);
+}
+
+NewMainWindow::~NewMainWindow() {
+    for (auto thread : previewThreads) {
+        thread->stayAlive = false;
+    }
+    for (auto thread : previewThreads) {
+        thread->wait();
+    }
+    for (auto frame : savedFrames) {
+        delete[] frame.second.values;
+    }
+    delete scene;
+}
 
 int main(int argc, char **argv) {
     KIconTheme::initTheme();
