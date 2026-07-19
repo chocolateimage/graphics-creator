@@ -17,16 +17,30 @@ void Scene::insertElement(Element *element, int index) {
     elements.insert(index, element);
     emit elementAdded(element, index);
     connect(element, &Element::propertyUpdated, this,
-            [this, element]() { emit elementUpdated(element); });
+            &Scene::_elementUpdatedSlot);
     connect(element, &Element::effectPropertyUpdated, this,
-            [this, element]() { emit elementUpdated(element); });
+            &Scene::_elementUpdatedSlot);
     connect(element, &Element::effectListUpdated, this,
-            [this, element]() { emit elementUpdated(element); });
+            &Scene::_elementUpdatedSlot);
 }
+
+void Scene::_elementUpdatedSlot() { emit elementUpdated((Element *)sender()); }
 
 void Scene::selectElements(QList<Element *> elements) {
     selectedElements = elements;
     emit elementSelectionChanged(elements);
+}
+
+void Scene::removeElement(Element *element) {
+    disconnect(element, &Element::propertyUpdated, this,
+               &Scene::_elementUpdatedSlot);
+    disconnect(element, &Element::effectPropertyUpdated, this,
+               &Scene::_elementUpdatedSlot);
+    disconnect(element, &Element::effectListUpdated, this,
+               &Scene::_elementUpdatedSlot);
+
+    elements.removeOne(element);
+    emit elementRemoved(element);
 }
 
 void Scene::startTimer() {

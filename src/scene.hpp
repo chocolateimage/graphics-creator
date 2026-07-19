@@ -24,6 +24,7 @@ class Scene : public QObject {
     void setFrame(int frame);
 
     void addElement(Element *element);
+    void removeElement(Element *element);
     void insertElement(Element *element, int index);
     void selectElements(QList<Element *> elements);
 
@@ -31,8 +32,9 @@ class Scene : public QObject {
 
   signals:
     void elementAdded(Element *element, int index);
-    void elementRemoved(Element *element);
     void elementUpdated(Element *element);
+    void elementRemoved(Element *element);
+    void elementOrderChanged();
     void elementSelectionChanged(QList<Element *> elements);
     void frameChanged(int frame);
     void playbackStateChanged(bool playing);
@@ -40,6 +42,9 @@ class Scene : public QObject {
     // Called true when frames are rapidly being changed
     // (during playback/when scrubbing). Called false when it stops.
     void framesChanging(bool changing);
+
+  private slots:
+    void _elementUpdatedSlot();
 
   private:
     QChronoTimer *timer;

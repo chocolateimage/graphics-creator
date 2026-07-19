@@ -62,6 +62,8 @@ class NewMainWindow : public QMainWindow {
     QAction *controlPolygon;
     QAction *controlLua;
 
+    QAction *deleteAction;
+
     ImageViewer *scenePreviewWidget;
 
     void createThread();
@@ -71,10 +73,14 @@ class NewMainWindow : public QMainWindow {
     void rerender();
     void elementAdded(Element *element, int index);
     void elementUpdated(Element *element);
+    void elementOrderChanged();
     void frameChanged(int frame);
     bool createTask(int frame);
     void invalidateFrame(int frame);
     void taskCompleted(FramePreviewTask *task);
+    void elementSelectionChanged(QList<Element *> elements);
+    void deleteTriggered();
+    void invalidateAndRerender();
 
     Scene *scene;
 

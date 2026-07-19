@@ -68,6 +68,8 @@ class TimelineContentWidget : public QWidget {
     double secondsToPixels();
     double secondsToPixels(double seconds);
     double headerPos();
+    bool deleteSelected();
+    QList<KeyframeBase *> selectedKeyframes;
 
   public slots:
     void frameChanged(int frame);
@@ -81,7 +83,6 @@ class TimelineContentWidget : public QWidget {
 
   private:
     QList<TimelineKeyframeData> keyframeData;
-    QList<KeyframeBase *> selectedKeyframes;
     bool mouseHeader{false};
     bool selecting{};
     QPoint selectStart;

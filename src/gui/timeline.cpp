@@ -1041,15 +1041,22 @@ void TimelineContentWidget::keyPressEvent(QKeyEvent *event) {
     }
 
     if (event->matches(QKeySequence::Delete)) {
-        if (!selectedKeyframes.isEmpty()) {
-            for (auto keyframe : selectedKeyframes) {
-                keyframe->property->remove(keyframe->frame);
-            }
-            selectedKeyframes.clear();
-            update();
-        }
+        deleteSelected();
         return;
     }
 
     return QWidget::keyPressEvent(event);
+}
+
+bool TimelineContentWidget::deleteSelected() {
+    if (selectedKeyframes.isEmpty()) {
+        return false;
+    }
+
+    for (auto keyframe : selectedKeyframes) {
+        keyframe->property->remove(keyframe->frame);
+    }
+    selectedKeyframes.clear();
+    update();
+    return true;
 }

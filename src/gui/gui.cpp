@@ -95,24 +95,88 @@ void FramePreviewThread::run() {
             delete element;
         }
 
-        qInfo() << "Render time:"
-                << qPrintable(QString("%1").arg(
-                       renderTime.nsecsElapsed() / 1000000., 0, 'f', 1))
-                << "ms";
+        // qInfo() << "Render time:"
+        //         << qPrintable(QString("%1").arg(
+        //                renderTime.nsecsElapsed() / 1000000., 0, 'f', 1))
+        //         << "ms";
 
         emit taskDone(task);
     }
 }
 
-class TestCommand : public QUndoCommand {
+class AddElementCommand : public QUndoCommand {
   public:
-    TestCommand() { setText("add rectangle"); }
-    void undo() override { qInfo() << "UNDO"; }
-    void redo() override { qInfo() << "REDO"; }
+    AddElementCommand(Scene *scene, Element *element)
+        : scene(scene), element(element) {
+        setText(element->objectName());
+    }
+    ~AddElementCommand() {
+        if (undid) {
+            delete element;
+        }
+    }
+
+    Scene *scene;
+    Element *element;
+    QList<Element *> oldSelected;
+    bool undid{false};
+
+    void undo() override {
+        undid = true;
+        scene->selectElements(oldSelected);
+        scene->removeElement(element);
+    }
+    void redo() override {
+        undid = false;
+        oldSelected = scene->selectedElements;
+        scene->insertElement(element, 0);
+        scene->selectElements({element});
+    }
+};
+
+class RemoveElementsCommand : public QUndoCommand {
+  public:
+    RemoveElementsCommand(Scene *scene, QList<Element *> elements)
+        : scene(scene), elements(elements) {
+        setText("Delete " + QString::number(elements.length()) + " element(s)");
+    }
+    ~RemoveElementsCommand() {
+        if (undid)
+            return;
+        for (auto element : elements) {
+            delete element;
+        }
+    }
+
+    Scene *scene;
+    QList<Element *> elements;
+    QList<Element *> oldSelected;
+    QList<Element *> oldOrder;
+    bool undid{false};
+
+    void undo() override {
+        undid = true;
+        for (auto element : elements) {
+            scene->addElement(element);
+        }
+        scene->elements = oldOrder;
+        emit scene->elementOrderChanged();
+        scene->selectElements(oldSelected);
+    }
+    void redo() override {
+        undid = false;
+        oldSelected = scene->selectedElements;
+        oldOrder = scene->elements;
+        for (auto element : elements) {
+            scene->removeElement(element);
+        }
+        scene->selectElements({});
+    }
 };
 
 NewMainWindow::NewMainWindow() : QMainWindow() {
     undoStack = new QUndoStack(this);
+    undoStack->setUndoLimit(3);
     scene = new Scene();
     scene->width = 1280;
     scene->height = 720;
@@ -125,7 +189,13 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(scene, &Scene::elementAdded, this, &NewMainWindow::elementAdded);
     connect(scene, &Scene::elementUpdated, this,
             &NewMainWindow::elementUpdated);
+    connect(scene, &Scene::elementRemoved, this,
+            &NewMainWindow::elementUpdated); // hack
+    connect(scene, &Scene::elementOrderChanged, this,
+            &NewMainWindow::elementOrderChanged);
     connect(scene, &Scene::frameChanged, this, &NewMainWindow::frameChanged);
+    connect(scene, &Scene::elementSelectionChanged, this,
+            &NewMainWindow::elementSelectionChanged);
 
     this->resize(1200, 700);
 
@@ -150,6 +220,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     QAction *redoAction = undoStack->createRedoAction(this);
     redoAction->setShortcuts(QKeySequence::Redo);
     editMenu->addAction(redoAction);
+
+    editMenu->addSeparator();
+    deleteAction = editMenu->addAction("Delete");
+    deleteAction->setShortcut(QKeySequence::Delete);
+    deleteAction->setIcon(QIcon::fromTheme("delete"));
+    connect(deleteAction, &QAction::triggered, this,
+            &NewMainWindow::deleteTriggered);
+
     QMenu *viewMenu = menuBar->addMenu("View");
     setMenuBar(menuBar);
 
@@ -263,6 +341,17 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     rerender();
 }
 
+void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
+    deleteAction->setEnabled(!elements.isEmpty());
+}
+
+void NewMainWindow::deleteTriggered() {
+    if (timeline->timelineContent->deleteSelected())
+        return;
+
+    undoStack->push(new RemoveElementsCommand(scene, scene->selectedElements));
+}
+
 void NewMainWindow::createThread() {
     FramePreviewThread *thread = new FramePreviewThread(this);
     thread->window = this;
@@ -334,17 +423,22 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         element->y.set(rect.y(), {0});
         element->w.set(rect.width(), {0});
         element->h.set(rect.height(), {0});
-        scene->insertElement(element, 0);
-        scene->selectElements({element});
+        undoStack->push(new AddElementCommand(scene, element));
     }
     rerender();
 }
 
 void NewMainWindow::elementAdded(Element *element, int index) {
-    elementUpdated(element); // hack
+    invalidateAndRerender();
 }
 
+void NewMainWindow::elementOrderChanged() { invalidateAndRerender(); }
+
 void NewMainWindow::elementUpdated(Element *element) {
+    invalidateAndRerender();
+}
+
+void NewMainWindow::invalidateAndRerender() {
     for (int i = 0; i < scene->durationFrames; i++) {
         invalidateFrame(i);
     }
