@@ -625,7 +625,7 @@ void TimelineContentWidget::paintFrameMark(QPainter &painter, int headerPos,
     double nextPixel =
         secondsToPixels((float)(frame + 1) / timelineWidget->scene->frameRate);
     painter.drawRect(pixels, headerPos + TIMELINE_HEADER_HEIGHT - 2,
-                     std::ceil(nextPixel - pixels), 2);
+                     std::ceil(nextPixel - pixels) + 1, 2);
 }
 
 void TimelineContentWidget::paintEvent(QPaintEvent *) {
@@ -710,6 +710,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                          lineHeight);
     }
 
+    painter.setRenderHint(QPainter::Antialiasing, false); // for hi-dpi
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(100, 200, 50));
     for (const auto &frame : timelineWidget->mainWindow->savedFrames) {
@@ -720,6 +721,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     for (const auto &frame : timelineWidget->mainWindow->renderingFrames) {
         paintFrameMark(painter, headerPos, frame);
     }
+    painter.setRenderHint(QPainter::Antialiasing);
 
     // Position Marker
     painter.setPen(Qt::NoPen);
