@@ -68,7 +68,7 @@ void Scene::timerTicked() {
 }
 
 void Scene::setFrame(int frame) {
-    int newFrame = std::max(0, std::min(frame, durationFrames));
+    int newFrame = std::max(0, std::min(frame, durationFrames - 1));
     if (currentFrame != newFrame) {
         currentFrame = newFrame;
         emit frameChanged(currentFrame);

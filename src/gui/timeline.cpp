@@ -1,4 +1,5 @@
 #include "timeline.hpp"
+#include "gui.hpp"
 #include <KIconColors>
 #include <KIconLoader>
 #include <QActionGroup>
@@ -17,8 +18,10 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
-TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
-    : QWidget(parent), keyframeNo(24, 24), keyframeYes(24, 24) {
+TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
+                               QWidget *parent)
+    : QWidget(parent), mainWindow(mainWindow), keyframeNo(24, 24),
+      keyframeYes(24, 24) {
     this->scene = scene;
 
     createPixmaps();
@@ -49,6 +52,16 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     connect(playButton, &QToolButton::clicked, this,
             &TimelineWidget::togglePlay);
     toolbarLay->addWidget(playButton);
+
+    toolbarLay->addStretch();
+
+    zoomSlider = new QSlider(toolbar);
+    zoomSlider->setOrientation(Qt::Horizontal);
+    zoomSlider->setRange(1, 150);
+    zoomSlider->setValue(30);
+    zoomSlider->setMaximumWidth(100);
+    toolbarLay->addWidget(zoomSlider);
+
     mainLay->addWidget(toolbar);
 
     auto lay = new QVBoxLayout();
@@ -85,6 +98,9 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     lay->addWidget(splitter);
 
     timelineLeftContents->installEventFilter(this);
+
+    connect(zoomSlider, &QSlider::valueChanged, timelineContent,
+            &TimelineContentWidget::updateContents);
 }
 
 void TimelineWidget::createPixmaps() {
@@ -527,7 +543,9 @@ void TimelineContentWidget::updateContents() {
     update();
 }
 
-double TimelineContentWidget::secondsToPixels() { return 30; }
+double TimelineContentWidget::secondsToPixels() {
+    return timelineWidget->zoomSlider->value();
+}
 
 double TimelineContentWidget::secondsToPixels(double seconds) {
     return seconds * secondsToPixels();
@@ -600,6 +618,16 @@ void TimelineContentWidget::paintProperty(QPainter &painter,
     *yPos += PROPERTY_TRACK_HEIGHT;
 }
 
+void TimelineContentWidget::paintFrameMark(QPainter &painter, int headerPos,
+                                           int frame) {
+    double pixels =
+        secondsToPixels((float)frame / timelineWidget->scene->frameRate);
+    double nextPixel =
+        secondsToPixels((float)(frame + 1) / timelineWidget->scene->frameRate);
+    painter.drawRect(pixels, headerPos + TIMELINE_HEADER_HEIGHT - 2,
+                     std::ceil(nextPixel - pixels), 2);
+}
+
 void TimelineContentWidget::paintEvent(QPaintEvent *) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -665,8 +693,11 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     font.setPointSize(8);
     painter.setFont(font);
     QFontMetrics metrics(painter.font());
-    for (int x = 0; x <= width(); x += secondsToPixels()) {
-        int second = x / secondsToPixels();
+    for (int second = 0; second <= timelineWidget->scene->durationFrames /
+                                       timelineWidget->scene->frameRate;
+         second++) {
+        int x = secondsToPixels(second);
+
         QString text = QString::number(second) + "s";
         painter.setPen(QPen(palette().placeholderText(), 2));
         painter.setBrush(Qt::NoBrush);
@@ -677,6 +708,17 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
         constexpr int lineHeight = 8;
         painter.drawRect(x, headerPos + TIMELINE_HEADER_HEIGHT - lineHeight, 1,
                          lineHeight);
+    }
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(100, 200, 50));
+    for (const auto &frame : timelineWidget->mainWindow->savedFrames) {
+        paintFrameMark(painter, headerPos, frame.first);
+    }
+
+    painter.setBrush(QColor(200, 100, 0));
+    for (const auto &frame : timelineWidget->mainWindow->renderingFrames) {
+        paintFrameMark(painter, headerPos, frame);
     }
 
     // Position Marker

@@ -2,6 +2,7 @@
 #include "scene.hpp"
 #include <QPushButton>
 #include <QScrollArea>
+#include <QSlider>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -12,10 +13,12 @@ constexpr double OBJECT_TRACK_HEIGHT = 16;
 constexpr double PROPERTY_TRACK_HEIGHT = 16;
 
 class TimelineContentWidget;
+class NewMainWindow;
 
 class TimelineWidget : public QWidget {
   public:
-    explicit TimelineWidget(Scene *scene, QWidget *parent = nullptr);
+    explicit TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
+                            QWidget *parent = nullptr);
 
     TimelineContentWidget *timelineContent;
     QVBoxLayout *timelineLeftLayout;
@@ -24,6 +27,8 @@ class TimelineWidget : public QWidget {
     QScrollArea *timelineMainScrollArea;
     QToolButton *playButton;
     Scene *scene;
+    NewMainWindow *mainWindow;
+    QSlider *zoomSlider;
     void updateContents();
     void timelineScrolled();
 
@@ -89,4 +94,5 @@ class TimelineContentWidget : public QWidget {
 
     void paintProperty(QPainter &painter, PropertyBase *property, bool *stripe,
                        int startOffset, double *yPos);
+    void paintFrameMark(QPainter &painter, int headerPos, int frame);
 };

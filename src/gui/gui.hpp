@@ -2,6 +2,7 @@
 #include "image_viewer.hpp"
 #include "lua.hpp"
 #include "scene.hpp"
+#include "timeline.hpp"
 #include <DockManager.h>
 #include <QChronoTimer>
 #include <QComboBox>
@@ -88,4 +89,6 @@ class NewMainWindow : public QMainWindow {
     QList<FramePreviewThread *> previewThreads;
     QList<FramePreviewTask *> openTasks;
     QMutex openTasksMutex;
+
+    TimelineWidget *timeline;
 };

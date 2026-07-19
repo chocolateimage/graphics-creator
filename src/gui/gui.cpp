@@ -212,7 +212,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     ads::CDockWidget *timelineDockWidget =
         dockManager->createDockWidget("Timeline");
-    TimelineWidget *timeline = new TimelineWidget(scene);
+    timeline = new TimelineWidget(scene, this);
     timelineDockWidget->setWidget(timeline);
 
     ads::CDockWidget *propertiesDockWidget =
@@ -301,6 +301,7 @@ void NewMainWindow::taskCompleted(FramePreviewTask *task) {
         updatePreview();
     }
     delete task;
+    timeline->timelineContent->update();
 }
 
 void NewMainWindow::controlsUpdated() {
@@ -348,6 +349,12 @@ void NewMainWindow::elementUpdated(Element *element) {
         invalidateFrame(i);
     }
     rerender();
+    for (int i = std::max(0, scene->currentFrame - 100);
+         i < std::min(scene->durationFrames, scene->currentFrame + 100); i++) {
+        if (i == scene->currentFrame)
+            continue;
+        createTask(i);
+    }
 }
 
 void NewMainWindow::frameChanged(int frame) { rerender(); }
