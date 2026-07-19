@@ -18,8 +18,10 @@
 #include <QWheelEvent>
 
 TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
-    : QWidget(parent) {
+    : QWidget(parent), keyframeNo(24, 24), keyframeYes(24, 24) {
     this->scene = scene;
+
+    createPixmaps();
 
     connect(scene, &Scene::elementAdded, this, &TimelineWidget::updateContents);
     connect(scene, &Scene::elementRemoved, this,
@@ -83,6 +85,32 @@ TimelineWidget::TimelineWidget(Scene *scene, QWidget *parent)
     lay->addWidget(splitter);
 
     timelineLeftContents->installEventFilter(this);
+}
+
+void TimelineWidget::createPixmaps() {
+    QPolygon polygon;
+    int size = 8;
+    int offset = 4;
+    polygon << QPoint(size, 0);
+    polygon << QPoint(size * 2, size);
+    polygon << QPoint(size, size * 2);
+    polygon << QPoint(0, size);
+    keyframeNo.fill(Qt::transparent);
+    {
+        QPainter painter(&keyframeNo);
+        painter.translate(offset, offset);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(palette().text());
+        painter.drawPolygon(polygon);
+    }
+    keyframeYes.fill(Qt::transparent);
+    {
+        QPainter painter(&keyframeYes);
+        painter.translate(offset, offset);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(palette().accent());
+        painter.drawPolygon(polygon);
+    }
 }
 
 void TimelineWidget::togglePlay() {
@@ -314,33 +342,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
 
     QHBoxLayout *propertyLayout = new QHBoxLayout(propertyButton);
     propertyLayout->setContentsMargins(indent, 0, 0, 0);
+    propertyLayout->setSpacing(0);
 
     QPushButton *toggleAnimationButton = new QPushButton(propertyButton);
-
-    auto updateAnimating =
-        [this, property, toggleAnimationButton](PropertyBase *updatedProperty) {
-            if (property != updatedProperty) {
-                return;
-            }
-
-            if (property->isAnimating) {
-                KIconColors colors;
-                colors.setText(palette().accent().color());
-                toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
-                toggleAnimationButton->setToolTip("Animation enabled");
-            } else {
-                toggleAnimationButton->setIcon(
-                    QIcon::fromTheme("keyframe-disable"));
-                toggleAnimationButton->setToolTip("Animation disabled");
-            }
-
-            timelineContent->updateContents();
-        };
-
-    updateAnimating(property);
-
-    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated,
-            propertyButton, updateAnimating);
 
     toggleAnimationButton->setFlat(true);
     toggleAnimationButton->setFixedWidth(32);
@@ -353,6 +357,109 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     QLabel *label = new QLabel(propertyButton);
     label->setText(property->getDisplayName());
     propertyLayout->addWidget(label);
+
+    propertyLayout->addStretch();
+
+    QPushButton *previousButton = new QPushButton(propertyButton);
+    previousButton->setIcon(QIcon::fromTheme("arrow-left"));
+    previousButton->setToolTip("Go to previous keyframe");
+    previousButton->setFlat(true);
+    previousButton->setFixedWidth(24);
+    connect(previousButton, &QPushButton::clicked, this, [this, property]() {
+        for (int index = property->keyframes.size() - 1; index >= 0; index--) {
+            if (property->keyframes[index]->frame < scene->currentFrame) {
+                scene->setFrame(property->keyframes[index]->frame);
+                break;
+            }
+        }
+    });
+    propertyLayout->addWidget(previousButton);
+
+    QPushButton *keyframeButton = new QPushButton(propertyButton);
+    keyframeButton->setToolTip("Toggle keyframe");
+    keyframeButton->setFlat(true);
+    keyframeButton->setFixedWidth(24);
+    connect(keyframeButton, &QPushButton::clicked, this, [this, property]() {
+        if (property->has(scene->currentFrame)) {
+            property->remove(scene->currentFrame);
+        } else {
+            property->addToPosition({scene->currentFrame});
+        }
+    });
+    propertyLayout->addWidget(keyframeButton);
+
+    QPushButton *nextButton = new QPushButton(propertyButton);
+    nextButton->setIcon(QIcon::fromTheme("arrow-right"));
+    nextButton->setToolTip("Go to next keyframe");
+    nextButton->setFlat(true);
+    nextButton->setFixedWidth(24);
+    connect(nextButton, &QPushButton::clicked, this, [this, property]() {
+        for (auto keyframe : property->keyframes) {
+            if (keyframe->frame > scene->currentFrame) {
+                scene->setFrame(keyframe->frame);
+                break;
+            }
+        }
+    });
+    propertyLayout->addWidget(nextButton);
+
+    auto updateKeyframe = [this, property, keyframeButton, previousButton,
+                           nextButton]() {
+        if (!property->isAnimating)
+            return;
+
+        if (property->has(scene->currentFrame)) {
+            keyframeButton->setIcon(keyframeYes);
+        } else {
+            keyframeButton->setIcon(keyframeNo);
+        }
+
+        previousButton->setEnabled(property->hasBefore(scene->currentFrame));
+        nextButton->setEnabled(property->hasAfter(scene->currentFrame));
+    };
+
+    auto propertyUpdated = [property,
+                            updateKeyframe](PropertyBase *updatedProperty) {
+        if (property != updatedProperty) {
+            return;
+        }
+        updateKeyframe();
+    };
+
+    auto updateAnimating = [this, property, toggleAnimationButton,
+                            previousButton, keyframeButton, nextButton,
+                            updateKeyframe](PropertyBase *updatedProperty) {
+        if (property != updatedProperty) {
+            return;
+        }
+
+        if (property->isAnimating) {
+            KIconColors colors;
+            colors.setText(palette().accent().color());
+            toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
+            toggleAnimationButton->setToolTip("Animation enabled");
+        } else {
+            toggleAnimationButton->setIcon(
+                QIcon::fromTheme("keyframe-disable"));
+            toggleAnimationButton->setToolTip("Animation disabled");
+        }
+
+        previousButton->setVisible(property->isAnimating);
+        keyframeButton->setVisible(property->isAnimating);
+        nextButton->setVisible(property->isAnimating);
+
+        updateKeyframe();
+
+        timelineContent->updateContents();
+    };
+
+    updateAnimating(property);
+
+    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated,
+            propertyButton, updateAnimating);
+    connect(property->animatable, &Animatable::propertyUpdated, propertyButton,
+            propertyUpdated);
+    connect(scene, &Scene::frameChanged, propertyButton, updateKeyframe);
 
     timelineLeftLayout->addWidget(propertyButton);
     *stripe = !*stripe;
@@ -783,6 +890,12 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
 
                 group->addAction(action);
             }
+
+            QAction *gotoAction = menu.addAction("Go to");
+            connect(gotoAction, &QAction::triggered, this,
+                    [this, hoveredKeyframe]() {
+                        timelineWidget->scene->setFrame(hoveredKeyframe->frame);
+                    });
 
             QAction *deleteAction =
                 menu.addAction(QIcon::fromTheme("delete"), "Delete");

@@ -28,8 +28,13 @@ class TimelineWidget : public QWidget {
     void timelineScrolled();
 
   private:
+    QPixmap keyframeNo;
+    QPixmap keyframeYes;
+
     void addProperty(PropertyBase *property, bool *stripe,
                      QPushButton *elementButton, int indent);
+
+    void createPixmaps();
 
   public slots:
     void togglePlay();

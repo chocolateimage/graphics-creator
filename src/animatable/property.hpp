@@ -104,6 +104,42 @@ class PropertyBase {
         }
     }
 
+    bool has(int frame) {
+        if (!isAnimating)
+            return false;
+
+        for (auto keyframe : keyframes) {
+            if (keyframe->frame == frame)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool hasBefore(int frame) {
+        if (!isAnimating)
+            return false;
+
+        for (auto keyframe : keyframes) {
+            if (keyframe->frame < frame)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool hasAfter(int frame) {
+        if (!isAnimating)
+            return false;
+
+        for (auto keyframe : keyframes) {
+            if (keyframe->frame > frame)
+                return true;
+        }
+
+        return false;
+    }
+
     bool remove(int frame) {
         if (!isAnimating)
             return false;
@@ -126,6 +162,9 @@ class PropertyBase {
     }
 
     bool move(int from, int to) {
+        if (!isAnimating)
+            return false;
+
         if (from == to)
             return false;
 
@@ -155,6 +194,9 @@ class PropertyBase {
         animatable->_propertyUpdated(this);
         return true;
     }
+
+    // does set(get(frameInfo), frameInfo)
+    virtual void addToPosition(const FrameInfo &frameInfo) {}
 
     bool isAnimating{false};
 };
@@ -266,6 +308,10 @@ template <typename T> class Property : public PropertyBase {
         }
         animatable->_propertyUpdated(this);
     };
+
+    virtual void addToPosition(const FrameInfo &frameInfo) {
+        set(get(frameInfo), frameInfo);
+    }
 
     void setMin(T value) {
         hasMin = true;
