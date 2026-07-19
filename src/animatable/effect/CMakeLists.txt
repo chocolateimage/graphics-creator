@@ -1,6 +1,7 @@
 set(graphicscreator_SRCS
   ${graphicscreator_SRCS}
   src/animatable/effect/effect.cpp
+  src/animatable/effect/effect_list.cpp
   src/animatable/effect/invert_effect.cpp
   src/animatable/effect/blur_effect.cpp
   src/animatable/effect/wave_effect.cpp

@@ -1,10 +1,5 @@
 #include "effects_window.hpp"
-#include "animatable/effect/blur_effect.hpp"
-#include "animatable/effect/crt_effect.hpp"
-#include "animatable/effect/grid_effect.hpp"
-#include "animatable/effect/invert_effect.hpp"
-#include "animatable/effect/scale_effect.hpp"
-#include "animatable/effect/wave_effect.hpp"
+#include "animatable/effect/effect_list.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
 #include <QFormLayout>
@@ -168,22 +163,19 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QMenu *menu = new QMenu(parent);
 
     QAction *action;
-    QMenu *blurs = menu->addMenu("Blur");
-    action = blurs->addAction("Box Blur");
-    action->setData("blur");
-    QMenu *tools = menu->addMenu("Tools");
-    action = tools->addAction("Invert");
-    action->setData("invert");
-    action = tools->addAction("Scale");
-    action->setData("scale");
-    QMenu *style = menu->addMenu("Style");
-    action = style->addAction("Wave");
-    action->setData("wave");
-    action = style->addAction("MattiasCRT");
-    action->setData("crt");
-    QMenu *generate = menu->addMenu("Generate");
-    action = generate->addAction("Grid");
-    action->setData("grid");
+    QMap<QString, QMenu *> menus;
+
+    for (auto effectInfo : effectList) {
+        QMenu *categoryMenu;
+        if (menus.contains(effectInfo.category)) {
+            categoryMenu = menus[effectInfo.category];
+        } else {
+            categoryMenu = menu->addMenu(effectInfo.category);
+            menus[effectInfo.category] = categoryMenu;
+        }
+        QAction *action = categoryMenu->addAction(effectInfo.displayName);
+        action->setData(effectInfo.name);
+    }
 
     connect(menu, &QMenu::triggered, this, &EffectsWindow::addEffectTriggered);
 
@@ -194,18 +186,10 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
     QString effectType = action->data().toString();
     Effect *effect{nullptr};
 
-    if (effectType == "invert") {
-        effect = new InvertEffect();
-    } else if (effectType == "blur") {
-        effect = new BlurEffect();
-    } else if (effectType == "wave") {
-        effect = new WaveEffect();
-    } else if (effectType == "grid") {
-        effect = new GridEffect();
-    } else if (effectType == "scale") {
-        effect = new ScaleEffect();
-    } else if (effectType == "crt") {
-        effect = new CrtEffect();
+    for (auto effectInfo : effectList) {
+        if (effectInfo.name == effectType) {
+            effect = effectInfo.create();
+        }
     }
 
     if (effect) {
