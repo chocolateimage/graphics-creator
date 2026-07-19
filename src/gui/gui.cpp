@@ -349,8 +349,8 @@ void NewMainWindow::elementUpdated(Element *element) {
         invalidateFrame(i);
     }
     rerender();
-    for (int i = std::max(0, scene->currentFrame - 100);
-         i < std::min(scene->durationFrames, scene->currentFrame + 100); i++) {
+    for (int i = std::max(0, scene->currentFrame - 50);
+         i < std::min(scene->durationFrames, scene->currentFrame + 50); i++) {
         if (i == scene->currentFrame)
             continue;
         createTask(i);

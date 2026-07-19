@@ -29,13 +29,13 @@ class FramePreviewTask {
     int frame;
     double seconds;
 
-    int id;
+    uint64_t id;
     uint32_t *values;
 };
 
 struct SavedFrame {
     uint32_t *values;
-    int id;
+    uint64_t id;
 };
 
 class FramePreviewThread : public QThread {
@@ -81,7 +81,7 @@ class NewMainWindow : public QMainWindow {
     std::unordered_map<int, SavedFrame> savedFrames;
     QSet<int> renderingFrames;
 
-    int globalId;
+    uint64_t globalId;
 
     ads::CDockManager *dockManager;
     QUndoStack *undoStack;
