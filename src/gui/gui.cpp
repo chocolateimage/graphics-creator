@@ -457,6 +457,10 @@ void NewMainWindow::rerender() {
     if (!createTask(scene->currentFrame)) {
         updatePreview();
     }
+    for (int i = scene->currentFrame + 1;
+         i < scene->currentFrame + (int)previewThreads.length(); i++) {
+        createTask(i % scene->durationFrames);
+    }
 }
 
 bool NewMainWindow::createTask(int frame) {
