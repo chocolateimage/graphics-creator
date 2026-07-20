@@ -65,6 +65,7 @@ class NewMainWindow : public QMainWindow {
     QAction *controlText;
     QAction *controlLua;
 
+    QAction *playbackAction;
     QAction *deleteAction;
 
     ImageViewer *scenePreviewWidget;

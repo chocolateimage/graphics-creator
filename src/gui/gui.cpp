@@ -265,6 +265,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(deleteAction, &QAction::triggered, this,
             &NewMainWindow::deleteTriggered);
 
+    QMenu *videoMenu = menuBar->addMenu("Video");
+
+    QAction *goToStartAction = videoMenu->addAction("Go to start");
+    goToStartAction->setIcon(QIcon::fromTheme("media-skip-backward"));
+
+    playbackAction = videoMenu->addAction("");
+    playbackAction->setShortcut(QKeySequence(" "));
+
     QMenu *viewMenu = menuBar->addMenu("View");
     setMenuBar(menuBar);
 
@@ -382,12 +390,26 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         createThread();
     }
 
+    connect(goToStartAction, &QAction::triggered, timeline,
+            &TimelineWidget::goToStart);
+    connect(playbackAction, &QAction::triggered, timeline,
+            &TimelineWidget::togglePlay);
+
+    playbackStateChanged(false);
     rerender();
 }
 
 void NewMainWindow::playbackStateChanged(bool playing) {
     if (!playing) {
         statusText->setText("");
+    }
+
+    if (playing) {
+        playbackAction->setIcon(QIcon::fromTheme("media-playback-pause"));
+        playbackAction->setText("Pause");
+    } else {
+        playbackAction->setText("Play");
+        playbackAction->setIcon(QIcon::fromTheme("media-playback-start"));
     }
 }
 

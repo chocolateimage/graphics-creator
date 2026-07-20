@@ -9,6 +9,8 @@ Scene::Scene() {
 
 Scene::~Scene() { qDeleteAll(elements); }
 
+void Scene::setFramesChanging(bool changing) { emit framesChanging(changing); }
+
 void Scene::addElement(Element *element) {
     insertElement(element, elements.length());
 }
@@ -47,14 +49,14 @@ void Scene::startTimer() {
     startFrame = currentFrame;
     elapsedTimer.restart();
     emit playbackStateChanged(true);
-    emit framesChanging(true);
+    setFramesChanging(true);
     timer->start();
 }
 
 void Scene::stopTimer() {
     timer->stop();
     emit playbackStateChanged(false);
-    emit framesChanging(false);
+    setFramesChanging(false);
 }
 
 void Scene::timerTicked() {

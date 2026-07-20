@@ -21,6 +21,7 @@ class Scene : public QObject {
     void startTimer();
     void stopTimer();
     void timerTicked();
+    void setFramesChanging(bool changing);
     void setFrame(int frame);
 
     void addElement(Element *element);

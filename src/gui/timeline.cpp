@@ -45,11 +45,22 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     auto toolbarLay = new QHBoxLayout(toolbar);
     toolbarLay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     toolbarLay->setContentsMargins(12, 4, 12, 4);
-    playButton = new QToolButton(toolbar);
+    toolbarLay->setSpacing(0);
+
+    QPushButton *goToStartButton = new QPushButton(toolbar);
+    goToStartButton->setToolTip("Go to start");
+    goToStartButton->setFlat(true);
+    goToStartButton->setIcon(QIcon::fromTheme("media-skip-backward"));
+    connect(goToStartButton, &QPushButton::clicked, this,
+            &TimelineWidget::goToStart);
+    toolbarLay->addWidget(goToStartButton);
+
+    playButton = new QPushButton(toolbar);
+    playButton->setFlat(true);
     playbackStateChanged(false);
     connect(scene, &Scene::playbackStateChanged, this,
             &TimelineWidget::playbackStateChanged);
-    connect(playButton, &QToolButton::clicked, this,
+    connect(playButton, &QPushButton::clicked, this,
             &TimelineWidget::togglePlay);
     toolbarLay->addWidget(playButton);
 
@@ -127,6 +138,15 @@ void TimelineWidget::createPixmaps() {
         painter.setBrush(palette().accent());
         painter.drawPolygon(polygon);
     }
+}
+
+void TimelineWidget::goToStart() {
+    if (scene->isPlaying()) {
+        scene->stopTimer();
+    }
+    scene->setFramesChanging(true);
+    scene->setFrame(0);
+    scene->setFramesChanging(false);
 }
 
 void TimelineWidget::togglePlay() {
@@ -384,7 +404,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     connect(previousButton, &QPushButton::clicked, this, [this, property]() {
         for (int index = property->keyframes.size() - 1; index >= 0; index--) {
             if (property->keyframes[index]->frame < scene->currentFrame) {
+                scene->setFramesChanging(true);
                 scene->setFrame(property->keyframes[index]->frame);
+                scene->setFramesChanging(false);
                 break;
             }
         }
@@ -412,7 +434,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     connect(nextButton, &QPushButton::clicked, this, [this, property]() {
         for (auto keyframe : property->keyframes) {
             if (keyframe->frame > scene->currentFrame) {
+                scene->setFramesChanging(true);
                 scene->setFrame(keyframe->frame);
+                scene->setFramesChanging(false);
                 break;
             }
         }
@@ -777,10 +801,10 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
     if (event->buttons() & Qt::LeftButton) {
         if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
             mouseHeader = true;
+            timelineWidget->scene->setFramesChanging(true);
             timelineWidget->scene->setFrame(
                 (event->pos().x() - TIMELINE_START_OFFSET) / secondsToPixels() *
                 timelineWidget->scene->frameRate);
-            emit timelineWidget->scene->framesChanging(true);
             event->accept();
             return;
         }
@@ -938,7 +962,9 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             QAction *gotoAction = menu.addAction("Go to");
             connect(gotoAction, &QAction::triggered, this,
                     [this, hoveredKeyframe]() {
+                        timelineWidget->scene->setFramesChanging(true);
                         timelineWidget->scene->setFrame(hoveredKeyframe->frame);
+                        timelineWidget->scene->setFramesChanging(false);
                     });
 
             QAction *deleteAction =
@@ -1008,7 +1034,7 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
 
 void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (mouseHeader) {
-        emit timelineWidget->scene->framesChanging(false);
+        timelineWidget->scene->setFramesChanging(false);
     }
     if ((selecting || isMovingKeyframes) && handleMouseRelease) {
         if ((mouseClickStart - event->pos()).isNull()) {

@@ -25,7 +25,7 @@ class TimelineWidget : public QWidget {
     QWidget *timelineLeftContents;
     QScrollArea *timelineLeftScrollArea;
     QScrollArea *timelineMainScrollArea;
-    QToolButton *playButton;
+    QPushButton *playButton;
     Scene *scene;
     NewMainWindow *mainWindow;
     QSlider *zoomSlider;
@@ -43,6 +43,7 @@ class TimelineWidget : public QWidget {
 
   public slots:
     void togglePlay();
+    void goToStart();
     void playbackStateChanged(bool playing);
 
   protected:
