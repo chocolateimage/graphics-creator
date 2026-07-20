@@ -7,5 +7,6 @@ class HorizontalLine : public QFrame {
     explicit HorizontalLine(QWidget *parent = nullptr) : QFrame(parent) {
         setFrameShape(QFrame::HLine);
         setFrameShadow(QFrame::Sunken);
+        setFixedHeight(1);
     }
 };

@@ -1,5 +1,6 @@
 #include "timeline.hpp"
 #include "gui.hpp"
+#include "line.hpp"
 #include <KIconColors>
 #include <KIconLoader>
 #include <QActionGroup>
@@ -44,7 +45,7 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     toolbar->setPalette(palette);
     auto toolbarLay = new QHBoxLayout(toolbar);
     toolbarLay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    toolbarLay->setContentsMargins(12, 4, 12, 4);
+    toolbarLay->setContentsMargins(12, 0, 12, 0);
     toolbarLay->setSpacing(0);
 
     QPushButton *goToStartButton = new QPushButton(toolbar);
@@ -74,6 +75,8 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     toolbarLay->addWidget(zoomSlider);
 
     mainLay->addWidget(toolbar);
+
+    mainLay->addWidget(new HorizontalLine(this));
 
     auto lay = new QVBoxLayout();
     mainLay->addLayout(lay, 1);
