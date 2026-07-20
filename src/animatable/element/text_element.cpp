@@ -57,7 +57,6 @@ void TextElementRender::prepare() {
 }
 
 void TextElementRender::calculateSize() {
-    std::scoped_lock lock{glyphLoadingMutex};
     int curX = 0;
     int curY = 0;
 

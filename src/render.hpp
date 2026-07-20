@@ -4,11 +4,8 @@
 #include <freetype/ftglyph.h>
 #include <hb-ft.h>
 #include <hb.h>
-#include <mutex>
 #include <string>
 #include <unordered_map>
-
-static std::mutex glyphLoadingMutex;
 
 class FontInfo {
   public:
@@ -16,6 +13,8 @@ class FontInfo {
     ~FontInfo();
 
     FT_BitmapGlyph getGlyph(hb_codepoint_t codepoint);
+
+    std::unordered_map<hb_codepoint_t, FT_BitmapGlyph> glyphs;
 
     Font font;
     FT_Face face;
@@ -27,6 +26,7 @@ class FontInfo {
 class RenderThread {
   public:
     void init();
+    void garbageCollect();
     void close();
 
     FT_Library ftLibrary{nullptr};

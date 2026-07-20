@@ -1,37 +1,22 @@
 #include "render.hpp"
 #include <QDebug>
 #include <freetype/ftoutln.h>
-#include <mutex>
-
-std::unordered_map<std::string, FT_BitmapGlyph> glyphMap;
 
 FontInfo::FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight, Font font)
     : font(font), face(face), hb(hb), pixelHeight(pixelHeight) {};
 
 FontInfo::~FontInfo() {
-    // TODO: glyphMap but in a better way. right now deleting a FontInfo causes
-    // all glyphMaps of a font to get deleted
-    glyphLoadingMutex.lock();
-    for (auto it = glyphMap.begin(); it != glyphMap.end();) {
-        if (it->first.rfind(getFontHash(font, pixelHeight) + "\n", 0) == 0) {
-            FT_Done_Glyph((FT_Glyph)it->second);
-            it = glyphMap.erase(it);
-        } else {
-            it++;
-        }
+    static int deleteCount = 0;
+    for (auto &glyph : glyphs) {
+        FT_Done_Glyph((FT_Glyph)(glyph.second));
     }
-    glyphLoadingMutex.unlock();
     hb_font_destroy(hb);
     FT_Done_Face(face);
 }
 
 FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
-    // TODO: use better hash. this is terrible.
-    std::string hash =
-        getFontHash(font, pixelHeight) + "\n" + std::to_string(codepoint);
-
-    auto it = glyphMap.find(hash);
-    if (it != glyphMap.end()) {
+    auto it = glyphs.find(codepoint);
+    if (it != glyphs.end()) {
         return it->second;
     }
 
@@ -41,7 +26,7 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
     FT_Get_Glyph(face->glyph, &_glyph);
 
     FT_BitmapGlyph glyph = (FT_BitmapGlyph)_glyph;
-    glyphMap.emplace(hash, glyph);
+    glyphs.emplace(codepoint, glyph);
     return glyph;
 }
 
@@ -65,6 +50,19 @@ FontInfo *RenderThread::getFont(const Font &font, int fontSize) {
     FontInfo *fontInfo = new FontInfo(ftFace, hbFont, pixelHeight, font);
     loadedFonts.emplace(getFontHash(font, fontSize), fontInfo);
     return fontInfo;
+}
+
+void RenderThread::garbageCollect() {
+    std::vector<std::string> toRemove;
+    for (auto &fontInfo : loadedFonts) {
+        if (++fontInfo.second->framesUnused > 10) {
+            delete fontInfo.second;
+            toRemove.push_back(fontInfo.first);
+        }
+    }
+    for (const auto &key : toRemove) {
+        loadedFonts.erase(key);
+    }
 }
 
 void RenderThread::close() {

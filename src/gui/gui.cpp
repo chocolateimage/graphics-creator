@@ -117,6 +117,8 @@ void FramePreviewThread::run() {
         //         << "ms";
 
         emit taskDone(task);
+
+        renderThread.garbageCollect();
     }
 
     renderThread.close();
