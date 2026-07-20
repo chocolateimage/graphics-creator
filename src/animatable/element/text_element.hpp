@@ -10,6 +10,13 @@ class TextSpan {
     TextSpan() {}
     Font font;
     int fontSize;
+    std::string text;
+};
+
+class TextSpans {
+  public:
+    TextSpans() {}
+    QList<TextSpan> spans;
 };
 
 class TextElement : public Element {

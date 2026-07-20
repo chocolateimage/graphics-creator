@@ -13,6 +13,7 @@
 #include <QMutex>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QStatusBar>
 #include <QThread>
 #include <QToolButton>
 #include <QUndoStack>
@@ -83,6 +84,7 @@ class NewMainWindow : public QMainWindow {
     void elementSelectionChanged(QList<Element *> elements);
     void deleteTriggered();
     void invalidateAndRerender();
+    void playbackStateChanged(bool playing);
 
     Scene *scene;
 
@@ -99,4 +101,6 @@ class NewMainWindow : public QMainWindow {
     QMutex openTasksMutex;
 
     TimelineWidget *timeline;
+
+    QLabel *statusText;
 };

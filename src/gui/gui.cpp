@@ -193,7 +193,17 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     scene->frameRate = 30;
     scene->durationFrames = scene->frameRate * 5;
     scene->canContinuePlayback = [this]() {
-        return !renderingFrames.contains(scene->currentFrame);
+        bool realtime = !renderingFrames.contains(scene->currentFrame);
+        if (realtime) {
+            statusText->setEnabled(false);
+            statusText->setStyleSheet("");
+            statusText->setText("Realtime playback");
+        } else {
+            statusText->setEnabled(true);
+            statusText->setStyleSheet("color: orange;");
+            statusText->setText("Not realtime playback");
+        }
+        return realtime;
     };
 
     connect(scene, &Scene::elementAdded, this, &NewMainWindow::elementAdded);
@@ -206,6 +216,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(scene, &Scene::frameChanged, this, &NewMainWindow::frameChanged);
     connect(scene, &Scene::elementSelectionChanged, this,
             &NewMainWindow::elementSelectionChanged);
+    connect(scene, &Scene::playbackStateChanged, this,
+            &NewMainWindow::playbackStateChanged);
 
     loadDefaultFont();
 
@@ -215,6 +227,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
                                      true);
     ads::CDockManager::setAutoHideConfigFlags(
         ads::CDockManager::DefaultAutoHideConfig);
+
+    QStatusBar *statusBar = new QStatusBar(this);
+    statusText = new QLabel(statusBar);
+    statusBar->addPermanentWidget(statusText);
+    setStatusBar(statusBar);
 
     QMenuBar *menuBar = new QMenuBar(this);
 
@@ -358,6 +375,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     }
 
     rerender();
+}
+
+void NewMainWindow::playbackStateChanged(bool playing) {
+    if (!playing) {
+        statusText->setText("");
+    }
 }
 
 void NewMainWindow::loadDefaultFont() {
@@ -505,10 +528,12 @@ void NewMainWindow::invalidateAndRerender() {
         invalidateFrame(i);
     }
     rerender();
-    for (int i = std::max(0, scene->currentFrame - 50);
+    for (int i = scene->currentFrame + 1;
          i < std::min(scene->durationFrames, scene->currentFrame + 50); i++) {
-        if (i == scene->currentFrame)
-            continue;
+        createTask(i);
+    }
+    for (int i = std::max(0, scene->currentFrame - 50); i < scene->currentFrame;
+         i++) {
         createTask(i);
     }
 }
