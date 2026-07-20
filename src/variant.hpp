@@ -1,35 +1,10 @@
 #pragma once
 
 #include "lua.hpp"
+#include <QList>
 #include <algorithm>
 #include <string>
 #include <variant>
-
-/*
-what should it store:
-
-- strings
-- int
-- double
-- special font object with font path/font name, font weight/font settings (so
-C++ classes)
-- colors (R,G,B)
-- Vector2Ds (point selected on the screen probably)
-- Vector3Ds
-
----
-
-it should:
-
-- be able to be serialized and deserialized (JSON)
-- probably have a type field to identify it
-- be able to be controlled from Qt land
-
----
-
-std::variant for storing?
-
-*/
 
 class Color {
   public:
@@ -81,12 +56,28 @@ struct Brush {
     double angle{0};
 };
 
+class TextSpan {
+  public:
+    TextSpan() {}
+    Font font;
+    int fontSize;
+    std::string text;
+    Brush fill;
+};
+
+class TextSpans {
+  public:
+    TextSpans() {}
+    QList<TextSpan> spans;
+};
+
 Brush::Type getBrushTypeFromString(const std::string &str);
 
-std::string getFontHash(const Font &font);
+std::string getFontHash(const Font &font, int fontSize);
 
-using VariantType = std::variant<std::monostate, std::string, int, double,
-                                 Color, Vector2DInt, Font, bool, Easing, Brush>;
+using VariantType =
+    std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,
+                 Font, bool, Easing, Brush, TextSpans>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -100,6 +91,7 @@ struct VariantTypeEnum {
         Bool,
         Easing,
         Brush,
+        TextSpans,
     };
 };
 

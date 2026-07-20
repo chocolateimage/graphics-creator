@@ -4,8 +4,9 @@
 
 Font Variant::defaultFont = {};
 
-std::string getFontHash(const Font &font) {
-    return font.path + "\n" + std::to_string(font.index);
+std::string getFontHash(const Font &font, int fontSize) {
+    return font.path + "\n" + std::to_string(fontSize) + "\n" +
+           std::to_string(font.index);
 }
 
 Brush::Type getBrushTypeFromString(const std::string &str) {
@@ -53,6 +54,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Easing;
     } else if (type == "brush") {
         return VariantTypeEnum::Brush;
+    } else if (type == "textSpans") {
+        return VariantTypeEnum::TextSpans;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -80,6 +83,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(Easing{""});
     case VariantTypeEnum::Brush:
         return Variant(Brush{});
+    case VariantTypeEnum::TextSpans:
+        return Variant(TextSpans{});
     }
 }
 
@@ -88,6 +93,10 @@ bool Variant::isValidType(const std::string &type) {
 }
 
 void Variant::pushLua(lua_State *L) const {
+    // TODO: keep?
+    lua_pushnil(L);
+    return;
+    /*
     switch (type()) {
     case VariantTypeEnum::None:
         lua_pushnil(L);
@@ -198,127 +207,130 @@ void Variant::pushLua(lua_State *L) const {
         }
         break;
     }
-    };
+    };*/
 }
 
 Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
                             int index) {
-    switch (type) {
-    case VariantTypeEnum::None:
-        return Variant(nullptr);
-    case VariantTypeEnum::String: {
-        const char *str = lua_tostring(L, index);
-        return Variant(std::string(str));
-    }
-    case VariantTypeEnum::Int: {
-        int value = lua_tointeger(L, index);
-        return Variant(value);
-    }
-    case VariantTypeEnum::Double: {
-        double value = lua_tonumber(L, index);
-        return Variant(value);
-    }
-    case VariantTypeEnum::Vector2DInt: {
-        lua_getfield(L, index, "x");
-        int x = lua_tonumber(L, -1);
-        lua_pop(L, 1);
-        lua_getfield(L, index, "y");
-        int y = lua_tonumber(L, -1);
-        lua_pop(L, 1);
-        return Variant(Vector2DInt{x, y});
-    }
-    case VariantTypeEnum::Color: {
-        if (lua_istable(L, index)) {
-            lua_getfield(L, index, "r");
-            int r = lua_tonumber(L, -1);
-            lua_pop(L, 1);
-            lua_getfield(L, index, "g");
-            int g = lua_tonumber(L, -1);
-            lua_pop(L, 1);
-            lua_getfield(L, index, "b");
-            int b = lua_tonumber(L, -1);
-            lua_pop(L, 1);
-            lua_getfield(L, index, "a");
-            int a = 255;
-            if (lua_isnumber(L, -1)) {
-                a = lua_tonumber(L, -1);
-            }
-            lua_pop(L, 1);
-            return Variant(Color{r, g, b, a});
-        } else if (lua_isstring(L, index)) {
+    // TODO: keep?
+    return Variant(nullptr);
+    /*
+        switch (type) {
+        case VariantTypeEnum::None:
+            return Variant(nullptr);
+        case VariantTypeEnum::String: {
             const char *str = lua_tostring(L, index);
-            int len = strlen(str);
-            if (len == 7) {
-                char *end;
-                unsigned long num = strtoul(str + 1, &end, 16);
-                if (*end == 0) {
-                    return Variant(Color{
-                        (int)((num >> 16) & 0xff),
-                        (int)((num >> 8) & 0xff),
-                        (int)((num) & 0xff),
-                    });
+            return Variant(std::string(str));
+        }
+        case VariantTypeEnum::Int: {
+            int value = lua_tointeger(L, index);
+            return Variant(value);
+        }
+        case VariantTypeEnum::Double: {
+            double value = lua_tonumber(L, index);
+            return Variant(value);
+        }
+        case VariantTypeEnum::Vector2DInt: {
+            lua_getfield(L, index, "x");
+            int x = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+            lua_getfield(L, index, "y");
+            int y = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+            return Variant(Vector2DInt{x, y});
+        }
+        case VariantTypeEnum::Color: {
+            if (lua_istable(L, index)) {
+                lua_getfield(L, index, "r");
+                int r = lua_tonumber(L, -1);
+                lua_pop(L, 1);
+                lua_getfield(L, index, "g");
+                int g = lua_tonumber(L, -1);
+                lua_pop(L, 1);
+                lua_getfield(L, index, "b");
+                int b = lua_tonumber(L, -1);
+                lua_pop(L, 1);
+                lua_getfield(L, index, "a");
+                int a = 255;
+                if (lua_isnumber(L, -1)) {
+                    a = lua_tonumber(L, -1);
                 }
-            } else if (len == 9) {
-                char *end;
-                unsigned long num = strtoul(str + 1, &end, 16);
-                if (*end == 0) {
-                    return Variant(Color{
-                        (int)((num >> 24) & 0xff),
-                        (int)((num >> 16) & 0xff),
-                        (int)((num >> 8) & 0xff),
-                        (int)((num) & 0xff),
-                    });
+                lua_pop(L, 1);
+                return Variant(Color{r, g, b, a});
+            } else if (lua_isstring(L, index)) {
+                const char *str = lua_tostring(L, index);
+                int len = strlen(str);
+                if (len == 7) {
+                    char *end;
+                    unsigned long num = strtoul(str + 1, &end, 16);
+                    if (*end == 0) {
+                        return Variant(Color{
+                            (int)((num >> 16) & 0xff),
+                            (int)((num >> 8) & 0xff),
+                            (int)((num) & 0xff),
+                        });
+                    }
+                } else if (len == 9) {
+                    char *end;
+                    unsigned long num = strtoul(str + 1, &end, 16);
+                    if (*end == 0) {
+                        return Variant(Color{
+                            (int)((num >> 24) & 0xff),
+                            (int)((num >> 16) & 0xff),
+                            (int)((num >> 8) & 0xff),
+                            (int)((num) & 0xff),
+                        });
+                    }
                 }
             }
+            return Variant(Color{});
         }
-        return Variant(Color{});
-    }
-    case VariantTypeEnum::Font: {
-        lua_getfield(L, index, "i");
-        int fontIndex = lua_tointeger(L, -1);
-        lua_pop(L, 1);
-        lua_getfield(L, index, "p");
-        const char *filePath = lua_tostring(L, -1);
-        lua_pop(L, 1);
-        return Variant(Font{filePath, fontIndex, ""});
-    }
-    case VariantTypeEnum::Bool: {
-        bool value = lua_toboolean(L, index);
-        return Variant(value);
-    }
-    case VariantTypeEnum::Easing: {
-        const char *str = lua_tostring(L, index);
-        return Variant(Easing{str});
-    }
-    case VariantTypeEnum::Brush: {
-        Brush brush;
-
-        lua_getfield(L, index, "type");
-        const char *brushTypeString = lua_tostring(L, index);
-        if (brushTypeString != nullptr) {
-            brush.brushType = getBrushTypeFromString(brushTypeString);
+        case VariantTypeEnum::Font: {
+            lua_getfield(L, index, "i");
+            int fontIndex = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+            lua_getfield(L, index, "p");
+            const char *filePath = lua_tostring(L, -1);
+            lua_pop(L, 1);
+            return Variant(Font{filePath, fontIndex, ""});
         }
-        lua_pop(L, 1);
-
-        lua_getfield(L, index, "color1");
-        if (lua_istable(L, -1)) {
-            brush.color1 =
-                getFromLua(VariantTypeEnum::Color, L, -1).get<Color>();
+        case VariantTypeEnum::Bool: {
+            bool value = lua_toboolean(L, index);
+            return Variant(value);
         }
-        lua_pop(L, 1);
-
-        lua_getfield(L, index, "color2");
-        if (lua_istable(L, -1)) {
-            brush.color2 =
-                getFromLua(VariantTypeEnum::Color, L, -1).get<Color>();
+        case VariantTypeEnum::Easing: {
+            const char *str = lua_tostring(L, index);
+            return Variant(Easing{str});
         }
-        lua_pop(L, 1);
+        case VariantTypeEnum::Brush: {
+            Brush brush;
 
-        lua_getfield(L, index, "angle");
-        brush.angle = lua_tonumber(L, -1);
-        lua_pop(L, 1);
+            lua_getfield(L, index, "type");
+            const char *brushTypeString = lua_tostring(L, index);
+            if (brushTypeString != nullptr) {
+                brush.brushType = getBrushTypeFromString(brushTypeString);
+            }
+            lua_pop(L, 1);
 
-        return Variant(brush);
-    }
-    };
+            lua_getfield(L, index, "color1");
+            if (lua_istable(L, -1)) {
+                brush.color1 =
+                    getFromLua(VariantTypeEnum::Color, L, -1).get<Color>();
+            }
+            lua_pop(L, 1);
+
+            lua_getfield(L, index, "color2");
+            if (lua_istable(L, -1)) {
+                brush.color2 =
+                    getFromLua(VariantTypeEnum::Color, L, -1).get<Color>();
+            }
+            lua_pop(L, 1);
+
+            lua_getfield(L, index, "angle");
+            brush.angle = lua_tonumber(L, -1);
+            lua_pop(L, 1);
+
+            return Variant(brush);
+        }
+        };*/
 }

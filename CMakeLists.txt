@@ -57,8 +57,8 @@ add_executable(graphics-creator WIN32 ${graphicscreator_SRCS})
 set_property(TARGET graphics-creator PROPERTY AUTOMOC ON)
 
 target_include_directories(graphics-creator PRIVATE ${FFMPEG_INCLUDE_DIRS} ${HARFBUZZ_INCLUDE_DIR} ${FREETYPE_INCLUDE_DIRS} ${LUAJIT_INCLUDE_DIRS} src)
-target_link_libraries(graphics-creator Qt6::Core Qt6::Widgets FFmpeg::FFmpeg harfbuzz Freetype::Freetype KF6::TextEditor KF6::IconThemes KF6::WidgetsAddons PkgConfig::LuaJIT Fontconfig::Fontconfig ads::qtadvanceddocking-qt6)
-target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter)
+target_link_libraries(graphics-creator Qt6::Core Qt6::Widgets FFmpeg::FFmpeg harfbuzz Freetype::Freetype KF6::TextEditor KF6::IconThemes KF6::WidgetsAddons PkgConfig::LuaJIT Fontconfig::Fontconfig ads::qtadvanceddocking-qt6 -fsanitize=address)
+target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -fsanitize=address)
 
 add_custom_command(TARGET graphics-creator POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different

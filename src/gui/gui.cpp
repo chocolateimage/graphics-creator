@@ -19,6 +19,13 @@
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
 
+FramePreviewTask::~FramePreviewTask() {
+    for (auto element : renderElements) {
+        delete element;
+    }
+    renderElements.clear();
+}
+
 void FramePreviewThread::run() {
     RenderThread renderThread;
     renderThread.init();
@@ -102,6 +109,7 @@ void FramePreviewThread::run() {
         for (auto element : task->renderElements) {
             delete element;
         }
+        task->renderElements.clear();
 
         // qInfo() << "Render time:"
         //         << qPrintable(QString("%1").arg(
@@ -574,6 +582,7 @@ bool NewMainWindow::createTask(int frame) {
         QMutexLocker lock(&openTasksMutex);
         for (int i = 0; i < openTasks.length(); i++) {
             if (openTasks[i]->frame == frame) {
+                delete openTasks[i];
                 openTasks.removeAt(i);
                 i--;
             }

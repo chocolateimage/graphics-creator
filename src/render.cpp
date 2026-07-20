@@ -13,7 +13,7 @@ FontInfo::~FontInfo() {
     // all glyphMaps of a font to get deleted
     glyphLoadingMutex.lock();
     for (auto it = glyphMap.begin(); it != glyphMap.end();) {
-        if (it->first.rfind(getFontHash(font) + ";", 0) == 0) {
+        if (it->first.rfind(getFontHash(font, pixelHeight) + "\n", 0) == 0) {
             FT_Done_Glyph((FT_Glyph)it->second);
             it = glyphMap.erase(it);
         } else {
@@ -27,7 +27,8 @@ FontInfo::~FontInfo() {
 
 FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
     // TODO: use better hash. this is terrible.
-    std::string hash = getFontHash(font) + "\n" + std::to_string(codepoint);
+    std::string hash =
+        getFontHash(font, pixelHeight) + "\n" + std::to_string(codepoint);
 
     auto it = glyphMap.find(hash);
     if (it != glyphMap.end()) {
@@ -47,7 +48,7 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
 void RenderThread::init() { FT_Init_FreeType(&ftLibrary); }
 
 FontInfo *RenderThread::getFont(const Font &font, int fontSize) {
-    auto it = loadedFonts.find(getFontHash(font));
+    auto it = loadedFonts.find(getFontHash(font, fontSize));
     if (it != loadedFonts.end()) {
         FontInfo *fontInfo = it->second;
         fontInfo->framesUnused = 0;
@@ -62,7 +63,7 @@ FontInfo *RenderThread::getFont(const Font &font, int fontSize) {
 
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
     FontInfo *fontInfo = new FontInfo(ftFace, hbFont, pixelHeight, font);
-    loadedFonts.emplace(getFontHash(font), fontInfo);
+    loadedFonts.emplace(getFontHash(font, fontSize), fontInfo);
     return fontInfo;
 }
 

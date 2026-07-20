@@ -24,6 +24,7 @@ class NewMainWindow;
 
 class FramePreviewTask {
   public:
+    ~FramePreviewTask();
     std::vector<ElementRender *> renderElements;
     int width;
     int height;

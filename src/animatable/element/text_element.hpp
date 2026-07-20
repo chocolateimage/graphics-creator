@@ -5,20 +5,6 @@
 #include <hb-ft.h>
 #include <hb.h>
 
-class TextSpan {
-  public:
-    TextSpan() {}
-    Font font;
-    int fontSize;
-    std::string text;
-};
-
-class TextSpans {
-  public:
-    TextSpans() {}
-    QList<TextSpan> spans;
-};
-
 class TextElement : public Element {
   public:
     TextElement();
@@ -26,9 +12,11 @@ class TextElement : public Element {
 
     virtual AnimatableRender *createClass();
 
-    Property<Font> font{this, "font", Variant::defaultFont};
-    Property<Brush> fill{this, "fill", {}};
-    Property<std::string> text{this, "text", "Enter your text"};
+    Property<TextSpans> text{this, "text", {}};
+    Property<Font> test1{this, "test1", Variant::defaultFont};
+    Property<int> test1Size{this, "test1Size", 128};
+    Property<Font> test2{this, "test2", Variant::defaultFont};
+    Property<int> test2Size{this, "test2Size", 64};
 };
 
 class TextElementRender : public ElementRender {
@@ -36,17 +24,19 @@ class TextElementRender : public ElementRender {
     TextElementRender() : ElementRender() {}
     virtual ~TextElementRender();
 
-    // TODO: TEMP. change to some span thing
-    PropertyRender<Font> font{this};
-    PropertyRender<Brush> fill{this};
-    PropertyRender<std::string> text{this};
+    PropertyRender<TextSpans> text{this};
+    PropertyRender<Font> test1{this};
+    PropertyRender<int> test1Size{this};
+    PropertyRender<Font> test2{this};
+    PropertyRender<int> test2Size{this};
 
-    hb_buffer_t *hbBuffer{nullptr};
-    FontInfo *fontInfo;
+    int spanCount{0};
+    std::vector<hb_buffer_t *> hbBuffers;
+    std::vector<FontInfo *> fontInfos;
 
-    hb_glyph_info_t *infos;
-    hb_glyph_position_t *positions;
-    uint32_t glyphCount;
+    std::vector<hb_glyph_info_t *> infos;
+    std::vector<hb_glyph_position_t *> positions;
+    std::vector<uint32_t> glyphCounts;
 
     int minX{INT_MAX};
     int minY{INT_MAX};
