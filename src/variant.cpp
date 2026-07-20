@@ -5,7 +5,7 @@
 Font Variant::defaultFont = {};
 
 std::string getFontHash(const Font &font) {
-    return font.path + ":" + std::to_string(font.index);
+    return font.path + "\n" + std::to_string(font.index);
 }
 
 Brush::Type getBrushTypeFromString(const std::string &str) {

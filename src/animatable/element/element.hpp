@@ -6,6 +6,8 @@
 #include <QObject>
 #include <string>
 
+class RenderThread;
+
 static constexpr uint32_t makePixel(Color color) {
     return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
@@ -49,7 +51,9 @@ class ElementRender : public AnimatableRender {
     PropertyRender<int> h{this};
     std::vector<EffectRender *> effects;
 
-    virtual Rect getRenderBox();
+    RenderThread *renderThread{nullptr};
 
+    virtual void prepare() {};
+    virtual Rect getRenderBox();
     virtual bool render(uint32_t *target) = 0;
 };

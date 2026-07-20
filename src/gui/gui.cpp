@@ -1,9 +1,11 @@
 #include "gui.hpp"
 #include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
+#include "animatable/element/text_element.hpp"
 #include "effects_window.hpp"
 #include "math.hpp"
 #include "property_window.hpp"
+#include "render.hpp"
 #include "timeline.hpp"
 #include "variant.hpp"
 #include <DockAreaWidget.h>
@@ -15,8 +17,12 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QToolBar>
+#include <fontconfig/fontconfig.h>
 
 void FramePreviewThread::run() {
+    RenderThread renderThread;
+    renderThread.init();
+
     while (stayAlive) {
         QThread::msleep(3);
         FramePreviewTask *task;
@@ -36,6 +42,8 @@ void FramePreviewThread::run() {
         memset(frame, 0, task->width * task->height * 4);
 
         for (auto element : task->renderElements) {
+            element->renderThread = &renderThread;
+            element->prepare();
             auto rect = element->getRenderBox();
             uint32_t *elementValues = new uint32_t[rect.w * rect.h];
             memset(elementValues, 0, rect.w * rect.h * 4);
@@ -102,6 +110,8 @@ void FramePreviewThread::run() {
 
         emit taskDone(task);
     }
+
+    renderThread.close();
 }
 
 class AddElementCommand : public QUndoCommand {
@@ -197,6 +207,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(scene, &Scene::elementSelectionChanged, this,
             &NewMainWindow::elementSelectionChanged);
 
+    loadDefaultFont();
+
     this->resize(1200, 700);
 
     ads::CDockManager::setConfigFlag(ads::CDockManager::OpaqueSplitterResize,
@@ -244,6 +256,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlEllipse->setShortcut(QKeySequence("E"));
     controlPolygon =
         toolBar->addAction(QIcon::fromTheme("draw-polygon"), "Polygon");
+    controlText = toolBar->addAction(QIcon::fromTheme("draw-text"), "Text");
+    controlText->setShortcut(QKeySequence("T"));
     controlLua = toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
 
     editMenu->addSeparator();
@@ -252,18 +266,21 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     editMenu->addAction(controlRectangle);
     editMenu->addAction(controlEllipse);
     editMenu->addAction(controlPolygon);
+    editMenu->addAction(controlText);
     editMenu->addAction(controlLua);
 
     controlSelect->setActionGroup(controlsGroup);
     controlRectangle->setActionGroup(controlsGroup);
     controlEllipse->setActionGroup(controlsGroup);
     controlPolygon->setActionGroup(controlsGroup);
+    controlText->setActionGroup(controlsGroup);
     controlLua->setActionGroup(controlsGroup);
 
     controlSelect->setCheckable(true);
     controlRectangle->setCheckable(true);
     controlEllipse->setCheckable(true);
     controlPolygon->setCheckable(true);
+    controlText->setCheckable(true);
     controlLua->setCheckable(true);
 
     controlSelect->setChecked(true);
@@ -275,6 +292,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(controlEllipse, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
     connect(controlPolygon, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlText, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
     connect(controlLua, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
@@ -339,6 +358,42 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     }
 
     rerender();
+}
+
+void NewMainWindow::loadDefaultFont() {
+    const FcChar8 *fontsToMatch[] = {
+        (const FcChar8 *)"Noto Sans:regular:slant=0",
+        (const FcChar8 *)"Arial:regular:slant=0",
+    };
+
+    for (auto fontName : fontsToMatch) {
+        FcPattern *pattern = FcNameParse(fontName);
+        FcResult result;
+        FcPattern *font = FcFontMatch(nullptr, pattern, &result);
+        if (result != FcResultMatch || !font) {
+            FcPatternDestroy(pattern);
+            continue;
+        }
+
+        FcChar8 *rawFileName;
+        FcChar8 *rawFamily;
+        FcChar8 *rawStyle;
+        int fontIndex;
+        FcPatternGetString(font, FC_FILE, 0, &rawFileName);
+        FcPatternGetInteger(font, FC_INDEX, 0, &fontIndex);
+        FcPatternGetString(font, FC_FAMILY, 0, &rawFamily);
+        FcPatternGetString(font, FC_STYLE, 0, &rawStyle);
+
+        Variant::defaultFont = {std::string((char *)rawFileName), fontIndex,
+                                std::string((char *)rawFamily) + " " +
+                                    std::string((char *)rawStyle)};
+
+        FcPatternDestroy(font);
+
+        FcPatternDestroy(pattern);
+
+        break;
+    }
 }
 
 void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
@@ -416,6 +471,13 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
             EllipseElement *ellipseElement = new EllipseElement();
             ellipseElement->setObjectName("New Ellipse");
             element = ellipseElement;
+        }
+    } else if (controlText->isChecked()) {
+        controlSelect->setChecked(true);
+        if (!rect.isEmpty()) {
+            TextElement *textElement = new TextElement();
+            textElement->setObjectName("New Text");
+            element = textElement;
         }
     }
     if (element) {

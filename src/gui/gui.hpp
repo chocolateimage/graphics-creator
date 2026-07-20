@@ -60,12 +60,14 @@ class NewMainWindow : public QMainWindow {
     QAction *controlRectangle;
     QAction *controlEllipse;
     QAction *controlPolygon;
+    QAction *controlText;
     QAction *controlLua;
 
     QAction *deleteAction;
 
     ImageViewer *scenePreviewWidget;
 
+    void loadDefaultFont();
     void createThread();
     void controlsUpdated();
     void sceneRectPicked(QString id, QRect rect);
