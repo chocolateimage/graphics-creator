@@ -12,6 +12,7 @@ class TextElementEditor : public QObject {
     void relayout();
     void passKeyEvent(QKeyEvent *keyEvent);
     void paint(QPainter &painter);
+    QRect getRectForIndex(int index);
 
     QList<QRect> spanRects;
 
@@ -20,4 +21,5 @@ class TextElementEditor : public QObject {
     Scene *scene;
     int selectionStart{0};
     int selectionLength{0};
+    bool selectionAnchorLeft = false;
 };

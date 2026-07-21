@@ -541,6 +541,9 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         element->w.set(rect.width(), {0});
         element->h.set(rect.height(), {0});
         undoStack->push(new AddElementCommand(scene, element));
+        if (dynamic_cast<TextElement *>(element)) {
+            element->setEditMode(true);
+        }
     }
     rerender();
 }
