@@ -26,7 +26,7 @@ class TextLayout {
 class TextElement : public Element {
   public:
     TextElement();
-    virtual ~TextElement() {}
+    virtual ~TextElement();
 
     TextSpan createDefaultTextSpan();
 

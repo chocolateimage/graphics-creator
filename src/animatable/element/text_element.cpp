@@ -5,6 +5,7 @@
 #include "render.hpp"
 
 TextElement::TextElement() : Element() {
+    fontManager = new FontManager();
     TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
     std::string defaultText = "Hello world";
     for (auto character : defaultText) {
@@ -13,6 +14,8 @@ TextElement::TextElement() : Element() {
         spans.spans.append(std::move(defaultSpan));
     }
 }
+
+TextElement::~TextElement() { delete fontManager; }
 
 TextSpan TextElement::createDefaultTextSpan() {
     TextSpan defaultSpan;
