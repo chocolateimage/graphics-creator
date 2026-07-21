@@ -196,7 +196,7 @@ class RemoveElementsCommand : public QUndoCommand {
 
 NewMainWindow::NewMainWindow() : QMainWindow() {
     undoStack = new QUndoStack(this);
-    undoStack->setUndoLimit(3);
+    undoStack->setUndoLimit(20);
     scene = new Scene();
     scene->width = 1280;
     scene->height = 720;

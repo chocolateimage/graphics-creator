@@ -24,11 +24,22 @@ void Scene::insertElement(Element *element, int index) {
             &Scene::_elementUpdatedSlot);
     connect(element, &Element::effectListUpdated, this,
             &Scene::_elementUpdatedSlot);
+    connect(element, &Element::editModeUpdated, this,
+            &Scene::_elementEditModeChangedSlot);
 }
 
 void Scene::_elementUpdatedSlot() { emit elementUpdated((Element *)sender()); }
 
+void Scene::_elementEditModeChangedSlot(bool editMode) {
+    emit elementEditModeChanged((Element *)sender(), editMode);
+}
+
 void Scene::selectElements(QList<Element *> elements) {
+    for (auto element : selectedElements) {
+        if (element->editMode) {
+            element->setEditMode(false);
+        }
+    }
     selectedElements = elements;
     emit elementSelectionChanged(elements);
 }
@@ -40,6 +51,8 @@ void Scene::removeElement(Element *element) {
                &Scene::_elementUpdatedSlot);
     disconnect(element, &Element::effectListUpdated, this,
                &Scene::_elementUpdatedSlot);
+    disconnect(element, &Element::editModeUpdated, this,
+               &Scene::_elementEditModeChangedSlot);
 
     elements.removeOne(element);
     emit elementRemoved(element);

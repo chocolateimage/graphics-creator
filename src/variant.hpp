@@ -60,9 +60,16 @@ class TextSpan {
   public:
     TextSpan() {}
     Font font;
-    int fontSize;
-    std::string text;
-    Brush fill;
+    int fontSize{128};
+    QString text{""};
+    Brush fill{};
+    bool newLine{false};
+
+    int getLength() {
+        // TODO: unicode handling (ICU?)
+        // TODO: i hope people have enough RAM :)
+        return 1; // text.length();
+    };
 };
 
 class TextSpans {

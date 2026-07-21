@@ -338,14 +338,14 @@ class PropertyRenderBase {
 
 template <typename T> class PropertyRender : public PropertyRenderBase {
   public:
-    constexpr operator T() { return value; }
+    constexpr operator T &() { return value; }
 
     PropertyRender(AnimatableRender *animatable) : PropertyRenderBase() {
         animatable->addProperty(this);
     };
     virtual ~PropertyRender() {}
 
-    inline T get() { return value; }
+    inline T &get() { return value; }
     virtual void set(PropertyBase *property, const FrameInfo &frameInfo) {
         auto propertyTyped = dynamic_cast<Property<T> *>(property);
         value = propertyTyped->get(frameInfo);

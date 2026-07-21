@@ -37,6 +37,7 @@ class Scene : public QObject {
     void elementRemoved(Element *element);
     void elementOrderChanged();
     void elementSelectionChanged(QList<Element *> elements);
+    void elementEditModeChanged(Element *element, bool editMode);
     void frameChanged(int frame);
     void playbackStateChanged(bool playing);
 
@@ -46,6 +47,7 @@ class Scene : public QObject {
 
   private slots:
     void _elementUpdatedSlot();
+    void _elementEditModeChangedSlot(bool editMode);
 
   private:
     QChronoTimer *timer;

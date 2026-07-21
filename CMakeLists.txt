@@ -42,6 +42,7 @@ set(graphicscreator_SRCS
     src/gui/property_window.cpp
     src/gui/property_edit.cpp
     src/gui/effects_window.cpp
+    src/gui/text_element_editor.cpp
     src/animatable/animatable.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp

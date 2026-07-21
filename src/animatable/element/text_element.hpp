@@ -10,9 +10,11 @@ class TextElement : public Element {
     TextElement();
     virtual ~TextElement() {}
 
-    virtual AnimatableRender *createClass();
+    AnimatableRender *createClass() override;
+    QRect getBoundingBox(const FrameInfo &frameInfo) override;
 
     Property<TextSpans> text{this, "text", {}};
+    Property<Brush> testFill{this, "testFill", {}};
     Property<Font> test1{this, "test1", Variant::defaultFont};
     Property<int> test1Size{this, "test1Size", 128};
     Property<Font> test2{this, "test2", Variant::defaultFont};
@@ -25,6 +27,7 @@ class TextElementRender : public ElementRender {
     virtual ~TextElementRender();
 
     PropertyRender<TextSpans> text{this};
+    PropertyRender<Brush> testFill{this};
     PropertyRender<Font> test1{this};
     PropertyRender<int> test1Size{this};
     PropertyRender<Font> test2{this};
@@ -42,6 +45,7 @@ class TextElementRender : public ElementRender {
     int minY{INT_MAX};
     int maxX{INT_MIN};
     int maxY{INT_MIN};
+    int moveDown{0};
 
     void calculateSize();
 

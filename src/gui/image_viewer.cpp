@@ -33,6 +33,7 @@ void TransparentCornerFrame::leaveEvent(QEvent *event) {
 ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     : QWidget(parent), scene(scene) {
     setAttribute(Qt::WidgetAttribute::WA_MouseTracking);
+    setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     setWindowTitle("Preview");
 
     auto lay = new QHBoxLayout(this);
@@ -82,9 +83,29 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     if (scene) {
         connect(scene, &Scene::elementSelectionChanged, this,
                 &ImageViewer::elementSelectionChanged);
+        connect(scene, &Scene::elementEditModeChanged, this,
+                &ImageViewer::elementEditModeChanged);
         connect(scene, &Scene::playbackStateChanged, this,
                 &ImageViewer::playbackStateChanged);
     }
+}
+
+void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
+    if (textElementEditor != nullptr) {
+        releaseKeyboard();
+        delete textElementEditor;
+        textElementEditor = nullptr;
+    }
+
+    if (editMode) {
+        TextElement *textElement = dynamic_cast<TextElement *>(element);
+        if (textElement != nullptr) {
+            textElementEditor = new TextElementEditor(scene, textElement, this);
+            grabKeyboard();
+        }
+    }
+
+    update();
 }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
@@ -248,12 +269,20 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         painter.setBrush(Qt::NoBrush);
 
         for (auto element : scene->selectedElements) {
-            QPointF pos{(qreal)element->x.get(fi), (qreal)element->y.get(fi)};
-            QPointF bottomRight = pos + QPointF{(qreal)element->w.get(fi),
-                                                (qreal)element->h.get(fi)};
+            QRect boundingBox = element->getBoundingBox(fi);
+            QPointF pos = boundingBox.topLeft();
+            QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
             pos = pixelToViewport(pos);
             QPointF size = pixelToViewport(bottomRight) - pos;
             painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+
+            if (element->editMode) {
+                painter.translate(pos);
+                float zoomElement =
+                    pixelToViewport({2, 2}).x() - pixelToViewport({1, 1}).x();
+                painter.scale(zoomElement, zoomElement);
+                textElementEditor->paint(painter);
+            }
         }
     }
 }
@@ -319,9 +348,7 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         FrameInfo frameInfo{scene->currentFrame};
 
         for (auto element : scene->selectedElements) {
-            element->blockSignals(true);
             element->x.set(element->x.get(frameInfo) + diff.x(), frameInfo);
-            element->blockSignals(false);
             element->y.set(element->y.get(frameInfo) + diff.y(), frameInfo);
         }
 
@@ -405,11 +432,8 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 
             FrameInfo frameInfo = {scene->currentFrame};
             for (auto element : scene->elements) {
-                int x = element->x.get(frameInfo);
-                int y = element->y.get(frameInfo);
-                int w = element->w.get(frameInfo);
-                int h = element->h.get(frameInfo);
-                if (QRect(x, y, w, h).contains(startMovePosition)) {
+                if (element->getBoundingBox(frameInfo).contains(
+                        startMovePosition)) {
                     clickedElement = element;
                     break;
                 }
@@ -496,6 +520,17 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
     }
 }
 
+void ImageViewer::mouseDoubleClickEvent(QMouseEvent *event) {
+    if (scene->selectedElements.isEmpty())
+        return;
+
+    Element *element = scene->selectedElements.first();
+    // TODO: not check in imageviewer
+    if (dynamic_cast<TextElement *>(element) != nullptr) {
+        scene->selectedElements.first()->setEditMode(true);
+    }
+}
+
 void ImageViewer::wheelEvent(QWheelEvent *event) {
     float zoomScale = event->angleDelta().y() / 120.f;
 
@@ -544,4 +579,20 @@ void ImageViewer::updateCursor() {
     }
 
     setCursor(Qt::CursorShape::ArrowCursor);
+}
+
+void ImageViewer::keyPressEvent(QKeyEvent *event) {
+    if (textElementEditor) {
+        textElementEditor->passKeyEvent(event);
+    }
+}
+
+bool ImageViewer::event(QEvent *event) {
+    if (event->type() == QEvent::ShortcutOverride) {
+        if (textElementEditor) {
+            event->accept();
+            return true;
+        }
+    }
+    return QWidget::event(event);
 }

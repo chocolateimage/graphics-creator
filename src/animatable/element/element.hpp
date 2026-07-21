@@ -4,6 +4,7 @@
 #include "animatable/property.hpp"
 #include "variant.hpp"
 #include <QObject>
+#include <QRect>
 #include <string>
 
 class RenderThread;
@@ -25,18 +26,24 @@ class Element : public Animatable {
     Property<int> w{this, "w", 100};
     Property<int> h{this, "h", 100};
     bool collapsed{true};
+    // Text editing
+    bool editMode{false};
     std::vector<Effect *> effects;
 
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
+    virtual QRect getBoundingBox(const FrameInfo &frameInfo);
     void addEffect(Effect *effect);
     void insertEffect(Effect *effect, int index);
     void removeEffect(Effect *effect);
+
+    void setEditMode(bool newMode);
 
   signals:
     void effectAdded(Effect *effect, int index);
     void effectRemoved(Effect *effect);
     void effectListUpdated();
     void effectPropertyUpdated(Effect *effect, PropertyBase *property);
+    void editModeUpdated(bool newMode);
 };
 
 class ElementRender : public AnimatableRender {

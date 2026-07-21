@@ -16,6 +16,11 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     return render;
 }
 
+QRect Element::getBoundingBox(const FrameInfo &frameInfo) {
+    return {x.get(frameInfo), y.get(frameInfo), w.get(frameInfo),
+            h.get(frameInfo)};
+}
+
 void Element::addEffect(Effect *effect) {
     insertEffect(effect, effects.size());
 }
@@ -35,6 +40,14 @@ void Element::removeEffect(Effect *effect) {
     emit effectRemoved(effect);
     emit effectListUpdated();
     delete effect;
+}
+
+void Element::setEditMode(bool newMode) {
+    if (newMode == editMode)
+        return;
+
+    editMode = newMode;
+    emit editModeUpdated(newMode);
 }
 
 Element::~Element() {

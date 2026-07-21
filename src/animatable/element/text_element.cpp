@@ -4,41 +4,53 @@
 #include "math.hpp"
 #include "render.hpp"
 
-TextElement::TextElement() : Element() {}
-
-TextElementRender::~TextElementRender() {
-    for (auto buffer : hbBuffers) {
-        hb_buffer_destroy(buffer);
+TextElement::TextElement() : Element() {
+    TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
+    std::string defaultText = "Hello world";
+    for (auto character : defaultText) {
+        TextSpan defaultSpan;
+        defaultSpan.text = character;
+        defaultSpan.fill = {};
+        defaultSpan.font = Variant::defaultFont;
+        defaultSpan.fontSize = 128;
+        spans.spans.append(std::move(defaultSpan));
     }
+}
+
+QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
+    if (w.get(frameInfo) != 1 || h.get(frameInfo) != 1) {
+        return Element::getBoundingBox(frameInfo);
+    }
+
+    TextSpans spans = text.get(frameInfo);
+    int tempW = 0; // TEMP
+    int maxHeight = 10;
+    for (auto span : spans.spans) {
+        tempW += span.getLength() * span.fontSize * 0.5;
+        maxHeight = std::max(maxHeight, span.fontSize);
+    }
+    return {x.get(frameInfo), y.get(frameInfo) - maxHeight, tempW, maxHeight};
 }
 
 AnimatableRender *TextElement::createClass() { return new TextElementRender(); }
 
 Rect TextElementRender::getRenderBox() {
-    return {minX + x, minY + y, maxX - minX, maxY - minY};
+    int yOffset = 0;
+    if (w.get() != 1 || h.get() != 1) {
+        yOffset += moveDown;
+    }
+    return {minX + x, minY + y + yOffset, maxX - minX, maxY - minY};
 }
 
 void TextElementRender::prepare() {
-    std::string a = "Hello world";
-    int c = 0;
-    for (auto b : a) {
-        TextSpan span1;
-        span1.text = b;
-        span1.fill = {};
-        span1.font = test1;
-        span1.fontSize = test1Size + std::sin(c / 2.) * 50;
-        text.value.spans.append(std::move(span1));
-        c++;
-    }
-
     for (auto span : text.get().spans) {
         hb_buffer_t *hbBuffer = hb_buffer_create();
-        hb_buffer_add_utf8(hbBuffer, span.text.c_str(), -1, 0, -1);
+        hb_buffer_add_utf8(hbBuffer, qPrintable(span.text), -1, 0, -1);
 
         hb_buffer_guess_segment_properties(hbBuffer);
 
-        FontInfo *fontInfo =
-            renderThread->getFont(span.font, std::max(1, span.fontSize));
+        FontInfo *fontInfo = renderThread->fontManager->getFont(
+            span.font, std::max(1, span.fontSize));
         fontInfos.push_back(fontInfo);
 
         hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
@@ -51,6 +63,8 @@ void TextElementRender::prepare() {
 
         hbBuffers.push_back(hbBuffer);
         spanCount++;
+
+        moveDown = std::max(moveDown, span.fontSize);
     }
 
     calculateSize();
@@ -60,7 +74,9 @@ void TextElementRender::calculateSize() {
     int curX = 0;
     int curY = 0;
 
+    TextSpans &spans = text.get();
     for (int si = 0; si < spanCount; si++) {
+        TextSpan &span = spans.spans[si];
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto codepoint = infos[si][i].codepoint;
             auto glyph = fontInfos[si]->getGlyph(codepoint);
@@ -82,6 +98,10 @@ void TextElementRender::calculateSize() {
             curX += xAdvance;
             curY += yAdvance;
         }
+        if (span.newLine) {
+            curX = 0;
+            curY += moveDown; // this is wrong
+        }
     }
 }
 
@@ -91,7 +111,9 @@ bool TextElementRender::render(uint32_t *target) {
     int curX = 0;
     int curY = 0;
 
+    TextSpans &spans = text.get();
     for (int si = 0; si < spanCount; si++) {
+        TextSpan &span = spans.spans[si];
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto glyphPos = positions[si][i];
             auto codepoint = infos[si][i].codepoint;
@@ -116,14 +138,31 @@ bool TextElementRender::render(uint32_t *target) {
                     int index = pixelIndex(targetX, targetY, rect.w);
 
                     switch (glyph->bitmap.pixel_mode) {
-                    case FT_PIXEL_MODE_GRAY:
-                        target[index] =
-                            over(target[index],
-                                 makePixel(
-                                     255, 255, 255,
-                                     glyph->bitmap
-                                         .buffer[y * glyph->bitmap.pitch + x]));
+                    case FT_PIXEL_MODE_MONO: {
+                        if ((glyph->bitmap
+                                 .buffer[y * glyph->bitmap.pitch + (x / 8)] >>
+                             (7 - (x % 8))) &
+                            1) {
+                            Color c = getBrushPixel(span.fill, targetX, targetY,
+                                                    rect.w, rect.h);
+                            target[index] = over(target[index],
+                                                 makePixel(c.r, c.g, c.b, c.a));
+                        }
                         break;
+                    }
+                    case FT_PIXEL_MODE_GRAY: {
+                        Color c = getBrushPixel(span.fill, targetX, targetY,
+                                                rect.w, rect.h);
+                        target[index] = over(
+                            target[index],
+                            makePixel(
+                                c.r, c.g, c.b,
+                                c.a *
+                                    (glyph->bitmap
+                                         .buffer[y * glyph->bitmap.pitch + x] /
+                                     255.)));
+                        break;
+                    }
                     case FT_PIXEL_MODE_BGRA:
                         target[index] = over(
                             target[index], ((uint32_t *)(glyph->bitmap.buffer))
@@ -145,7 +184,17 @@ bool TextElementRender::render(uint32_t *target) {
             curX += xAdvance;
             curY += yAdvance;
         }
+        if (span.newLine) {
+            curX = 0;
+            curY += moveDown; // this is wrong
+        }
     }
 
     return true;
+}
+
+TextElementRender::~TextElementRender() {
+    for (auto buffer : hbBuffers) {
+        hb_buffer_destroy(buffer);
+    }
 }

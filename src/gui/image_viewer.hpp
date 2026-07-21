@@ -1,7 +1,9 @@
 #pragma once
 #include "scene.hpp"
+#include "text_element_editor.hpp"
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
+#include <QKeyEvent>
 #include <QToolButton>
 #include <QWidget>
 
@@ -62,14 +64,20 @@ class ImageViewer : public QWidget {
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     void enterEvent(QEnterEvent *event) override;
     void leaveEvent(QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    bool event(QEvent *event) override;
+
+    TextElementEditor *textElementEditor{nullptr};
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
+    void elementEditModeChanged(Element *element, bool editMode);
     void playbackStateChanged(bool playing);
 
   signals:
