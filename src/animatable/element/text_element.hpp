@@ -10,6 +10,8 @@ class TextElement : public Element {
     TextElement();
     virtual ~TextElement() {}
 
+    TextSpan createDefaultTextSpan();
+
     AnimatableRender *createClass() override;
     QRect getBoundingBox(const FrameInfo &frameInfo) override;
 

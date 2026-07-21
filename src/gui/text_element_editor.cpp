@@ -61,7 +61,7 @@ void TextElementEditor::relayout() {
             minX = curX;
             minY = curY;
             maxX = minX + 1;
-            maxY = maxY + 1;
+            maxY = minY + 1;
         }
 
         spanRects.append({minX, minY, maxX - minX, maxY - minY});
@@ -84,8 +84,12 @@ void TextElementEditor::paint(QPainter &painter) {
 
     qInfo() << selectionStart;
 
-    if (selectionStart >= spanRects.length()) {
+    if (spanRects.isEmpty()) {
         selectionStartRect = {0, 0, 1, 1};
+    } else if (selectionStart == spans.spans.length()) {
+        selectionStartRect = spanRects.last();
+        selectionStartRect.setX(selectionStartRect.x() +
+                                selectionStartRect.width());
     } else {
         selectionStartRect = spanRects[selectionStart];
     }
@@ -103,6 +107,15 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
     QString addedText = keyEvent->text();
     TextSpans spans = textElement->text.get({scene->currentFrame});
 
+    TextSpan span;
+    if (selectionStart < spans.spans.length()) {
+        span = spans.spans[selectionStart];
+    } else if (!spans.spans.isEmpty()) {
+        span = spans.spans.last();
+    } else {
+        span = textElement->createDefaultTextSpan();
+    }
+
     if (selectionLength > 0) {
         if (keyEvent->key() == Qt::Key_Delete ||
             keyEvent->key() == Qt::Key_Backspace) {
@@ -111,16 +124,24 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
         }
     }
 
+    if (keyEvent->key() == Qt::Key_Left) {
+        selectionStart = std::max(0, selectionStart - 1);
+        relayout();
+        return;
+    }
+    if (keyEvent->key() == Qt::Key_Right) {
+        selectionStart =
+            std::min((int)spans.spans.length(), selectionStart + 1);
+        relayout();
+        return;
+    }
+
     if (keyEvent->key() == Qt::Key_Delete) {
         if (selectionStart == spans.spans.length()) {
             return;
         }
 
-        if (spans.spans.length() == 1) {
-            spans.spans[0].text = "";
-        } else {
-            spans.spans.removeAt(selectionStart);
-        }
+        spans.spans.removeAt(selectionStart);
 
         textElement->text.set(spans, {scene->currentFrame});
         relayout();
@@ -132,11 +153,7 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
             return;
         }
 
-        if (spans.spans.length() == 1) {
-            spans.spans[0].text = "";
-        } else {
-            spans.spans.removeAt(selectionStart - 1);
-        }
+        spans.spans.removeAt(selectionStart - 1);
         selectionStart--;
 
         textElement->text.set(spans, {scene->currentFrame});
@@ -144,11 +161,11 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
         return;
     }
 
-    TextSpan span = spans.spans[selectionStart];
-
     if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return) {
         addedText = " ";
         span.newLine = true;
+    } else {
+        span.newLine = false;
     }
 
     if (addedText.isEmpty())

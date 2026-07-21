@@ -8,13 +8,19 @@ TextElement::TextElement() : Element() {
     TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
     std::string defaultText = "Hello world";
     for (auto character : defaultText) {
-        TextSpan defaultSpan;
+        TextSpan defaultSpan = createDefaultTextSpan();
         defaultSpan.text = character;
-        defaultSpan.fill = {};
-        defaultSpan.font = Variant::defaultFont;
-        defaultSpan.fontSize = 128;
         spans.spans.append(std::move(defaultSpan));
     }
+}
+
+TextSpan TextElement::createDefaultTextSpan() {
+    TextSpan defaultSpan;
+    defaultSpan.text = "";
+    defaultSpan.fill = {};
+    defaultSpan.font = Variant::defaultFont;
+    defaultSpan.fontSize = 128;
+    return defaultSpan;
 }
 
 QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
@@ -39,7 +45,8 @@ Rect TextElementRender::getRenderBox() {
     if (w.get() != 1 || h.get() != 1) {
         yOffset += moveDown;
     }
-    return {minX + x, minY + y + yOffset, maxX - minX, maxY - minY};
+    return {minX + x, minY + y + yOffset, std::max(1, maxX - minX),
+            std::max(1, maxY - minY)};
 }
 
 void TextElementRender::prepare() {
@@ -102,6 +109,13 @@ void TextElementRender::calculateSize() {
             curX = 0;
             curY += moveDown; // this is wrong
         }
+    }
+
+    if (minX == INT_MAX) {
+        minX = 0;
+        minY = 0;
+        maxX = 1;
+        maxY = 1;
     }
 }
 
