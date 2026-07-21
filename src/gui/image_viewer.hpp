@@ -1,6 +1,7 @@
 #pragma once
 #include "scene.hpp"
 #include "text_element_editor.hpp"
+#include <DockManager.h>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
 #include <QKeyEvent>
@@ -18,6 +19,8 @@ class TransparentCornerFrame : public QFrame {
     void leaveEvent(QEvent *event) override;
 };
 
+class NewMainWindow;
+
 class ImageViewer : public QWidget {
     Q_OBJECT
   public:
@@ -33,6 +36,8 @@ class ImageViewer : public QWidget {
     void stopPicking();
     QRectF fittedRect();
     QImage image;
+
+    NewMainWindow *mainWindow{nullptr};
 
   protected:
     void saveFrameAsFile(QSize size);

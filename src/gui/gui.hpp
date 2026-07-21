@@ -96,6 +96,7 @@ class NewMainWindow : public QMainWindow {
     uint64_t globalId;
 
     ads::CDockManager *dockManager;
+    ads::CDockWidget *propertiesDockWidget;
     QUndoStack *undoStack;
 
     QList<FramePreviewThread *> previewThreads;

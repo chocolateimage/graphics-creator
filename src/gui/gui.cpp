@@ -338,6 +338,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     ads::CDockWidget *sceneDockWidget = dockManager->createDockWidget("Scene");
     sceneDockWidget->setIcon(QIcon::fromTheme("video-television-symbolic"));
     scenePreviewWidget = new ImageViewer(scene);
+    scenePreviewWidget->mainWindow = this;
     connect(scenePreviewWidget, &ImageViewer::rectPicked, this,
             &NewMainWindow::sceneRectPicked);
     sceneDockWidget->setWidget(scenePreviewWidget);
@@ -347,8 +348,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     timeline = new TimelineWidget(scene, this);
     timelineDockWidget->setWidget(timeline);
 
-    ads::CDockWidget *propertiesDockWidget =
-        dockManager->createDockWidget("Properties");
+    propertiesDockWidget = dockManager->createDockWidget("Properties");
     propertiesDockWidget->setIcon(
         QIcon::fromTheme("settings-configure-symbolic"));
     PropertyWindow *propertyWindow = new PropertyWindow(scene);
@@ -362,11 +362,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     auto sceneDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::CenterDockWidgetArea, sceneDockWidget);
-    auto elementsDockArea = dockManager->addDockWidget(
+    auto propertiesDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::RightDockWidgetArea, propertiesDockWidget);
+
     auto effectsDockArea =
         dockManager->addDockWidget(ads::DockWidgetArea::BottomDockWidgetArea,
-                                   effectsDockWidget, elementsDockArea);
+                                   effectsDockWidget, propertiesDockArea);
     auto timelineDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::BottomDockWidgetArea, timelineDockWidget);
 
@@ -374,10 +375,10 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     policy.setHorizontalStretch(1);
     policy.setVerticalStretch(1);
     sceneDockArea->setSizePolicy(policy);
-    policy = elementsDockArea->sizePolicy();
+    policy = propertiesDockArea->sizePolicy();
     policy.setHorizontalStretch(0);
     policy.setVerticalStretch(1);
-    elementsDockArea->setSizePolicy(policy);
+    propertiesDockArea->setSizePolicy(policy);
     policy = timelineDockArea->sizePolicy();
     policy.setHorizontalStretch(1);
     policy.setVerticalStretch(0);

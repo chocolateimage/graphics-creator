@@ -1,14 +1,65 @@
 #include "text_element_editor.hpp"
+#include "gui.hpp"
 #include <QPainter>
 #include <QString>
 #include <QWidget>
 
-TextElementEditor::TextElementEditor(Scene *scene, TextElement *textElement,
-                                     QObject *parent)
-    : QObject(parent), textElement(textElement), scene(scene) {
+TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
+                                     TextElement *textElement, QObject *parent)
+    : QObject(parent), textElement(textElement), scene(scene),
+      mainWindow(mainWindow) {
     fontManager = new FontManager();
     selectionLength =
         textElement->text.get({scene->currentFrame}).spans.length();
+    dockContentWidget = new QWidget();
+    QFormLayout *layout = new QFormLayout(dockContentWidget);
+
+    fontSize = new QSpinBox(dockContentWidget);
+    fontSize->setRange(1, 500);
+    connect(fontSize, &QSpinBox::valueChanged, this,
+            &TextElementEditor::setFontSize);
+    layout->addRow("Font size", fontSize);
+
+    dockWidget = mainWindow->dockManager->createDockWidget("Text");
+    dockWidget->setWidget(dockContentWidget);
+    dockWidget->setIcon(QIcon::fromTheme("draw-text"));
+    dockWidget->setFeature(
+        ads::CDockWidget::DockWidgetFeature::DockWidgetClosable, false);
+    mainWindow->dockManager->addDockWidgetTabToArea(
+        dockWidget, mainWindow->propertiesDockWidget->dockAreaWidget());
+    relayout();
+}
+
+void TextElementEditor::loadValues() {
+    TextSpans spans = textElement->text.get({scene->currentFrame});
+
+    // TODO: "new" writing: when length is zero and you are about to type. can
+    // also happen when text is empty
+    dockContentWidget->setDisabled(spans.spans.isEmpty());
+    if (spans.spans.isEmpty()) {
+        return;
+    }
+
+    // TODO: multiple values
+    QSignalBlocker blocker{fontSize};
+    int index = selectionStart;
+    if (index >= spans.spans.length()) {
+        index = spans.spans.length() - 1;
+    }
+    if (index < 0) {
+        index = 0;
+    }
+    TextSpan &span = spans.spans[index];
+    fontSize->setValue(span.fontSize);
+}
+
+void TextElementEditor::setFontSize(int newValue) {
+    TextSpans spans = textElement->text.get({scene->currentFrame});
+    for (int i = selectionStart;
+         i < selectionStart + std::max(1, selectionLength); i++) {
+        spans.spans[i].fontSize = newValue;
+    }
+    textElement->text.set(spans, {scene->currentFrame});
     relayout();
 }
 
@@ -79,6 +130,7 @@ void TextElementEditor::relayout() {
     }
     fontManager->garbageCollect();
     ((QWidget *)parent())->update();
+    loadValues();
 }
 
 QRect TextElementEditor::getRectForIndex(int index) {
@@ -267,4 +319,7 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
     relayout();
 }
 
-TextElementEditor::~TextElementEditor() { delete fontManager; }
+TextElementEditor::~TextElementEditor() {
+    dockWidget->deleteDockWidget();
+    delete fontManager;
+}

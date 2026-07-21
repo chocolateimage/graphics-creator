@@ -1,12 +1,17 @@
 #pragma once
 #include "animatable/element/text_element.hpp"
 #include "scene.hpp"
+#include <DockWidget.h>
 #include <QKeyEvent>
 #include <QObject>
+#include <QSpinBox>
+
+class NewMainWindow;
 
 class TextElementEditor : public QObject {
   public:
-    TextElementEditor(Scene *scene, TextElement *textElement, QObject *parent);
+    TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
+                      TextElement *textElement, QObject *parent);
     ~TextElementEditor();
 
     void relayout();
@@ -19,7 +24,17 @@ class TextElementEditor : public QObject {
     FontManager *fontManager;
     TextElement *textElement;
     Scene *scene;
+    NewMainWindow *mainWindow;
     int selectionStart{0};
     int selectionLength{0};
     bool selectionAnchorLeft = false;
+
+    ads::CDockWidget *dockWidget;
+
+    void loadValues();
+    QWidget *dockContentWidget;
+    QSpinBox *fontSize;
+
+  private slots:
+    void setFontSize(int newValue);
 };

@@ -100,7 +100,8 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
     if (editMode) {
         TextElement *textElement = dynamic_cast<TextElement *>(element);
         if (textElement != nullptr) {
-            textElementEditor = new TextElementEditor(scene, textElement, this);
+            textElementEditor =
+                new TextElementEditor(mainWindow, scene, textElement, this);
             grabKeyboard();
         }
     }
