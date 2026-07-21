@@ -1,4 +1,5 @@
 #include "text_element_editor.hpp"
+#include "draggable_spinbox.hpp"
 #include "gui.hpp"
 #include <QPainter>
 #include <QString>
@@ -14,7 +15,7 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
     dockContentWidget = new QWidget();
     QFormLayout *layout = new QFormLayout(dockContentWidget);
 
-    fontSize = new QSpinBox(dockContentWidget);
+    fontSize = new DraggableSpinBox(dockContentWidget);
     fontSize->setRange(1, 500);
     connect(fontSize, &QSpinBox::valueChanged, this,
             &TextElementEditor::setFontSize);

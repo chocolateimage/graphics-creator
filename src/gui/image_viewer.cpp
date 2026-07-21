@@ -92,7 +92,6 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
 
 void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
     if (textElementEditor != nullptr) {
-        releaseKeyboard();
         delete textElementEditor;
         textElementEditor = nullptr;
     }
@@ -102,7 +101,6 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
         if (textElement != nullptr) {
             textElementEditor =
                 new TextElementEditor(mainWindow, scene, textElement, this);
-            grabKeyboard();
         }
     }
 
