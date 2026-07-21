@@ -9,7 +9,6 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
                                      TextElement *textElement, QObject *parent)
     : QObject(parent), textElement(textElement), scene(scene),
       mainWindow(mainWindow) {
-    fontManager = new FontManager();
     selectionLength =
         textElement->text.get({scene->currentFrame}).spans.length();
     dockContentWidget = new QWidget();
@@ -20,6 +19,9 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
     connect(fontSize, &QSpinBox::valueChanged, this,
             &TextElementEditor::setFontSize);
     layout->addRow("Font size", fontSize);
+
+    debugListWidget = new QListWidget(dockContentWidget);
+    layout->addWidget(debugListWidget);
 
     dockWidget = mainWindow->dockManager->createDockWidget("Text");
     dockWidget->setWidget(dockContentWidget);
@@ -65,22 +67,32 @@ void TextElementEditor::setFontSize(int newValue) {
 }
 
 void TextElementEditor::relayout() {
+    debugListWidget->clear();
     TextSpans spans = textElement->text.get({scene->currentFrame});
     spanRects.clear();
 
     int curX = 0;
     int curY = 0;
 
+    int index = 0;
+
     for (auto &span : spans.spans) {
+        QString debug = QString::number(index) + " - [" + span.text + "]";
+        if (span.newLine) {
+            debug += " newline";
+        }
+        debugListWidget->addItem(debug);
+
         if (span.newLine) {
             curX = 0;
             curY += span.fontSize; // this is wrong
             spanRects.append({curX, curY, 1, span.fontSize});
+            index++;
             continue;
         }
 
-        FontInfo *fontInfo =
-            fontManager->getFont(span.font, std::max(1, span.fontSize));
+        FontInfo *fontInfo = textElement->fontManager->getFont(
+            span.font, std::max(1, span.fontSize));
 
         hb_buffer_t *hbBuffer = hb_buffer_create();
         hb_buffer_add_utf8(hbBuffer, qPrintable(span.text), -1, 0, -1);
@@ -128,8 +140,12 @@ void TextElementEditor::relayout() {
         spanRects.append({minX, minY, maxX - minX, maxY - minY});
 
         hb_buffer_destroy(hbBuffer);
+        index++;
     }
-    fontManager->garbageCollect();
+
+    debugListWidget->setCurrentRow(selectionStart);
+
+    textElement->fontManager->garbageCollect();
     ((QWidget *)parent())->update();
     loadValues();
 }
@@ -173,14 +189,23 @@ void TextElementEditor::paint(QPainter &painter) {
         painter.drawRect(QRectF(selectionStartRect.x(), selectionStartRect.y(),
                                 2. / scale, selectionStartRect.height()));
     } else {
-        QColor color = parentWidget->palette().highlight().color();
-        painter.setPen(color);
-        color.setAlpha(120);
-        painter.setBrush(color);
-        painter.drawRect(QRectF(selectionStartRect.x(), selectionStartRect.y(),
-                                selectionEndRect.x() - selectionStartRect.x(),
-                                selectionStartRect.height()));
+        for (int i = selectionStart; i < selectionStart + selectionLength;
+             i++) {
+            painter.setPen(Qt::NoPen);
+            QColor color = parentWidget->palette().highlight().color();
+            color.setAlpha(120);
+            painter.setBrush(color);
+            painter.drawRect(getRectForIndex(i));
+        }
     }
+
+    // for (auto r : spanRects) {
+    //     QColor color = Qt::green;
+    //     painter.setPen(color);
+    //     color.setAlpha(30);
+    //     painter.setBrush(color);
+    //     painter.drawRect(r);
+    // }
 }
 
 void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
@@ -320,7 +345,4 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
     relayout();
 }
 
-TextElementEditor::~TextElementEditor() {
-    dockWidget->deleteDockWidget();
-    delete fontManager;
-}
+TextElementEditor::~TextElementEditor() { dockWidget->deleteDockWidget(); }

@@ -23,6 +23,81 @@ TextSpan TextElement::createDefaultTextSpan() {
     return defaultSpan;
 }
 
+TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
+    TextSpans spans = text.get(frameInfo);
+
+    TextLayout layout;
+
+    int maxLineHeight = 0;
+    for (auto &span : spans.spans) {
+        if (span.newLine) {
+            if (maxLineHeight == 0) {
+                maxLineHeight = span.fontSize;
+            }
+            layout.lineHeights.append(maxLineHeight);
+            maxLineHeight = 0;
+            continue;
+        }
+        maxLineHeight = std::max(maxLineHeight, span.fontSize);
+    }
+    layout.lineHeights.append(maxLineHeight);
+
+    // 0x0 is actually not top left corner of the rendered box, but instead it's
+    // the bottom left of the first line
+    int curX = 0;
+    int curY = 0;
+    int line = 0;
+    for (auto &span : spans.spans) {
+        TextLayoutItem item;
+        item.line = line;
+        item.startPoint = {curX, curY};
+        item.height = span.fontSize;
+
+        if (span.newLine) {
+            item.selectionEndPoint = {curX + (int)(span.fontSize * .3), curY};
+            curX = 0;
+            curY += layout.lineHeights[line + 1];
+            item.endPoint = {curX, curY};
+            line++;
+            layout.items.append(item);
+            continue;
+        }
+
+        hb_buffer_t *hbBuffer = hb_buffer_create();
+        hb_buffer_add_utf8(hbBuffer, qUtf8Printable(span.text), -1, 0, -1);
+
+        hb_buffer_guess_segment_properties(hbBuffer);
+
+        FontInfo *fontInfo =
+            fontManager->getFont(span.font, std::max(1, span.fontSize));
+
+        hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
+
+        uint32_t glyphCount;
+        hb_glyph_position_t *positions =
+            hb_buffer_get_glyph_positions(hbBuffer, &glyphCount);
+
+        for (unsigned int i = 0; i < glyphCount; i++) {
+            auto glyphPos = positions[i];
+            int xOffset = glyphPos.x_offset >> 6;
+            int yOffset = glyphPos.y_offset >> 6;
+            int xAdvance = glyphPos.x_advance >> 6;
+            int yAdvance = glyphPos.y_advance >> 6;
+
+            curX += xAdvance;
+            curY += yAdvance;
+        }
+
+        hb_buffer_destroy(hbBuffer);
+
+        item.endPoint = {curX, curY};
+        item.selectionEndPoint = item.endPoint;
+        layout.items.append(item);
+    }
+
+    return layout;
+}
+
 QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
     if (w.get(frameInfo) != 1 || h.get(frameInfo) != 1) {
         return Element::getBoundingBox(frameInfo);
@@ -35,6 +110,8 @@ QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
         tempW += span.getLength() * span.fontSize * 0.5;
         maxHeight = std::max(maxHeight, span.fontSize);
     }
+
+    fontManager->garbageCollect();
     return {x.get(frameInfo), y.get(frameInfo) - maxHeight, tempW, maxHeight};
 }
 
@@ -52,7 +129,7 @@ Rect TextElementRender::getRenderBox() {
 void TextElementRender::prepare() {
     for (auto span : text.get().spans) {
         hb_buffer_t *hbBuffer = hb_buffer_create();
-        hb_buffer_add_utf8(hbBuffer, qPrintable(span.text), -1, 0, -1);
+        hb_buffer_add_utf8(hbBuffer, qUtf8Printable(span.text), -1, 0, -1);
 
         hb_buffer_guess_segment_properties(hbBuffer);
 

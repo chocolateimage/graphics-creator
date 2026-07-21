@@ -5,6 +5,24 @@
 #include <hb-ft.h>
 #include <hb.h>
 
+class TextLayoutItem {
+  public:
+    // Starting from 0
+    int line;
+    // The points are aligned from the bottom
+    QPoint startPoint;
+    QPoint endPoint;
+    QPoint selectionEndPoint;
+
+    int height;
+};
+
+class TextLayout {
+  public:
+    QList<int> lineHeights{};
+    QList<TextLayoutItem> items{};
+};
+
 class TextElement : public Element {
   public:
     TextElement();
@@ -12,8 +30,11 @@ class TextElement : public Element {
 
     TextSpan createDefaultTextSpan();
 
+    FontManager *fontManager;
     AnimatableRender *createClass() override;
     QRect getBoundingBox(const FrameInfo &frameInfo) override;
+
+    TextLayout layTheTextOut(const FrameInfo &frameInfo);
 
     Property<TextSpans> text{this, "text", {}};
     Property<Brush> testFill{this, "testFill", {}};

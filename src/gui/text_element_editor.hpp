@@ -3,6 +3,7 @@
 #include "scene.hpp"
 #include <DockWidget.h>
 #include <QKeyEvent>
+#include <QListWidget>
 #include <QObject>
 #include <QSpinBox>
 
@@ -21,7 +22,6 @@ class TextElementEditor : public QObject {
 
     QList<QRect> spanRects;
 
-    FontManager *fontManager;
     TextElement *textElement;
     Scene *scene;
     NewMainWindow *mainWindow;
@@ -34,6 +34,7 @@ class TextElementEditor : public QObject {
     void loadValues();
     QWidget *dockContentWidget;
     QSpinBox *fontSize;
+    QListWidget *debugListWidget;
 
   private slots:
     void setFontSize(int newValue);
