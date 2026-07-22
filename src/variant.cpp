@@ -1,12 +1,12 @@
 #include "variant.hpp"
+#include "render.hpp"
 #include <cstring>
 #include <math.h>
 
 Font Variant::defaultFont = {};
 
-std::string getFontHash(const Font &font, int fontSize, bool antialiased) {
-    return font.path + "\n" + std::to_string(fontSize) + "\n" +
-           (antialiased ? "1" : "0") + "\n" + std::to_string(font.index);
+StrokeInfo TextSpan::strokeInfo() const {
+    return {strokeWidth, strokeLineJoin};
 }
 
 Brush::Type getBrushTypeFromString(const std::string &str) {

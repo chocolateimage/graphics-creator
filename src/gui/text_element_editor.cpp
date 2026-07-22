@@ -41,6 +41,25 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
             &TextElementEditor::setAntialiased);
     layout->addRow("Antialiased", antialiasedCheckBox);
 
+    strokeWidth = new DraggableSpinBox(dockContentWidget);
+    strokeWidth->setRange(0, 500);
+    connect(strokeWidth, &QSpinBox::valueChanged, this,
+            &TextElementEditor::setStrokeWidth);
+    layout->addRow("Stroke width", strokeWidth);
+
+    strokeInput = new BrushInput(dockContentWidget);
+    connect(strokeInput, &BrushInput::valueChanged, this,
+            &TextElementEditor::setStroke);
+    layout->addRow("Stroke", strokeInput);
+
+    strokeLineJoin = new QComboBox(dockContentWidget);
+    strokeLineJoin->addItem(QIcon::fromTheme("stroke-join-round"), "Round");
+    strokeLineJoin->addItem(QIcon::fromTheme("stroke-join-bevel"), "Bevel");
+    strokeLineJoin->addItem(QIcon::fromTheme("stroke-join-miter"), "Miter");
+    connect(strokeLineJoin, &QComboBox::currentIndexChanged, this,
+            &TextElementEditor::setStrokeLineJoin);
+    layout->addRow("Stroke line join", strokeLineJoin);
+
     debugListWidget = new QListWidget(dockContentWidget);
     debugListWidget->setVisible(debug);
     layout->addWidget(debugListWidget);
@@ -88,10 +107,29 @@ void TextElementEditor::loadValues(TextSpan &span) {
     QSignalBlocker blocker2{fontComboBox};
     QSignalBlocker blocker3{fillInput};
     QSignalBlocker blocker4{antialiasedCheckBox};
+    QSignalBlocker blocker5{strokeWidth};
+    QSignalBlocker blocker6{strokeInput};
+    QSignalBlocker blocker7{strokeLineJoin};
+
     fontSize->setValue(span.fontSize);
     fontComboBox->setFontValue(span.font);
     fillInput->setValue(span.fill);
     antialiasedCheckBox->setChecked(span.antialiased);
+    strokeWidth->setValue(span.strokeWidth);
+    strokeInput->setValue(span.stroke);
+    switch (span.strokeLineJoin) {
+    case FT_STROKER_LINEJOIN_ROUND:
+        strokeLineJoin->setCurrentIndex(0);
+        break;
+    case FT_STROKER_LINEJOIN_BEVEL:
+        strokeLineJoin->setCurrentIndex(1);
+        break;
+    case FT_STROKER_LINEJOIN_MITER:
+        strokeLineJoin->setCurrentIndex(2);
+        break;
+    default:
+        break;
+    }
 }
 
 void TextElementEditor::setSpanProperties(
@@ -128,6 +166,28 @@ void TextElementEditor::setFill(Brush value) {
 void TextElementEditor::setAntialiased(bool newValue) {
     setSpanProperties(
         [newValue](TextSpan &span) { span.antialiased = newValue; });
+}
+
+void TextElementEditor::setStrokeWidth(int newValue) {
+    setSpanProperties(
+        [newValue](TextSpan &span) { span.strokeWidth = newValue; });
+}
+
+void TextElementEditor::setStroke(Brush value) {
+    setSpanProperties([value](TextSpan &span) { span.stroke = value; });
+}
+
+void TextElementEditor::setStrokeLineJoin(int value) {
+    FT_Stroker_LineJoin lineJoin = FT_STROKER_LINEJOIN_ROUND;
+    if (value == 0) {
+        lineJoin = FT_STROKER_LINEJOIN_ROUND;
+    } else if (value == 1) {
+        lineJoin = FT_STROKER_LINEJOIN_BEVEL;
+    } else if (value == 2) {
+        lineJoin = FT_STROKER_LINEJOIN_MITER_VARIABLE;
+    }
+    setSpanProperties(
+        [lineJoin](TextSpan &span) { span.strokeLineJoin = lineJoin; });
 }
 
 void TextElementEditor::relayout() {

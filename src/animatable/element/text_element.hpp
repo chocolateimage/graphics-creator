@@ -60,6 +60,7 @@ class TextElementRender : public ElementRender {
     int spanCount{0};
     std::vector<hb_buffer_t *> hbBuffers;
     std::vector<FontInfo *> fontInfos;
+    std::vector<FontInfo *> strokeFontInfos;
 
     std::vector<hb_glyph_info_t *> infos;
     std::vector<hb_glyph_position_t *> positions;
@@ -77,4 +78,6 @@ class TextElementRender : public ElementRender {
     void prepare() override;
     Rect getRenderBox() override;
     bool render(uint32_t *target) override;
+    void renderGlyph(uint32_t *target, FT_BitmapGlyph glyph, int x, int y,
+                     Rect &rect, Brush &brush);
 };

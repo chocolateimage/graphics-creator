@@ -58,7 +58,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
         hb_buffer_guess_segment_properties(hbBuffer);
 
         FontInfo *fontInfo = fontManager->getFont(
-            span.font, std::max(1, span.fontSize), span.antialiased);
+            span.font, std::max(1, span.fontSize), span.antialiased, {});
 
         hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
 
@@ -171,8 +171,17 @@ void TextElementRender::prepare() {
         hb_buffer_guess_segment_properties(hbBuffer);
 
         FontInfo *fontInfo = renderThread->fontManager->getFont(
-            span.font, std::max(1, span.fontSize), span.antialiased);
+            span.font, std::max(1, span.fontSize), span.antialiased, {});
         fontInfos.push_back(fontInfo);
+
+        if (span.strokeWidth > 0) {
+            FontInfo *strokeFontInfo = renderThread->fontManager->getFont(
+                span.font, std::max(1, span.fontSize), span.antialiased,
+                span.strokeInfo());
+            strokeFontInfos.push_back(strokeFontInfo);
+        } else {
+            strokeFontInfos.push_back(nullptr);
+        }
 
         hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
 
@@ -196,7 +205,11 @@ void TextElementRender::calculateSize() {
         int curY = item.startPoint.y();
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto codepoint = infos[si][i].codepoint;
-            auto glyph = fontInfos[si]->getGlyph(codepoint);
+            FontInfo *fontInfo = strokeFontInfos[si];
+            if (fontInfo == nullptr) {
+                fontInfo = fontInfos[si];
+            }
+            auto glyph = fontInfo->getGlyph(codepoint);
 
             auto glyphPos = positions[si][i];
             int xOffset = glyphPos.x_offset >> 6;
@@ -220,15 +233,99 @@ void TextElementRender::calculateSize() {
     }
 }
 
+void TextElementRender::renderGlyph(uint32_t *target, FT_BitmapGlyph glyph,
+                                    int x, int y, Rect &rect, Brush &brush) {
+    int drawX = x + glyph->left;
+    int drawY = y - glyph->top;
+    bool invalid = false;
+    for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
+        for (unsigned int x = 0; x < glyph->bitmap.width; x++) {
+            int targetX = drawX + x;
+            int targetY = drawY + y;
+            if (targetX < 0 || targetY < 0 || targetX >= rect.w ||
+                targetY >= rect.h)
+                continue;
+            int index = pixelIndex(targetX, targetY, rect.w);
+
+            switch (glyph->bitmap.pixel_mode) {
+            case FT_PIXEL_MODE_MONO: {
+                if ((glyph->bitmap.buffer[y * glyph->bitmap.pitch + (x / 8)] >>
+                     (7 - (x % 8))) &
+                    1) {
+                    Color c =
+                        getBrushPixel(brush, targetX, targetY, rect.w, rect.h);
+                    target[index] =
+                        over(target[index], makePixel(c.r, c.g, c.b, c.a));
+                }
+                break;
+            }
+            case FT_PIXEL_MODE_GRAY: {
+                Color c =
+                    getBrushPixel(brush, targetX, targetY, rect.w, rect.h);
+                target[index] = over(
+                    target[index],
+                    makePixel(
+                        c.r, c.g, c.b,
+                        c.a *
+                            (glyph->bitmap.buffer[y * glyph->bitmap.pitch + x] /
+                             255.)));
+                break;
+            }
+            case FT_PIXEL_MODE_BGRA:
+                target[index] = over(
+                    target[index],
+                    ((uint32_t *)(glyph->bitmap
+                                      .buffer))[y * glyph->bitmap.width + x]);
+                break;
+            default: {
+                invalid = true;
+                target[index] = over(target[index], makePixel(255, 0, 0, 255));
+            }
+            }
+        }
+    }
+
+    if (invalid) {
+        qInfo() << "Invalid pixel_mode" << glyph->bitmap.pixel_mode;
+    }
+}
+
 bool TextElementRender::render(uint32_t *target) {
     auto rect = getRenderBox();
 
     TextSpans &spans = text.get();
+    // stroke
     for (int si = 0; si < spanCount; si++) {
         TextSpan &span = spans.spans[si];
         TextLayoutItem &item = layout.items[si];
         int curX = item.startPoint.x();
         int curY = item.startPoint.y();
+
+        for (unsigned int i = 0; i < glyphCounts[si]; i++) {
+            auto glyphPos = positions[si][i];
+            auto codepoint = infos[si][i].codepoint;
+            FontInfo *strokeFontInfo = strokeFontInfos[si];
+            if (!strokeFontInfo)
+                continue;
+
+            int xOffset = (glyphPos.x_offset >> 6);
+            int yOffset = (glyphPos.y_offset >> 6);
+
+            int itemX = (curX + xOffset) - minX;
+            int itemY = (curY + yOffset) - minY;
+
+            auto glyph = strokeFontInfo->getGlyph(infos[si][i].codepoint);
+            renderGlyph(target, glyph, itemX, itemY, rect, span.stroke);
+        }
+    }
+
+    // fill
+    for (int si = 0; si < spanCount; si++) {
+        TextSpan &span = spans.spans[si];
+        TextLayoutItem &item = layout.items[si];
+        int curX = item.startPoint.x();
+        int curY = item.startPoint.y();
+
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto glyphPos = positions[si][i];
             auto codepoint = infos[si][i].codepoint;
@@ -237,62 +334,10 @@ bool TextElementRender::render(uint32_t *target) {
             int xOffset = (glyphPos.x_offset >> 6);
             int yOffset = (glyphPos.y_offset >> 6);
 
-            int drawX = (curX + xOffset + glyph->left) - minX;
-            int drawY = (curY + yOffset - glyph->top) - minY;
+            int itemX = (curX + xOffset) - minX;
+            int itemY = (curY + yOffset) - minY;
 
-            bool invalid = false;
-            for (unsigned int y = 0; y < glyph->bitmap.rows; y++) {
-                for (unsigned int x = 0; x < glyph->bitmap.width; x++) {
-                    int targetX = drawX + x;
-                    int targetY = drawY + y;
-                    if (targetX < 0 || targetY < 0 || targetX >= rect.w ||
-                        targetY >= rect.h)
-                        continue;
-                    int index = pixelIndex(targetX, targetY, rect.w);
-
-                    switch (glyph->bitmap.pixel_mode) {
-                    case FT_PIXEL_MODE_MONO: {
-                        if ((glyph->bitmap
-                                 .buffer[y * glyph->bitmap.pitch + (x / 8)] >>
-                             (7 - (x % 8))) &
-                            1) {
-                            Color c = getBrushPixel(span.fill, targetX, targetY,
-                                                    rect.w, rect.h);
-                            target[index] = over(target[index],
-                                                 makePixel(c.r, c.g, c.b, c.a));
-                        }
-                        break;
-                    }
-                    case FT_PIXEL_MODE_GRAY: {
-                        Color c = getBrushPixel(span.fill, targetX, targetY,
-                                                rect.w, rect.h);
-                        target[index] = over(
-                            target[index],
-                            makePixel(
-                                c.r, c.g, c.b,
-                                c.a *
-                                    (glyph->bitmap
-                                         .buffer[y * glyph->bitmap.pitch + x] /
-                                     255.)));
-                        break;
-                    }
-                    case FT_PIXEL_MODE_BGRA:
-                        target[index] = over(
-                            target[index], ((uint32_t *)(glyph->bitmap.buffer))
-                                               [y * glyph->bitmap.width + x]);
-                        break;
-                    default: {
-                        invalid = true;
-                        target[index] =
-                            over(target[index], makePixel(255, 0, 0, 255));
-                    }
-                    }
-                }
-            }
-
-            if (invalid) {
-                qInfo() << "Invalid pixel_mode" << glyph->bitmap.pixel_mode;
-            }
+            renderGlyph(target, glyph, itemX, itemY, rect, span.fill);
         }
     }
 

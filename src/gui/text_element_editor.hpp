@@ -42,6 +42,9 @@ class TextElementEditor : public QObject {
     FontComboBox *fontComboBox;
     BrushInput *fillInput;
     QCheckBox *antialiasedCheckBox;
+    QSpinBox *strokeWidth;
+    BrushInput *strokeInput;
+    QComboBox *strokeLineJoin;
     QListWidget *debugListWidget;
 
     void setSpanProperties(std::function<void(TextSpan &)> func);
@@ -55,4 +58,7 @@ class TextElementEditor : public QObject {
     void setFontSize(int newValue);
     void setFill(Brush value);
     void setAntialiased(bool newValue);
+    void setStrokeWidth(int newValue);
+    void setStroke(Brush value);
+    void setStrokeLineJoin(int value);
 };

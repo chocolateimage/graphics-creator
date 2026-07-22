@@ -3,8 +3,11 @@
 #include "lua.hpp"
 #include <QList>
 #include <algorithm>
+#include <freetype/ftstroke.h>
 #include <string>
 #include <variant>
+
+class StrokeInfo;
 
 class Color {
   public:
@@ -59,6 +62,7 @@ struct Brush {
 class TextSpan {
   public:
     TextSpan() {}
+
     Font font;
     int fontSize{128};
     // Only allowed to contain one character else weird things can happen.
@@ -67,6 +71,12 @@ class TextSpan {
     Brush fill{};
     bool newLine{false};
     bool antialiased{true};
+
+    int strokeWidth{0};
+    Brush stroke{};
+    FT_Stroker_LineJoin strokeLineJoin{FT_STROKER_LINEJOIN_ROUND};
+
+    StrokeInfo strokeInfo() const;
 };
 
 class TextSpans {
@@ -76,8 +86,6 @@ class TextSpans {
 };
 
 Brush::Type getBrushTypeFromString(const std::string &str);
-
-std::string getFontHash(const Font &font, int fontSize, bool antialiased);
 
 using VariantType =
     std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,

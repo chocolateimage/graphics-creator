@@ -1,7 +1,13 @@
 #include "render.hpp"
 #include <QDebug>
 #include <freetype/ftoutln.h>
-#include <freetype/ftstroke.h>
+
+std::string getFontHash(const Font &font, int fontSize, bool antialiased,
+                        const StrokeInfo &strokeInfo) {
+    return font.path + "\n" + std::to_string(fontSize) + "\n" +
+           (antialiased ? "1" : "0") + "\n" + std::to_string(font.index) +
+           "\n" + strokeInfo.hash();
+}
 
 FontInfo::FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight, Font font)
     : font(font), face(face), hb(hb), pixelHeight(pixelHeight) {};
@@ -23,22 +29,23 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
 
     FT_Glyph _glyph;
     FT_Load_Glyph(face, codepoint, FT_LOAD_COLOR);
-    FT_Render_Glyph(face->glyph,
-                    antialiased ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO);
-    FT_Get_Glyph(face->glyph, &_glyph);
 
-    // -- STROKED TEXT --
-    // FT_Glyph _glyph;
-    // FT_Load_Glyph(face, codepoint, FT_LOAD_COLOR);
-    // FT_Stroker stroker;
-    // FT_Stroker_New(renderThread->ftLibrary, &stroker);
-    // FT_Stroker_Set(stroker, pixelHeight * 2, FT_STROKER_LINECAP_ROUND,
-    //                FT_STROKER_LINEJOIN_ROUND, 0);
-    // FT_Get_Glyph(face->glyph, &_glyph);
-    // FT_Glyph_StrokeBorder(&_glyph, stroker, false, true);
-    // // FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
-    // FT_Glyph_To_Bitmap(&_glyph, FT_RENDER_MODE_NORMAL, 0, true);
-    // FT_Stroker_Done(stroker);
+    FT_Render_Mode renderMode =
+        antialiased ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
+
+    if (strokeInfo.strokeWidth > 0) {
+        FT_Stroker stroker;
+        FT_Stroker_New(fontManager->ftLibrary, &stroker);
+        FT_Stroker_Set(stroker, pixelHeight * strokeInfo.strokeWidth,
+                       FT_STROKER_LINECAP_SQUARE, strokeInfo.lineJoin, 0);
+        FT_Get_Glyph(face->glyph, &_glyph);
+        FT_Glyph_StrokeBorder(&_glyph, stroker, false, true);
+        FT_Glyph_To_Bitmap(&_glyph, renderMode, 0, true);
+        FT_Stroker_Done(stroker);
+    } else {
+        FT_Render_Glyph(face->glyph, renderMode);
+        FT_Get_Glyph(face->glyph, &_glyph);
+    }
 
     FT_BitmapGlyph glyph = (FT_BitmapGlyph)_glyph;
     glyphs.emplace(codepoint, glyph);
@@ -47,9 +54,9 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
 
 FontManager::FontManager() { FT_Init_FreeType(&ftLibrary); }
 
-FontInfo *FontManager::getFont(const Font &font, int fontSize,
-                               bool antialiased) {
-    std::string hash = getFontHash(font, fontSize, antialiased);
+FontInfo *FontManager::getFont(const Font &font, int fontSize, bool antialiased,
+                               const StrokeInfo &strokeInfo) {
+    std::string hash = getFontHash(font, fontSize, antialiased, strokeInfo);
     auto it = loadedFonts.find(hash);
     if (it != loadedFonts.end()) {
         FontInfo *fontInfo = it->second;
@@ -66,6 +73,7 @@ FontInfo *FontManager::getFont(const Font &font, int fontSize,
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
     FontInfo *fontInfo = new FontInfo(ftFace, hbFont, pixelHeight, font);
     fontInfo->antialiased = antialiased;
+    fontInfo->strokeInfo = strokeInfo;
     fontInfo->fontManager = this;
     loadedFonts.emplace(hash, fontInfo);
     return fontInfo;
