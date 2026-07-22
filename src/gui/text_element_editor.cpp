@@ -34,6 +34,7 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
     layout->addRow("Fill", fillInput);
 
     debugListWidget = new QListWidget(dockContentWidget);
+    debugListWidget->setVisible(debug);
     layout->addWidget(debugListWidget);
 
     dockWidget = mainWindow->dockManager->createDockWidget("Text");
@@ -116,15 +117,18 @@ void TextElementEditor::setFill(Brush value) {
 
 void TextElementEditor::relayout() {
     layout = textElement->layTheTextOut({scene->currentFrame});
-    debugListWidget->clear();
     TextSpans spans = textElement->text.get({scene->currentFrame});
-    int index = 0;
-    for (const auto &item : layout.items) {
-        debugListWidget->addItem(QString::number(index) + ": [" +
-                                 spans.spans[index].text + "] " +
-                                 QString::number(item.startPoint.x()) + "x" +
-                                 QString::number(item.startPoint.y()));
-        index++;
+
+    if (debug) {
+        debugListWidget->clear();
+        int index = 0;
+        for (const auto &item : layout.items) {
+            debugListWidget->addItem(
+                QString::number(index) + ": [" + spans.spans[index].text +
+                "] " + QString::number(item.startPoint.x()) + "x" +
+                QString::number(item.startPoint.y()));
+            index++;
+        }
     }
 
     repaintParent();
@@ -179,13 +183,34 @@ void TextElementEditor::paint(QPainter &painter) {
         }
     }
 
-    // for (auto r : spanRects) {
-    //     QColor color = Qt::green;
-    //     painter.setPen(color);
-    //     color.setAlpha(30);
-    //     painter.setBrush(color);
-    //     painter.drawRect(r);
-    // }
+    if (debug) {
+        for (auto &item : layout.items) {
+            {
+                QColor color = Qt::blue;
+                painter.setPen(color);
+                color.setAlpha(30);
+                painter.setBrush(color);
+                QPolygon polygon;
+                polygon << item.startPoint;
+                polygon << item.startPoint + QPoint(0, -item.height);
+                polygon << item.endPoint + QPoint(0, -item.height);
+                polygon << item.endPoint;
+                painter.drawPolygon(polygon);
+            }
+            {
+                QColor color = Qt::red;
+                painter.setPen(color);
+                color.setAlpha(30);
+                painter.setBrush(color);
+                QPolygon polygon;
+                polygon << item.startPoint;
+                polygon << item.startPoint + QPoint(0, -item.height);
+                polygon << item.selectionEndPoint + QPoint(0, -item.height);
+                polygon << item.selectionEndPoint;
+                painter.drawPolygon(polygon);
+            }
+        }
+    }
 }
 
 void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {

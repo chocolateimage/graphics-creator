@@ -46,6 +46,8 @@ class TextElementEditor : public QObject {
 
     TextSpan tempSpan{};
 
+    bool debug{false};
+
   private slots:
     void setFont();
     void setFontSize(int newValue);
