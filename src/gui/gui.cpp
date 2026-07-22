@@ -531,6 +531,10 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
     } else if (controlText->isChecked()) {
         controlSelect->setChecked(true);
         if (!rect.isEmpty()) {
+            if (rect.width() < 40 || rect.height() < 40) {
+                rect.setWidth(1);
+                rect.setHeight(1);
+            }
             TextElement *textElement = new TextElement();
             textElement->setObjectName("New Text");
             element = textElement;
