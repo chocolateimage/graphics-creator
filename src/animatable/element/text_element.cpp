@@ -4,7 +4,8 @@
 #include "math.hpp"
 #include "render.hpp"
 
-TextLayout layoutText(FontManager *fontManager, const TextSpans &spans) {
+TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
+                      int width) {
     TextLayout layout;
 
     int maxLineHeight = 0;
@@ -83,6 +84,13 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans) {
 
         hb_buffer_destroy(hbBuffer);
 
+        if (width != 1 && curX >= width) {
+            curX -= item.startPoint.x();
+            item.startPoint.setX(0);
+            item.startPoint += {0, layout.lineHeights[line]};
+            curY += layout.lineHeights[line];
+        }
+
         item.endPoint = {curX, curY};
         item.selectionEndPoint = item.endPoint;
         layout.items.append(item);
@@ -123,7 +131,7 @@ TextSpan TextElement::createDefaultTextSpan() {
 TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
     TextSpans spans = text.get(frameInfo);
 
-    return layoutText(fontManager, spans);
+    return layoutText(fontManager, spans, w.get(frameInfo));
 }
 
 QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
@@ -144,15 +152,17 @@ AnimatableRender *TextElement::createClass() { return new TextElementRender(); }
 
 Rect TextElementRender::getRenderBox() {
     int yOffset = 0;
+    int height = maxY - minY;
     if (w.get() != 1 || h.get() != 1) {
         yOffset += layout.lineHeights[0];
+        height = h - (layout.lineHeights[0] + minY);
     }
     return {minX + x, minY + y + yOffset, std::max(1, maxX - minX),
-            std::max(1, maxY - minY)};
+            std::max(1, height)};
 }
 
 void TextElementRender::prepare() {
-    layout = layoutText(renderThread->fontManager, text);
+    layout = layoutText(renderThread->fontManager, text, w);
 
     for (auto span : text.get().spans) {
         hb_buffer_t *hbBuffer = hb_buffer_create();
@@ -180,7 +190,6 @@ void TextElementRender::prepare() {
 }
 
 void TextElementRender::calculateSize() {
-
     for (int si = 0; si < spanCount; si++) {
         TextLayoutItem &item = layout.items[si];
         int curX = item.startPoint.x();

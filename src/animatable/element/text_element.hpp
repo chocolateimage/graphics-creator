@@ -26,7 +26,8 @@ class TextLayout {
     int height{0};
 };
 
-TextLayout layoutText(FontManager *fontManager, const TextSpans &spans);
+TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
+                      int width);
 
 class TextElement : public Element {
   public:
