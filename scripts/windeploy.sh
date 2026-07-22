@@ -27,6 +27,8 @@ cp /ucrt64/bin/libKF6WindowSystem.dll ./deploy/
 cp /ucrt64/bin/libKirigamiPlatform.dll ./deploy/
 mkdir ./deploy/iconengines
 cp /ucrt64/share/qt6/plugins/kiconthemes6/iconengines/KIconEnginePlugin.dll ./deploy/iconengines/
+mkdir ./deploy/styles
+cp /ucrt64/share/qt6/plugins/styles/breeze6.dll ./deploy/styles/
 
 set +e
 ldd deploy/* |grep -iv system32|grep -vi windows|grep -v :$  | cut -f2 -d'>' | cut -f1 -d\( | tr '\' '/' |while read a; do ! [ -e "deploy/`basename $a`" ] && cp -v "$a" deploy/; done
