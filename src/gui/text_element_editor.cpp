@@ -1,6 +1,8 @@
 #include "text_element_editor.hpp"
 #include "draggable_spinbox.hpp"
 #include "gui.hpp"
+#include <QApplication>
+#include <QClipboard>
 #include <QPainter>
 #include <QString>
 #include <QWidget>
@@ -214,7 +216,6 @@ void TextElementEditor::paint(QPainter &painter) {
 }
 
 void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
-
     QString addedText = keyEvent->text();
     TextSpans spans = textElement->text.get({scene->currentFrame});
 
@@ -231,6 +232,28 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
             relayout();
             return;
         }
+    }
+
+    if (keyEvent == QKeySequence::Paste) {
+        QClipboard *clipboard = QApplication::clipboard();
+        QString text = clipboard->text();
+        if (text.isEmpty())
+            return;
+
+        int index = 0;
+        textElement->blockSignals(true);
+        for (auto character : text) {
+            QKeyEvent *keyEvent =
+                new QKeyEvent(QEvent::KeyPress, 0,
+                              Qt::KeyboardModifier::NoModifier, character);
+            if (index == text.length() - 1) {
+                textElement->blockSignals(false);
+            }
+            passKeyEvent(keyEvent);
+            delete keyEvent;
+            index++;
+        }
+        return;
     }
 
     if (keyEvent == QKeySequence::SelectAll) {
@@ -321,7 +344,8 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
         span = spans.spans[selectionStart];
     }
 
-    if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return) {
+    if (addedText == "\n" || keyEvent->key() == Qt::Key_Enter ||
+        keyEvent->key() == Qt::Key_Return) {
         addedText = " ";
         span.newLine = true;
     } else {
