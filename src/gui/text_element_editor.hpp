@@ -1,5 +1,7 @@
 #pragma once
 #include "animatable/element/text_element.hpp"
+#include "brush_input.hpp"
+#include "fontcombobox.hpp"
 #include "scene.hpp"
 #include <DockWidget.h>
 #include <QKeyEvent>
@@ -19,6 +21,8 @@ class TextElementEditor : public QObject {
     void passKeyEvent(QKeyEvent *keyEvent);
     void paint(QPainter &painter);
 
+    void repaintParent();
+
     TextLayout layout;
 
     TextElement *textElement;
@@ -31,10 +35,19 @@ class TextElementEditor : public QObject {
     ads::CDockWidget *dockWidget;
 
     void loadValues();
+    void loadValues(TextSpan &span);
     QWidget *dockContentWidget;
     QSpinBox *fontSize;
+    FontComboBox *fontComboBox;
+    BrushInput *fillInput;
     QListWidget *debugListWidget;
 
+    void setSpanProperties(std::function<void(TextSpan &)> func);
+
+    TextSpan tempSpan{};
+
   private slots:
+    void setFont();
     void setFontSize(int newValue);
+    void setFill(Brush value);
 };

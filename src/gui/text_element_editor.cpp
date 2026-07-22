@@ -9,16 +9,29 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
                                      TextElement *textElement, QObject *parent)
     : QObject(parent), textElement(textElement), scene(scene),
       mainWindow(mainWindow) {
+    tempSpan = textElement->createDefaultTextSpan();
     selectionLength =
         textElement->text.get({scene->currentFrame}).spans.length();
     dockContentWidget = new QWidget();
     QFormLayout *layout = new QFormLayout(dockContentWidget);
+
+    fontComboBox = new FontComboBox(dockContentWidget);
+    fontComboBox->setSizePolicy(QSizePolicy::Policy::Expanding,
+                                QSizePolicy::Policy::Fixed);
+    connect(fontComboBox, &FontComboBox::currentTextChanged, this,
+            &TextElementEditor::setFont);
+    layout->addRow("Font", fontComboBox);
 
     fontSize = new DraggableSpinBox(dockContentWidget);
     fontSize->setRange(1, 500);
     connect(fontSize, &QSpinBox::valueChanged, this,
             &TextElementEditor::setFontSize);
     layout->addRow("Font size", fontSize);
+
+    fillInput = new BrushInput(dockContentWidget);
+    connect(fillInput, &BrushInput::valueChanged, this,
+            &TextElementEditor::setFill);
+    layout->addRow("Fill", fillInput);
 
     debugListWidget = new QListWidget(dockContentWidget);
     layout->addWidget(debugListWidget);
@@ -33,19 +46,26 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
     relayout();
 }
 
+void TextElementEditor::repaintParent() { ((QWidget *)parent())->update(); }
+
 void TextElementEditor::loadValues() {
     TextSpans spans = textElement->text.get({scene->currentFrame});
 
     // TODO: "new" writing: when length is zero and you are about to type. can
     // also happen when text is empty
-    dockContentWidget->setDisabled(spans.spans.isEmpty());
-    if (spans.spans.isEmpty()) {
+    if (selectionLength == 0 && !spans.spans.isEmpty()) {
+        tempSpan = spans.spans[std::max(selectionStart - 1, 0)];
+    }
+    if (selectionLength == 0) {
+        loadValues(tempSpan);
         return;
     }
 
     // TODO: multiple values
-    QSignalBlocker blocker{fontSize};
     int index = selectionStart;
+    if (selectionLength == 0) {
+        index--;
+    }
     if (index >= spans.spans.length()) {
         index = spans.spans.length() - 1;
     }
@@ -53,17 +73,47 @@ void TextElementEditor::loadValues() {
         index = 0;
     }
     TextSpan &span = spans.spans[index];
-    fontSize->setValue(span.fontSize);
+    loadValues(span);
 }
 
-void TextElementEditor::setFontSize(int newValue) {
+void TextElementEditor::loadValues(TextSpan &span) {
+    QSignalBlocker blocker{fontSize};
+    QSignalBlocker blocker2{fontComboBox};
+    QSignalBlocker blocker3{fillInput};
+    fontSize->setValue(span.fontSize);
+    fontComboBox->setFontValue(span.font);
+    fillInput->setValue(span.fill);
+}
+
+void TextElementEditor::setSpanProperties(
+    std::function<void(TextSpan &)> func) {
+    if (selectionLength == 0) {
+        func(tempSpan);
+        repaintParent();
+        return;
+    }
+
     TextSpans spans = textElement->text.get({scene->currentFrame});
     for (int i = selectionStart;
          i < selectionStart + std::max(1, selectionLength); i++) {
-        spans.spans[i].fontSize = newValue;
+        func(spans.spans[i]);
     }
     textElement->text.set(spans, {scene->currentFrame});
     relayout();
+}
+
+void TextElementEditor::setFontSize(int newValue) {
+    setSpanProperties([newValue](TextSpan &span) { span.fontSize = newValue; });
+}
+
+void TextElementEditor::setFont() {
+    setSpanProperties([this](TextSpan &span) {
+        span.font = this->fontComboBox->fontValue();
+    });
+}
+
+void TextElementEditor::setFill(Brush value) {
+    setSpanProperties([value](TextSpan &span) { span.fill = value; });
 }
 
 void TextElementEditor::relayout() {
@@ -79,7 +129,7 @@ void TextElementEditor::relayout() {
         index++;
     }
 
-    ((QWidget *)parent())->update();
+    repaintParent();
     loadValues();
 }
 
@@ -94,21 +144,21 @@ void TextElementEditor::paint(QPainter &painter) {
         return;
     }
 
-    painter.translate(0, layout.lineHeights[0]);
-    qInfo() << "LINE HEIGHTS" << layout.lineHeights.length();
-    for (auto a : layout.lineHeights) {
-        qInfo() << "\t" << a;
+    if (spans.spans.isEmpty()) {
+        painter.translate(0, tempSpan.fontSize);
+    } else {
+        painter.translate(0, layout.lineHeights[0]);
     }
     if (selectionLength == 0) {
         QPoint cursorPoint = {0, 0};
         int height = 128;
         if (selectionStart > 0) {
             auto &item = layout.items[selectionStart - 1];
-            qInfo() << "selection start:" << selectionStart << "is on line"
-                    << item.line << "| START" << item.startPoint << " END "
-                    << item.endPoint;
             cursorPoint = item.endPoint;
             height = item.height;
+        }
+        if (selectionLength == 0) {
+            height = tempSpan.fontSize;
         }
         painter.setPen(Qt::NoPen);
         painter.setBrush(QColor(255, 0, 0, 255));
@@ -144,15 +194,6 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
 
     QString addedText = keyEvent->text();
     TextSpans spans = textElement->text.get({scene->currentFrame});
-
-    TextSpan span;
-    if (selectionStart < spans.spans.length()) {
-        span = spans.spans[selectionStart];
-    } else if (!spans.spans.isEmpty()) {
-        span = spans.spans.last();
-    } else {
-        span = textElement->createDefaultTextSpan();
-    }
 
     if (selectionLength > 0) {
         if (keyEvent->key() == Qt::Key_Delete ||
@@ -248,6 +289,13 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
         textElement->text.set(spans, {scene->currentFrame});
         relayout();
         return;
+    }
+
+    TextSpan span;
+    if (selectionLength == 0) {
+        span = tempSpan;
+    } else {
+        span = spans.spans[selectionStart];
     }
 
     if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return) {
