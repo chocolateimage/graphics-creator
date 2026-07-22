@@ -295,6 +295,10 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlText->setShortcut(QKeySequence("T"));
     controlLua = toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
 
+    // not implemented yet
+    controlPolygon->setVisible(false);
+    controlLua->setVisible(false);
+
     editMenu->addSeparator();
 
     editMenu->addAction(controlSelect);
