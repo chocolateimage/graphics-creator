@@ -296,7 +296,7 @@ RenderWindow::RenderWindow(NewMainWindow *mainWindow) : mainWindow(mainWindow) {
         {"prores", ".mov (Apple ProRes) (Recommended)", ".mov"},
         {"libx264", ".mp4 (H264), no transparency", ".mp4"},
         {"h264_nvenc", ".mp4 (H264), no transparency, NVIDIA", ".mp4"},
-        {"libsvtav1", ".webm (AV1)", ".webm"},
+        {"libvpx-vp9", ".webm (VP9)", ".webm"},
     };
 
     auto renderLayout = new QVBoxLayout(this);
