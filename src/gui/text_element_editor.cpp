@@ -51,8 +51,6 @@ void TextElementEditor::repaintParent() { ((QWidget *)parent())->update(); }
 void TextElementEditor::loadValues() {
     TextSpans spans = textElement->text.get({scene->currentFrame});
 
-    // TODO: "new" writing: when length is zero and you are about to type. can
-    // also happen when text is empty
     if (selectionLength == 0 && !spans.spans.isEmpty()) {
         tempSpan = spans.spans[std::max(selectionStart - 1, 0)];
     }

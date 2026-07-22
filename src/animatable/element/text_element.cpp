@@ -28,6 +28,12 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans) {
     // the bottom left of the first line
     int curX = 0;
     int curY = 0;
+
+    int minX = INT32_MAX;
+    int minY = INT32_MAX;
+    int maxX = INT32_MIN;
+    int maxY = INT32_MIN;
+
     int line = 0;
     for (auto &span : spans.spans) {
         TextLayoutItem item;
@@ -66,6 +72,11 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans) {
             int xAdvance = glyphPos.x_advance >> 6;
             int yAdvance = glyphPos.y_advance >> 6;
 
+            minX = std::min(minX, curX);
+            minY = std::min(minY, curY);
+            maxX = std::max(maxX, curX + xAdvance);
+            maxY = std::max(maxY, curY + yAdvance + span.fontSize);
+
             curX += xAdvance;
             curY += yAdvance;
         }
@@ -75,6 +86,12 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans) {
         item.endPoint = {curX, curY};
         item.selectionEndPoint = item.endPoint;
         layout.items.append(item);
+    }
+
+    layout.width = maxX - minX;
+    layout.height = 0;
+    for (auto height : layout.lineHeights) {
+        layout.height += height;
     }
 
     fontManager->garbageCollect();
@@ -114,16 +131,13 @@ QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
         return Element::getBoundingBox(frameInfo);
     }
 
+    TextLayout layout = layTheTextOut(frameInfo);
+
     TextSpans spans = text.get(frameInfo);
-    int tempW = 0; // TEMP
-    int maxHeight = 10;
-    for (auto span : spans.spans) {
-        tempW += span.getLength() * span.fontSize * 0.5;
-        maxHeight = std::max(maxHeight, span.fontSize);
-    }
 
     fontManager->garbageCollect();
-    return {x.get(frameInfo), y.get(frameInfo) - maxHeight, tempW, maxHeight};
+    return {x.get(frameInfo), y.get(frameInfo) - layout.lineHeights[0],
+            layout.width, layout.height};
 }
 
 AnimatableRender *TextElement::createClass() { return new TextElementRender(); }

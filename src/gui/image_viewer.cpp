@@ -33,6 +33,7 @@ void TransparentCornerFrame::leaveEvent(QEvent *event) {
 ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     : QWidget(parent), scene(scene) {
     setAttribute(Qt::WidgetAttribute::WA_MouseTracking);
+    setAttribute(Qt::WidgetAttribute::WA_InputMethodEnabled);
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     setWindowTitle("Preview");
 
@@ -583,6 +584,16 @@ void ImageViewer::updateCursor() {
 void ImageViewer::keyPressEvent(QKeyEvent *event) {
     if (textElementEditor) {
         textElementEditor->passKeyEvent(event);
+    }
+}
+
+void ImageViewer::inputMethodEvent(QInputMethodEvent *event) {
+    if (textElementEditor) {
+        QKeyEvent *keyEvent =
+            new QKeyEvent(QEvent::KeyPress, 0, Qt::KeyboardModifier::NoModifier,
+                          event->commitString());
+        textElementEditor->passKeyEvent(keyEvent);
+        delete keyEvent;
     }
 }
 

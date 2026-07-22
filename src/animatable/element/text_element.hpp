@@ -21,6 +21,9 @@ class TextLayout {
   public:
     QList<int> lineHeights{};
     QList<TextLayoutItem> items{};
+
+    int width{0};
+    int height{0};
 };
 
 TextLayout layoutText(FontManager *fontManager, const TextSpans &spans);
