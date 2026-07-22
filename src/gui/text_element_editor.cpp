@@ -5,6 +5,7 @@
 #include <QClipboard>
 #include <QPainter>
 #include <QString>
+#include <QTextBoundaryFinder>
 #include <QWidget>
 
 TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
@@ -242,11 +243,22 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
 
         int index = 0;
         textElement->blockSignals(true);
-        for (auto character : text) {
+
+        QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme, text);
+
+        QStringList list;
+        int start = 0;
+        while (finder.toNextBoundary() != -1) {
+            int end = finder.position();
+            list << text.mid(start, end - start);
+            start = end;
+        }
+
+        for (auto character : list) {
             QKeyEvent *keyEvent =
                 new QKeyEvent(QEvent::KeyPress, 0,
                               Qt::KeyboardModifier::NoModifier, character);
-            if (index == text.length() - 1) {
+            if (index == list.length() - 1) {
                 textElement->blockSignals(false);
             }
             passKeyEvent(keyEvent);
