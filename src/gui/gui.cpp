@@ -6,6 +6,7 @@
 #include "math.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
+#include "render_window.hpp"
 #include "timeline.hpp"
 #include "variant.hpp"
 #include <DockAreaWidget.h>
@@ -19,7 +20,71 @@
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
 
-FramePreviewTask::~FramePreviewTask() {
+void FrameTask::render(RenderThread &renderThread) {
+    uint32_t *frameValues = new uint32_t[width * height];
+    memset(frameValues, 0, width * height * 4);
+
+    for (auto element : renderElements) {
+        element->renderThread = &renderThread;
+        element->prepare();
+        auto rect = element->getRenderBox();
+        uint32_t *elementValues = new uint32_t[rect.w * rect.h];
+        memset(elementValues, 0, rect.w * rect.h * 4);
+
+        Rect finalRect = rect;
+        uint32_t *finalValues = elementValues;
+
+        bool success = element->render(elementValues);
+
+        if (!success) {
+            delete[] elementValues;
+            continue;
+        }
+
+        for (auto effect : element->effects) {
+            Rect effectBox = effect->getRenderBox(finalRect);
+            effect->currentFrame = frame;
+            effect->currentSeconds = seconds;
+            effect->renderBox = effectBox;
+            uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
+            memset(effectValues, 0, effectBox.w * effectBox.h * 4);
+
+            bool success = effect->render(finalValues, finalRect, effectValues);
+            if (!success) {
+                delete[] effectValues;
+                continue;
+            }
+
+            delete[] finalValues;
+            finalValues = effectValues;
+            finalRect = effectBox;
+        }
+
+        int maxY = std::min(height, finalRect.y + finalRect.h) - finalRect.y;
+        int maxX = std::min(width, finalRect.x + finalRect.w) - finalRect.x;
+
+        for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
+            for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
+                auto index =
+                    pixelIndex(x + finalRect.x, y + finalRect.y, width);
+                frameValues[index] =
+                    over(frameValues[index],
+                         finalValues[pixelIndex(x, y, finalRect.w)]);
+            }
+        }
+
+        delete[] finalValues;
+    }
+
+    values = frameValues;
+
+    for (auto element : renderElements) {
+        delete element;
+    }
+    renderElements.clear();
+}
+
+FrameTask::~FrameTask() {
     for (auto element : renderElements) {
         delete element;
     }
@@ -32,7 +97,7 @@ void FramePreviewThread::run() {
 
     while (stayAlive) {
         QThread::msleep(3);
-        FramePreviewTask *task;
+        FrameTask *task;
         {
             QMutexLocker lock(&window->openTasksMutex);
             if (window->openTasks.isEmpty()) {
@@ -45,71 +110,8 @@ void FramePreviewThread::run() {
 
         QElapsedTimer renderTime;
         renderTime.start();
-        uint32_t *frame = new uint32_t[task->width * task->height];
-        memset(frame, 0, task->width * task->height * 4);
 
-        for (auto element : task->renderElements) {
-            element->renderThread = &renderThread;
-            element->prepare();
-            auto rect = element->getRenderBox();
-            uint32_t *elementValues = new uint32_t[rect.w * rect.h];
-            memset(elementValues, 0, rect.w * rect.h * 4);
-
-            Rect finalRect = rect;
-            uint32_t *finalValues = elementValues;
-
-            bool success = element->render(elementValues);
-
-            if (!success) {
-                delete[] elementValues;
-                continue;
-            }
-
-            for (auto effect : element->effects) {
-                Rect effectBox = effect->getRenderBox(finalRect);
-                effect->currentFrame = task->frame;
-                effect->currentSeconds = task->seconds;
-                effect->renderBox = effectBox;
-                uint32_t *effectValues =
-                    new uint32_t[effectBox.w * effectBox.h];
-                memset(effectValues, 0, effectBox.w * effectBox.h * 4);
-
-                bool success =
-                    effect->render(finalValues, finalRect, effectValues);
-                if (!success) {
-                    delete[] effectValues;
-                    continue;
-                }
-
-                delete[] finalValues;
-                finalValues = effectValues;
-                finalRect = effectBox;
-            }
-
-            int maxY =
-                std::min(task->height, finalRect.y + finalRect.h) - finalRect.y;
-            int maxX =
-                std::min(task->width, finalRect.x + finalRect.w) - finalRect.x;
-
-            for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
-                for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
-                    auto index = pixelIndex(x + finalRect.x, y + finalRect.y,
-                                            task->width);
-                    frame[index] =
-                        over(frame[index],
-                             finalValues[pixelIndex(x, y, finalRect.w)]);
-                }
-            }
-
-            delete[] finalValues;
-        }
-
-        task->values = frame;
-
-        for (auto element : task->renderElements) {
-            delete element;
-        }
-        task->renderElements.clear();
+        task->render(renderThread);
 
         // qInfo() << "Render time:"
         //         << qPrintable(QString("%1").arg(
@@ -279,6 +281,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     setMenuBar(menuBar);
 
     QToolBar *toolBar = addToolBar("Controls");
+    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     QActionGroup *controlsGroup = new QActionGroup(toolBar);
     controlSelect = toolBar->addAction(QIcon::fromTheme("select"), "Select");
     controlSelect->setShortcut(QKeySequence("V"));
@@ -336,6 +339,15 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &NewMainWindow::controlsUpdated);
     connect(controlLua, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
+
+    QWidget *spacing = new QWidget(toolBar);
+    spacing->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    toolBar->addWidget(spacing);
+
+    renderAction =
+        toolBar->addAction(QIcon::fromTheme("media-record"), "Render…");
+    connect(renderAction, &QAction::triggered, this,
+            &NewMainWindow::openRenderWindow);
 
     dockManager = new ads::CDockManager(this);
 
@@ -404,6 +416,15 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     playbackStateChanged(false);
     rerender();
+}
+
+void NewMainWindow::openRenderWindow() {
+    if (!renderWindow) {
+        renderWindow = new RenderWindow(this);
+    }
+    renderWindow->show();
+    renderWindow->activateWindow();
+    renderWindow->resetRenderFilePathInput();
 }
 
 void NewMainWindow::playbackStateChanged(bool playing) {
@@ -476,7 +497,7 @@ void NewMainWindow::createThread() {
     thread->start();
 }
 
-void NewMainWindow::taskCompleted(FramePreviewTask *task) {
+void NewMainWindow::taskCompleted(FrameTask *task) {
     auto it = savedFrames.find(task->frame);
     SavedFrame savedFrame{
         .values = task->values,
@@ -596,7 +617,7 @@ bool NewMainWindow::createTask(int frame) {
 
     renderingFrames.insert(frame);
 
-    FramePreviewTask *task = new FramePreviewTask();
+    FrameTask *task = new FrameTask();
     task->width = scene->width;
     task->height = scene->height;
     task->frame = frame;
@@ -656,6 +677,9 @@ NewMainWindow::~NewMainWindow() {
         delete[] frame.second.values;
     }
     delete scene;
+    if (renderWindow) {
+        delete renderWindow;
+    }
 }
 
 int main(int argc, char **argv) {

@@ -71,61 +71,6 @@ class FramePreviewThread : public QThread {
     void errored(QString error);
 };
 
-class GuiRenderThread : public QThread {
-    Q_OBJECT
-  public:
-    explicit GuiRenderThread(QObject *parent = nullptr) : QThread(parent) {}
-    MainWindow *window{nullptr};
-    std::shared_ptr<Video> video;
-    QString encoder;
-    QFileInfo fileInfo;
-    QMutex frameMutex;
-    std::unordered_map<int64_t, AVFrame *> frames;
-    std::vector<AVFrame *> unusedFrames;
-    int64_t currentFrameIndex{0};
-    int64_t lastFrameIndex{0};
-    std::atomic<bool> isCancelling{false};
-    std::atomic<bool> hasErrored{false};
-
-    AVFrame *getFrame();
-
-  protected:
-    void run() override;
-
-  private:
-    AVFormatContext *formatContext{nullptr};
-    AVDictionary *opt{nullptr};
-    const AVCodec *codec{nullptr};
-    AVCodecContext *context{nullptr};
-    AVPacket *tempPacket{nullptr};
-    AVStream *stream{nullptr};
-
-    bool writeFrame(AVFrame *frame);
-
-  public slots:
-    void doErrored(QString error);
-
-  signals:
-    void errored(QString error);
-    void progressed(int64_t frame, int64_t lastFrame);
-    void finishedSuccessfully();
-};
-
-class GuiRenderDrawThread : public QThread {
-    Q_OBJECT
-  public:
-    explicit GuiRenderDrawThread(QObject *parent = nullptr) : QThread(parent) {}
-    GuiRenderThread *guiRenderThread{nullptr};
-    MainWindow *window{nullptr};
-    std::shared_ptr<Video> video;
-
-  protected:
-    void run() override;
-
-  signals:
-    void errored(QString error);
-};
-
 struct NewTemplate {
     QString name;
     QString previewImagePath;

@@ -8,7 +8,13 @@
 #include <string>
 #include <unordered_map>
 
+extern "C" {
+#include <libavutil/frame.h>
+}
+
 class FontManager;
+
+void convertToAvFrame(AVFrame *frame, uint32_t *source, int w, int h);
 
 class StrokeInfo {
   public:

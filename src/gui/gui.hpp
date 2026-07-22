@@ -21,10 +21,11 @@
 #include <QWidget>
 
 class NewMainWindow;
+class RenderWindow;
 
-class FramePreviewTask {
+class FrameTask {
   public:
-    ~FramePreviewTask();
+    ~FrameTask();
     std::vector<ElementRender *> renderElements;
     int width;
     int height;
@@ -33,6 +34,8 @@ class FramePreviewTask {
 
     uint64_t id;
     uint32_t *values;
+
+    void render(RenderThread &renderThread);
 };
 
 struct SavedFrame {
@@ -50,7 +53,7 @@ class FramePreviewThread : public QThread {
   protected:
     void run() override;
   signals:
-    void taskDone(FramePreviewTask *task);
+    void taskDone(FrameTask *task);
 };
 
 class NewMainWindow : public QMainWindow {
@@ -68,6 +71,9 @@ class NewMainWindow : public QMainWindow {
     QAction *playbackAction;
     QAction *deleteAction;
 
+    QAction *renderAction;
+    RenderWindow *renderWindow{nullptr};
+
     ImageViewer *scenePreviewWidget;
 
     void loadDefaultFont();
@@ -82,25 +88,26 @@ class NewMainWindow : public QMainWindow {
     void frameChanged(int frame);
     bool createTask(int frame);
     void invalidateFrame(int frame);
-    void taskCompleted(FramePreviewTask *task);
+    void taskCompleted(FrameTask *task);
     void elementSelectionChanged(QList<Element *> elements);
     void deleteTriggered();
     void invalidateAndRerender();
     void playbackStateChanged(bool playing);
+    void openRenderWindow();
 
     Scene *scene;
 
     std::unordered_map<int, SavedFrame> savedFrames;
     QSet<int> renderingFrames;
 
-    uint64_t globalId;
+    uint64_t globalId{0};
 
     ads::CDockManager *dockManager;
     ads::CDockWidget *propertiesDockWidget;
     QUndoStack *undoStack;
 
     QList<FramePreviewThread *> previewThreads;
-    QList<FramePreviewTask *> openTasks;
+    QList<FrameTask *> openTasks;
     QMutex openTasksMutex;
 
     TimelineWidget *timeline;
