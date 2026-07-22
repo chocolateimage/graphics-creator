@@ -67,104 +67,20 @@ void TextElementEditor::setFontSize(int newValue) {
 }
 
 void TextElementEditor::relayout() {
+    layout = textElement->layTheTextOut({scene->currentFrame});
     debugListWidget->clear();
     TextSpans spans = textElement->text.get({scene->currentFrame});
-    spanRects.clear();
-
-    int curX = 0;
-    int curY = 0;
-
     int index = 0;
-
-    for (auto &span : spans.spans) {
-        QString debug = QString::number(index) + " - [" + span.text + "]";
-        if (span.newLine) {
-            debug += " newline";
-        }
-        debugListWidget->addItem(debug);
-
-        if (span.newLine) {
-            curX = 0;
-            curY += span.fontSize; // this is wrong
-            spanRects.append({curX, curY, 1, span.fontSize});
-            index++;
-            continue;
-        }
-
-        FontInfo *fontInfo = textElement->fontManager->getFont(
-            span.font, std::max(1, span.fontSize));
-
-        hb_buffer_t *hbBuffer = hb_buffer_create();
-        hb_buffer_add_utf8(hbBuffer, qPrintable(span.text), -1, 0, -1);
-
-        hb_buffer_guess_segment_properties(hbBuffer);
-
-        hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
-
-        uint32_t glyphCount = 0;
-
-        hb_glyph_position_t *positions =
-            hb_buffer_get_glyph_positions(hbBuffer, &glyphCount);
-
-        int minX = INT32_MAX;
-        int minY = INT32_MAX;
-        int maxX = INT32_MIN;
-        int maxY = INT32_MIN;
-
-        for (uint32_t i = 0; i < glyphCount; i++) {
-            auto glyphPos = positions[i];
-            int xOffset = glyphPos.x_offset >> 6;
-            int yOffset = glyphPos.y_offset >> 6;
-            int xAdvance = glyphPos.x_advance >> 6;
-            int yAdvance = glyphPos.y_advance >> 6;
-
-            int drawX = curX + xOffset;
-            int drawY = curY + yOffset;
-
-            minX = std::min(minX, drawX);
-            minY = std::min(minY, drawY);
-            maxX = std::max(maxX, drawX + xAdvance);
-            maxY = std::max(maxY, drawY + span.fontSize);
-
-            curX += xAdvance;
-            curY += yAdvance;
-        }
-
-        if (glyphCount == 0) {
-            minX = curX;
-            minY = curY;
-            maxX = minX + 1;
-            maxY = minY + 1;
-        }
-
-        spanRects.append({minX, minY, maxX - minX, maxY - minY});
-
-        hb_buffer_destroy(hbBuffer);
+    for (const auto &item : layout.items) {
+        debugListWidget->addItem(QString::number(index) + ": [" +
+                                 spans.spans[index].text + "] " +
+                                 QString::number(item.startPoint.x()) + "x" +
+                                 QString::number(item.startPoint.y()));
         index++;
     }
 
-    debugListWidget->setCurrentRow(selectionStart);
-
-    textElement->fontManager->garbageCollect();
     ((QWidget *)parent())->update();
     loadValues();
-}
-
-QRect TextElementEditor::getRectForIndex(int index) {
-    TextSpans spans = textElement->text.get({scene->currentFrame});
-    if (spanRects.isEmpty()) {
-        return {0, 0, 1, 1};
-    } else if (index >= spans.spans.length()) {
-        if (index > spans.spans.length()) {
-            qWarning() << "getRectForIndex: Something bad is going on!!"
-                       << index << ">" << spans.spans.length();
-        }
-        QRect rect = spanRects.last();
-        rect.setX(rect.x() + rect.width());
-        return rect;
-    } else {
-        return spanRects[index];
-    }
 }
 
 void TextElementEditor::paint(QPainter &painter) {
@@ -172,30 +88,46 @@ void TextElementEditor::paint(QPainter &painter) {
     float scale = painter.transform().m11();
     TextSpans spans = textElement->text.get({scene->currentFrame});
 
-    if (spanRects.length() != spans.spans.length()) {
+    if (layout.items.length() != spans.spans.length()) {
+        qWarning()
+            << "what is going on. layout.items.length != spans.spans.length";
         return;
     }
 
-    QRect selectionStartRect = getRectForIndex(selectionStart);
-    QRect selectionEndRect = selectionStartRect;
-
-    if (selectionLength > 0) {
-        selectionEndRect = getRectForIndex(selectionStart + selectionLength);
+    painter.translate(0, layout.lineHeights[0]);
+    qInfo() << "LINE HEIGHTS" << layout.lineHeights.length();
+    for (auto a : layout.lineHeights) {
+        qInfo() << "\t" << a;
     }
-
     if (selectionLength == 0) {
+        QPoint cursorPoint = {0, 0};
+        int height = 128;
+        if (selectionStart > 0) {
+            auto &item = layout.items[selectionStart - 1];
+            qInfo() << "selection start:" << selectionStart << "is on line"
+                    << item.line << "| START" << item.startPoint << " END "
+                    << item.endPoint;
+            cursorPoint = item.endPoint;
+            height = item.height;
+        }
         painter.setPen(Qt::NoPen);
         painter.setBrush(QColor(255, 0, 0, 255));
-        painter.drawRect(QRectF(selectionStartRect.x(), selectionStartRect.y(),
-                                2. / scale, selectionStartRect.height()));
+        painter.drawRect(QRectF(cursorPoint.x(), cursorPoint.y() - height,
+                                2. / scale, height));
     } else {
         for (int i = selectionStart; i < selectionStart + selectionLength;
              i++) {
+            auto &item = layout.items[i];
+            QPoint selectionStartRect = item.startPoint;
+            QRect rect = {selectionStartRect.x(),
+                          selectionStartRect.y() - item.height,
+                          item.selectionEndPoint.x() - selectionStartRect.x(),
+                          item.height};
             painter.setPen(Qt::NoPen);
             QColor color = parentWidget->palette().highlight().color();
             color.setAlpha(120);
             painter.setBrush(color);
-            painter.drawRect(getRectForIndex(i));
+            painter.drawRect(rect);
         }
     }
 

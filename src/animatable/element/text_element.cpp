@@ -4,31 +4,7 @@
 #include "math.hpp"
 #include "render.hpp"
 
-TextElement::TextElement() : Element() {
-    fontManager = new FontManager();
-    TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
-    std::string defaultText = "Hello world";
-    for (auto character : defaultText) {
-        TextSpan defaultSpan = createDefaultTextSpan();
-        defaultSpan.text = character;
-        spans.spans.append(std::move(defaultSpan));
-    }
-}
-
-TextElement::~TextElement() { delete fontManager; }
-
-TextSpan TextElement::createDefaultTextSpan() {
-    TextSpan defaultSpan;
-    defaultSpan.text = "";
-    defaultSpan.fill = {};
-    defaultSpan.font = Variant::defaultFont;
-    defaultSpan.fontSize = 128;
-    return defaultSpan;
-}
-
-TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
-    TextSpans spans = text.get(frameInfo);
-
+TextLayout layoutText(FontManager *fontManager, const TextSpans &spans) {
     TextLayout layout;
 
     int maxLineHeight = 0;
@@ -42,6 +18,9 @@ TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
             continue;
         }
         maxLineHeight = std::max(maxLineHeight, span.fontSize);
+    }
+    if (maxLineHeight == 0 && !spans.spans.isEmpty()) {
+        maxLineHeight = spans.spans.last().fontSize;
     }
     layout.lineHeights.append(maxLineHeight);
 
@@ -98,7 +77,36 @@ TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
         layout.items.append(item);
     }
 
+    fontManager->garbageCollect();
     return layout;
+}
+
+TextElement::TextElement() : Element() {
+    fontManager = new FontManager();
+    TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
+    std::string defaultText = "Hello world";
+    for (auto character : defaultText) {
+        TextSpan defaultSpan = createDefaultTextSpan();
+        defaultSpan.text = character;
+        spans.spans.append(std::move(defaultSpan));
+    }
+}
+
+TextElement::~TextElement() { delete fontManager; }
+
+TextSpan TextElement::createDefaultTextSpan() {
+    TextSpan defaultSpan;
+    defaultSpan.text = "";
+    defaultSpan.fill = {};
+    defaultSpan.font = Variant::defaultFont;
+    defaultSpan.fontSize = 128;
+    return defaultSpan;
+}
+
+TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
+    TextSpans spans = text.get(frameInfo);
+
+    return layoutText(fontManager, spans);
 }
 
 QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
@@ -123,13 +131,15 @@ AnimatableRender *TextElement::createClass() { return new TextElementRender(); }
 Rect TextElementRender::getRenderBox() {
     int yOffset = 0;
     if (w.get() != 1 || h.get() != 1) {
-        yOffset += moveDown;
+        yOffset += layout.lineHeights[0];
     }
     return {minX + x, minY + y + yOffset, std::max(1, maxX - minX),
             std::max(1, maxY - minY)};
 }
 
 void TextElementRender::prepare() {
+    layout = layoutText(renderThread->fontManager, text);
+
     for (auto span : text.get().spans) {
         hb_buffer_t *hbBuffer = hb_buffer_create();
         hb_buffer_add_utf8(hbBuffer, qUtf8Printable(span.text), -1, 0, -1);
@@ -150,20 +160,17 @@ void TextElementRender::prepare() {
 
         hbBuffers.push_back(hbBuffer);
         spanCount++;
-
-        moveDown = std::max(moveDown, span.fontSize);
     }
 
     calculateSize();
 }
 
 void TextElementRender::calculateSize() {
-    int curX = 0;
-    int curY = 0;
 
-    TextSpans &spans = text.get();
     for (int si = 0; si < spanCount; si++) {
-        TextSpan &span = spans.spans[si];
+        TextLayoutItem &item = layout.items[si];
+        int curX = item.startPoint.x();
+        int curY = item.startPoint.y();
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto codepoint = infos[si][i].codepoint;
             auto glyph = fontInfos[si]->getGlyph(codepoint);
@@ -171,8 +178,6 @@ void TextElementRender::calculateSize() {
             auto glyphPos = positions[si][i];
             int xOffset = glyphPos.x_offset >> 6;
             int yOffset = glyphPos.y_offset >> 6;
-            int xAdvance = glyphPos.x_advance >> 6;
-            int yAdvance = glyphPos.y_advance >> 6;
 
             int drawX = (curX + xOffset + glyph->left);
             int drawY = (curY + yOffset - glyph->top);
@@ -181,13 +186,6 @@ void TextElementRender::calculateSize() {
             minY = std::min(minY, drawY);
             maxX = std::max(maxX, (int)glyph->bitmap.width + drawX);
             maxY = std::max(maxY, (int)glyph->bitmap.rows + drawY);
-
-            curX += xAdvance;
-            curY += yAdvance;
-        }
-        if (span.newLine) {
-            curX = 0;
-            curY += moveDown; // this is wrong
         }
     }
 
@@ -202,12 +200,12 @@ void TextElementRender::calculateSize() {
 bool TextElementRender::render(uint32_t *target) {
     auto rect = getRenderBox();
 
-    int curX = 0;
-    int curY = 0;
-
     TextSpans &spans = text.get();
     for (int si = 0; si < spanCount; si++) {
         TextSpan &span = spans.spans[si];
+        TextLayoutItem &item = layout.items[si];
+        int curX = item.startPoint.x();
+        int curY = item.startPoint.y();
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto glyphPos = positions[si][i];
             auto codepoint = infos[si][i].codepoint;
@@ -215,8 +213,6 @@ bool TextElementRender::render(uint32_t *target) {
 
             int xOffset = (glyphPos.x_offset >> 6);
             int yOffset = (glyphPos.y_offset >> 6);
-            int xAdvance = (glyphPos.x_advance >> 6);
-            int yAdvance = (glyphPos.y_advance >> 6);
 
             int drawX = (curX + xOffset + glyph->left) - minX;
             int drawY = (curY + yOffset - glyph->top) - minY;
@@ -274,13 +270,6 @@ bool TextElementRender::render(uint32_t *target) {
             if (invalid) {
                 qInfo() << "Invalid pixel_mode" << glyph->bitmap.pixel_mode;
             }
-
-            curX += xAdvance;
-            curY += yAdvance;
-        }
-        if (span.newLine) {
-            curX = 0;
-            curY += moveDown; // this is wrong
         }
     }
 

@@ -23,6 +23,8 @@ class TextLayout {
     QList<TextLayoutItem> items{};
 };
 
+TextLayout layoutText(FontManager *fontManager, const TextSpans &spans);
+
 class TextElement : public Element {
   public:
     TextElement();
@@ -37,11 +39,6 @@ class TextElement : public Element {
     TextLayout layTheTextOut(const FrameInfo &frameInfo);
 
     Property<TextSpans> text{this, "text", {}};
-    Property<Brush> testFill{this, "testFill", {}};
-    Property<Font> test1{this, "test1", Variant::defaultFont};
-    Property<int> test1Size{this, "test1Size", 128};
-    Property<Font> test2{this, "test2", Variant::defaultFont};
-    Property<int> test2Size{this, "test2Size", 64};
 };
 
 class TextElementRender : public ElementRender {
@@ -64,11 +61,12 @@ class TextElementRender : public ElementRender {
     std::vector<hb_glyph_position_t *> positions;
     std::vector<uint32_t> glyphCounts;
 
+    TextLayout layout;
+
     int minX{INT_MAX};
     int minY{INT_MAX};
     int maxX{INT_MIN};
     int maxY{INT_MIN};
-    int moveDown{0};
 
     void calculateSize();
 

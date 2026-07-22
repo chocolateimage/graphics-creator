@@ -18,9 +18,8 @@ class TextElementEditor : public QObject {
     void relayout();
     void passKeyEvent(QKeyEvent *keyEvent);
     void paint(QPainter &painter);
-    QRect getRectForIndex(int index);
 
-    QList<QRect> spanRects;
+    TextLayout layout;
 
     TextElement *textElement;
     Scene *scene;
