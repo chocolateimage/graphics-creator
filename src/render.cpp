@@ -23,8 +23,8 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
 
     FT_Glyph _glyph;
     FT_Load_Glyph(face, codepoint, FT_LOAD_COLOR);
-    // TODO: aliased text with FT_RENDER_MODE_MONO (store data in FontInfo?)
-    FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+    FT_Render_Glyph(face->glyph,
+                    antialiased ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO);
     FT_Get_Glyph(face->glyph, &_glyph);
 
     // -- STROKED TEXT --
@@ -47,8 +47,10 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
 
 FontManager::FontManager() { FT_Init_FreeType(&ftLibrary); }
 
-FontInfo *FontManager::getFont(const Font &font, int fontSize) {
-    auto it = loadedFonts.find(getFontHash(font, fontSize));
+FontInfo *FontManager::getFont(const Font &font, int fontSize,
+                               bool antialiased) {
+    std::string hash = getFontHash(font, fontSize, antialiased);
+    auto it = loadedFonts.find(hash);
     if (it != loadedFonts.end()) {
         FontInfo *fontInfo = it->second;
         fontInfo->framesUnused = 0;
@@ -63,8 +65,9 @@ FontInfo *FontManager::getFont(const Font &font, int fontSize) {
 
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
     FontInfo *fontInfo = new FontInfo(ftFace, hbFont, pixelHeight, font);
+    fontInfo->antialiased = antialiased;
     fontInfo->fontManager = this;
-    loadedFonts.emplace(getFontHash(font, fontSize), fontInfo);
+    loadedFonts.emplace(hash, fontInfo);
     return fontInfo;
 }
 

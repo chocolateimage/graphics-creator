@@ -61,15 +61,12 @@ class TextSpan {
     TextSpan() {}
     Font font;
     int fontSize{128};
+    // Only allowed to contain one character else weird things can happen.
+    // I wanted to do multiple characters in one span but whatever :')
     QString text{""};
     Brush fill{};
     bool newLine{false};
-
-    int getLength() {
-        // TODO: unicode handling (ICU?)
-        // TODO: i hope people have enough RAM :)
-        return 1; // text.length();
-    };
+    bool antialiased{true};
 };
 
 class TextSpans {
@@ -80,7 +77,7 @@ class TextSpans {
 
 Brush::Type getBrushTypeFromString(const std::string &str);
 
-std::string getFontHash(const Font &font, int fontSize);
+std::string getFontHash(const Font &font, int fontSize, bool antialiased);
 
 using VariantType =
     std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,

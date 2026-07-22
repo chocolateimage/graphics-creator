@@ -57,8 +57,8 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
         hb_buffer_guess_segment_properties(hbBuffer);
 
-        FontInfo *fontInfo =
-            fontManager->getFont(span.font, std::max(1, span.fontSize));
+        FontInfo *fontInfo = fontManager->getFont(
+            span.font, std::max(1, span.fontSize), span.antialiased);
 
         hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
 
@@ -109,7 +109,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 TextElement::TextElement() : Element() {
     fontManager = new FontManager();
     TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
-    std::string defaultText = "Hello world";
+    std::string defaultText = "Enter text";
     for (auto character : defaultText) {
         TextSpan defaultSpan = createDefaultTextSpan();
         defaultSpan.text = character;
@@ -171,7 +171,7 @@ void TextElementRender::prepare() {
         hb_buffer_guess_segment_properties(hbBuffer);
 
         FontInfo *fontInfo = renderThread->fontManager->getFont(
-            span.font, std::max(1, span.fontSize));
+            span.font, std::max(1, span.fontSize), span.antialiased);
         fontInfos.push_back(fontInfo);
 
         hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);

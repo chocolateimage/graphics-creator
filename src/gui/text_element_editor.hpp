@@ -4,6 +4,7 @@
 #include "fontcombobox.hpp"
 #include "scene.hpp"
 #include <DockWidget.h>
+#include <QCheckBox>
 #include <QKeyEvent>
 #include <QListWidget>
 #include <QObject>
@@ -40,6 +41,7 @@ class TextElementEditor : public QObject {
     QSpinBox *fontSize;
     FontComboBox *fontComboBox;
     BrushInput *fillInput;
+    QCheckBox *antialiasedCheckBox;
     QListWidget *debugListWidget;
 
     void setSpanProperties(std::function<void(TextSpan &)> func);
@@ -52,4 +54,5 @@ class TextElementEditor : public QObject {
     void setFont();
     void setFontSize(int newValue);
     void setFill(Brush value);
+    void setAntialiased(bool newValue);
 };

@@ -4,9 +4,9 @@
 
 Font Variant::defaultFont = {};
 
-std::string getFontHash(const Font &font, int fontSize) {
+std::string getFontHash(const Font &font, int fontSize, bool antialiased) {
     return font.path + "\n" + std::to_string(fontSize) + "\n" +
-           std::to_string(font.index);
+           (antialiased ? "1" : "0") + "\n" + std::to_string(font.index);
 }
 
 Brush::Type getBrushTypeFromString(const std::string &str) {

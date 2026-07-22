@@ -23,6 +23,7 @@ class FontInfo {
     FT_Face face;
     hb_font_t *hb;
     int pixelHeight;
+    bool antialiased{true};
     int framesUnused{0};
 };
 
@@ -31,7 +32,7 @@ class FontManager {
     FontManager();
     ~FontManager();
     FT_Library ftLibrary{nullptr};
-    FontInfo *getFont(const Font &font, int fontSize);
+    FontInfo *getFont(const Font &font, int fontSize, bool antialiased);
 
     void garbageCollect();
 

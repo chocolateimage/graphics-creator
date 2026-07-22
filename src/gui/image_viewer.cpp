@@ -469,16 +469,6 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                 Qt::CursorShape::ClosedHandCursor);
         }
     }
-
-    // TODO: double click to fullscreen
-    /*
-        --- this seems to work, though setParent() could cause issues with
-        memory leaks ---
-
-        setParent(nullptr); show();
-        setScreen(qApp->primaryScreen());
-        showFullScreen();
-    */
 }
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {

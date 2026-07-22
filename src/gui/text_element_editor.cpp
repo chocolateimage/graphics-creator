@@ -36,6 +36,11 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
             &TextElementEditor::setFill);
     layout->addRow("Fill", fillInput);
 
+    antialiasedCheckBox = new QCheckBox(dockContentWidget);
+    connect(antialiasedCheckBox, &QCheckBox::toggled, this,
+            &TextElementEditor::setAntialiased);
+    layout->addRow("Antialiased", antialiasedCheckBox);
+
     debugListWidget = new QListWidget(dockContentWidget);
     debugListWidget->setVisible(debug);
     layout->addWidget(debugListWidget);
@@ -82,9 +87,11 @@ void TextElementEditor::loadValues(TextSpan &span) {
     QSignalBlocker blocker{fontSize};
     QSignalBlocker blocker2{fontComboBox};
     QSignalBlocker blocker3{fillInput};
+    QSignalBlocker blocker4{antialiasedCheckBox};
     fontSize->setValue(span.fontSize);
     fontComboBox->setFontValue(span.font);
     fillInput->setValue(span.fill);
+    antialiasedCheckBox->setChecked(span.antialiased);
 }
 
 void TextElementEditor::setSpanProperties(
@@ -116,6 +123,11 @@ void TextElementEditor::setFont() {
 
 void TextElementEditor::setFill(Brush value) {
     setSpanProperties([value](TextSpan &span) { span.fill = value; });
+}
+
+void TextElementEditor::setAntialiased(bool newValue) {
+    setSpanProperties(
+        [newValue](TextSpan &span) { span.antialiased = newValue; });
 }
 
 void TextElementEditor::relayout() {
