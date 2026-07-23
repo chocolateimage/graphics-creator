@@ -73,6 +73,8 @@ void Scene::reorderElement(Element *element, int newIndex) {
 }
 
 void Scene::startTimer() {
+    if (timer->isActive())
+        return;
     startFrame = currentFrame;
     elapsedTimer.restart();
     emit playbackStateChanged(true);
@@ -81,6 +83,9 @@ void Scene::startTimer() {
 }
 
 void Scene::stopTimer() {
+    if (!timer->isActive())
+        return;
+
     timer->stop();
     emit playbackStateChanged(false);
     setFramesChanging(false);

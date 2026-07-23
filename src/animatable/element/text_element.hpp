@@ -43,6 +43,8 @@ class TextElement : public Element {
     TextLayout layTheTextOut(const FrameInfo &frameInfo);
 
     Property<TextSpans> text{this, "text", {}};
+
+    QString const typeName() override { return "text"; }
 };
 
 class TextElementRender : public ElementRender {

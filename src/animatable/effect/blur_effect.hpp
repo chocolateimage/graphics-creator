@@ -17,7 +17,7 @@ class BlurEffect : public Effect {
   public:
     BlurEffect();
     ~BlurEffect() {}
-    QString effectName() override { return "Box Blur"; };
+    QString effectName() override { return "boxBlur"; };
 
     Property<int> radius{this, "radius", 32};
 

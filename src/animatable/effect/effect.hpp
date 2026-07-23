@@ -24,4 +24,5 @@ class Effect : public Animatable {
     bool collapsed{false};
 
     virtual QString effectName() = 0;
+    QJsonObject serialize() override;
 };

@@ -9,6 +9,8 @@ class EllipseElement : public Element {
     virtual AnimatableRender *createClass();
 
     Property<Brush> fill{this, "fill", {}};
+
+    virtual QString const typeName() { return "ellipse"; }
 };
 
 class EllipseElementRender : public ElementRender {

@@ -1,4 +1,5 @@
 #include "element.hpp"
+#include "animatable/effect/effect_list.hpp"
 #include <QDebug>
 
 Rect ElementRender::getRenderBox() {
@@ -48,6 +49,40 @@ void Element::setEditMode(bool newMode) {
 
     editMode = newMode;
     emit editModeUpdated(newMode);
+}
+
+QJsonObject Element::serialize() {
+    QJsonObject obj = Animatable::serialize();
+    obj["elementType"] = typeName();
+    obj["collapsed"] = collapsed;
+    QJsonArray effectsArray;
+    for (auto effect : effects) {
+        effectsArray.append(effect->serialize());
+    }
+    obj["effects"] = effectsArray;
+    return obj;
+}
+
+void Element::deserialize(const QJsonObject &obj) {
+    Animatable::deserialize(obj);
+    collapsed = obj["collapsed"].toBool();
+    for (auto effectJson : obj["effects"].toArray()) {
+        QJsonObject effectObject = effectJson.toObject();
+        QString effectType = effectObject["effectType"].toString();
+        Effect *effect{nullptr};
+
+        for (auto effectInfo : effectList) {
+            if (effectInfo.name == effectType) {
+                effect = effectInfo.create();
+                break;
+            }
+        }
+
+        if (effect) {
+            effect->deserialize(effectObject);
+            addEffect(effect);
+        }
+    }
 }
 
 Element::~Element() {

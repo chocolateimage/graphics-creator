@@ -189,6 +189,7 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
     for (auto effectInfo : effectList) {
         if (effectInfo.name == effectType) {
             effect = effectInfo.create();
+            break;
         }
     }
 

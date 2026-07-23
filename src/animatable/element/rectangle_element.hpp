@@ -11,6 +11,8 @@ class RectangleElement : public Element {
     Property<Brush> fill{this, "fill", {}};
     Property<int> strokeWidth{this, "strokeWidth", 0};
     Property<int> roundness{this, "roundness", 0};
+
+    virtual QString const typeName() { return "rectangle"; }
 };
 
 class RectangleElementRender : public ElementRender {

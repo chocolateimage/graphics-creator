@@ -94,6 +94,15 @@ class NewMainWindow : public QMainWindow {
     void invalidateAndRerender();
     void playbackStateChanged(bool playing);
     void openRenderWindow();
+    void saveSlot();
+    void saveAsSlot();
+    void save();
+    void openSlot();
+
+    QJsonDocument saveInto();
+    bool loadFrom(const QJsonDocument &document);
+    QString openFilePath;
+    void setOpenFilePath(const QString &newPath);
 
     Scene *scene;
 

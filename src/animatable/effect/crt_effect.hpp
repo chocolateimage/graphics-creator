@@ -12,6 +12,6 @@ class CrtEffect : public Effect {
   public:
     CrtEffect();
     ~CrtEffect() {};
-    QString effectName() override { return "MattiasCRT"; }
+    QString effectName() override { return "mattiasCrt"; }
     AnimatableRender *createClass() override { return new CrtEffectRender(); }
 };

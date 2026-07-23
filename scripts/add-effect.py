@@ -10,6 +10,7 @@ args = parser.parse_args()
 pascal_case_name = args.name
 snake_case_name = ""
 space_name = ""
+camel_case_name = ""
 
 for i, v in enumerate(pascal_case_name):
     if v.upper() == v and i > 0:
@@ -17,6 +18,10 @@ for i, v in enumerate(pascal_case_name):
         space_name += " "
     snake_case_name += v.lower()
     space_name += v
+    if i == 0:
+        camel_case_name += v.lower()
+    else:
+        camel_case_name += v
 
 pascal_case_name += "Effect"
 snake_case_name += "_effect"
@@ -35,7 +40,7 @@ class {pascal_case_name} : public Effect {{
   public:
     {pascal_case_name}();
     ~{pascal_case_name}() {{}};
-    QString effectName() override {{ return "{space_name}"; }};
+    QString effectName() override {{ return "{camel_case_name}"; }};
     AnimatableRender *createClass() override {{
         return new {pascal_case_name}Render();
     }};

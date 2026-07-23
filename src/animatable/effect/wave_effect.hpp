@@ -19,7 +19,7 @@ class WaveEffect : public Effect {
   public:
     WaveEffect();
     ~WaveEffect() {}
-    QString effectName() override { return "Wave"; };
+    QString effectName() override { return "wave"; };
 
     Property<int> extend{this, "extend", 100};
     Property<int> infrequency{this, "infrequency", 100};

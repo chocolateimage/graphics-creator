@@ -19,6 +19,8 @@ class Element : public Animatable {
     Element() {
         w.setMin(1);
         h.setMin(1);
+        w.setMax(5000);
+        h.setMax(5000);
     };
     ~Element();
     Property<int> x{this, "x", 0};
@@ -32,11 +34,15 @@ class Element : public Animatable {
 
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     virtual QRect getBoundingBox(const FrameInfo &frameInfo);
+    QJsonObject serialize() override;
+    void deserialize(const QJsonObject &obj) override;
     void addEffect(Effect *effect);
     void insertEffect(Effect *effect, int index);
     void removeEffect(Effect *effect);
 
     void setEditMode(bool newMode);
+
+    virtual QString const typeName() = 0;
 
   signals:
     void effectAdded(Effect *effect, int index);

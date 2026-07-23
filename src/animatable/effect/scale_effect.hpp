@@ -23,7 +23,7 @@ class ScaleEffect : public Effect {
   public:
     ScaleEffect();
     ~ScaleEffect() {}
-    QString effectName() override { return "Scale"; };
+    QString effectName() override { return "scale"; };
 
     Property<bool> bilinear{this, "bilinear", true};
 

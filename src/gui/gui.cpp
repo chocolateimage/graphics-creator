@@ -11,10 +11,15 @@
 #include "variant.hpp"
 #include <DockAreaWidget.h>
 #include <KIconTheme>
+#include <KMessageBox>
 #include <KStyleManager>
 #include <QActionGroup>
 #include <QApplication>
 #include <QElapsedTimer>
+#include <QFileDialog>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMenu>
 #include <QMenuBar>
 #include <QToolBar>
@@ -249,6 +254,18 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     QMenu *fileMenu = menuBar->addMenu("File");
 
+    QAction *openAction = fileMenu->addAction("Open…");
+    openAction->setIcon(QIcon::fromTheme("document-open-data"));
+    openAction->setShortcut(QKeySequence::Open);
+    connect(openAction, &QAction::triggered, this, &NewMainWindow::openSlot);
+
+    QAction *saveAction = fileMenu->addAction("Save…");
+    saveAction->setIcon(QIcon::fromTheme("document-save"));
+    saveAction->setShortcut(QKeySequence::Save);
+    connect(saveAction, &QAction::triggered, this, &NewMainWindow::saveSlot);
+
+    fileMenu->addSeparator();
+
     QAction *quitAction = fileMenu->addAction("Quit");
     quitAction->setShortcut(QKeySequence::Quit);
     quitAction->setIcon(QIcon::fromTheme("application-exit"));
@@ -416,6 +433,135 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     playbackStateChanged(false);
     rerender();
+}
+
+void NewMainWindow::openSlot() {
+    QString filePath = QFileDialog::getOpenFileName(
+        this, "Open Project", "", "Graphics Creator Project (*.gcp)");
+    if (filePath.isEmpty())
+        return;
+
+    QFile file(filePath);
+    if (!file.open(QFile::ReadOnly)) {
+        KMessageBox::error(
+            this, "Could not open file for reading\n\n" + file.errorString(),
+            "Error loading");
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    loadFrom(doc);
+}
+
+void NewMainWindow::saveSlot() {
+    if (openFilePath.isEmpty()) {
+        saveAsSlot();
+    } else {
+        save();
+    }
+}
+
+void NewMainWindow::saveAsSlot() {
+    QString filePath = QFileDialog::getSaveFileName(
+        this, "Save Project", "", "Graphics Creator Project (*.gcp)");
+    if (filePath.isEmpty())
+        return;
+    setOpenFilePath(filePath);
+    save();
+}
+
+void NewMainWindow::save() {
+    QFile file(openFilePath);
+    if (!file.open(QFile::WriteOnly)) {
+        KMessageBox::error(
+            this, "Could not open file for writing\n\n" + file.errorString(),
+            "Error saving");
+        return;
+    }
+
+    QJsonDocument doc = saveInto();
+    doc.toJson();
+    file.write(doc.toJson(QJsonDocument::Compact));
+    file.close();
+}
+
+void NewMainWindow::setOpenFilePath(const QString &newPath) {
+    openFilePath = newPath;
+    setWindowTitle(openFilePath);
+}
+
+QJsonDocument NewMainWindow::saveInto() {
+    QJsonObject rootObject;
+
+    rootObject["version"] = 1;
+
+    QJsonObject sceneObject;
+    sceneObject["width"] = scene->width;
+    sceneObject["height"] = scene->height;
+    sceneObject["durationFrames"] = scene->durationFrames;
+    sceneObject["frameRate"] = scene->frameRate;
+    sceneObject["currentFrame"] = scene->currentFrame;
+    QJsonArray elementsArray;
+    for (auto element : scene->elements) {
+        elementsArray.append(element->serialize());
+    }
+    sceneObject["elements"] = elementsArray;
+    rootObject["scene"] = sceneObject;
+
+    QJsonDocument document;
+    document.setObject(rootObject);
+    return document;
+}
+
+bool NewMainWindow::loadFrom(const QJsonDocument &document) {
+    if (!document.isObject()) {
+        return false;
+    }
+
+    QJsonObject rootObject = document.object();
+    int docVersion = rootObject["version"].toInt(-1);
+    if (docVersion == -1) {
+        return false;
+    }
+
+    scene->selectElements({});
+    scene->stopTimer();
+
+    QJsonObject sceneObject = rootObject["scene"].toObject();
+    scene->width = sceneObject["width"].toInt();
+    scene->height = sceneObject["height"].toInt();
+    scene->durationFrames = sceneObject["durationFrames"].toInt();
+    scene->frameRate = sceneObject["frameRate"].toDouble();
+    int newFrame = sceneObject["currentFrame"].toInt();
+
+    for (auto elementValue : sceneObject["elements"].toArray()) {
+        QJsonObject elementObj = elementValue.toObject();
+        QString elementType = elementObj["elementType"].toString();
+        Element *element{nullptr};
+        if (elementType == "rectangle") {
+            element = new RectangleElement();
+        } else if (elementType == "ellipse") {
+            element = new EllipseElement();
+        } else if (elementType == "text") {
+            element = new TextElement();
+        }
+
+        if (!element) {
+            qWarning() << "Invalid element type" << elementType;
+            continue;
+        }
+
+        scene->addElement(element);
+    }
+
+    scene->setFramesChanging(true);
+    scene->setFrame(newFrame);
+    scene->setFramesChanging(false);
+
+    undoStack->clear();
+    return true;
 }
 
 void NewMainWindow::openRenderWindow() {
