@@ -252,6 +252,14 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         connect(input, &BrushInput::valueChanged, this,
                 [this](Brush newValue) { set(newValue); });
         widget = input;
+    } else if (variantType == VariantTypeEnum::TextSpans) {
+        auto button = new QPushButton(this);
+        button->setText("Edit");
+        button->setIcon(QIcon::fromTheme("document-edit"));
+        connect(button, &QPushButton::clicked, this, [this]() {
+            ((Element *)this->property->animatable)->setEditMode(true);
+        });
+        widget = button;
     }
 
     if (widget) {
