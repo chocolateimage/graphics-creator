@@ -65,7 +65,6 @@ class VideoSettingsDialog : public QDialog {
 
   private slots:
     void save();
-    void updateDuration();
     void updateDurationFrames();
 
   private:

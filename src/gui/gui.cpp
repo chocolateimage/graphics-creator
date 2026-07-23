@@ -159,18 +159,15 @@ VideoSettingsDialog::VideoSettingsDialog(Scene *scene, QWidget *parent)
     duration->setSuffix(" seconds");
 
     durationFramesLabel = new QLabel(this);
-    durationFramesLabel->setAlignment(Qt::AlignRight);
 
     width->setValue(scene->width);
     height->setValue(scene->height);
     frameRate->setValue(scene->frameRate);
-    connect(frameRate, &QSpinBox::valueChanged, this,
-            &VideoSettingsDialog::updateDuration);
+    duration->setValue((double)scene->durationFrames / scene->frameRate);
     connect(frameRate, &QSpinBox::valueChanged, this,
             &VideoSettingsDialog::updateDurationFrames);
     connect(duration, &QDoubleSpinBox::valueChanged, this,
             &VideoSettingsDialog::updateDurationFrames);
-    updateDuration();
     updateDurationFrames();
 
     lay->addRow("Width", width);
@@ -193,14 +190,9 @@ VideoSettingsDialog::VideoSettingsDialog(Scene *scene, QWidget *parent)
             &VideoSettingsDialog::save);
 }
 
-void VideoSettingsDialog::updateDuration() {
-    QSignalBlocker blocker(duration);
-    duration->setValue((double)scene->durationFrames / scene->frameRate);
-}
-
 void VideoSettingsDialog::updateDurationFrames() {
     durationFramesLabel->setText(
-        QString::number((int)(duration->value() * frameRate->value())) +
+        "= " + QString::number((int)(duration->value() * frameRate->value())) +
         " frames");
 }
 
