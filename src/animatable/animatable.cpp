@@ -48,5 +48,6 @@ void Animatable::deserialize(const QJsonObject &obj) {
         }
 
         QJsonObject propertyObj = propertiesObj[key].toObject();
+        property->deserialize(propertyObj);
     }
 }

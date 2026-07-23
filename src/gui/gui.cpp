@@ -259,10 +259,16 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     openAction->setShortcut(QKeySequence::Open);
     connect(openAction, &QAction::triggered, this, &NewMainWindow::openSlot);
 
-    QAction *saveAction = fileMenu->addAction("Save…");
+    QAction *saveAction = fileMenu->addAction("Save");
     saveAction->setIcon(QIcon::fromTheme("document-save"));
     saveAction->setShortcut(QKeySequence::Save);
     connect(saveAction, &QAction::triggered, this, &NewMainWindow::saveSlot);
+
+    QAction *saveAsAction = fileMenu->addAction("Save as…");
+    saveAsAction->setIcon(QIcon::fromTheme("document-save"));
+    saveAsAction->setShortcut(QKeySequence::SaveAs);
+    connect(saveAsAction, &QAction::triggered, this,
+            &NewMainWindow::saveAsSlot);
 
     fileMenu->addSeparator();
 
@@ -441,6 +447,8 @@ void NewMainWindow::openSlot() {
     if (filePath.isEmpty())
         return;
 
+    setOpenFilePath(filePath);
+
     QFile file(filePath);
     if (!file.open(QFile::ReadOnly)) {
         KMessageBox::error(
@@ -536,6 +544,11 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
     scene->frameRate = sceneObject["frameRate"].toDouble();
     int newFrame = sceneObject["currentFrame"].toInt();
 
+    for (auto element : scene->elements) {
+        delete element;
+    }
+    scene->elements.clear();
+
     for (auto elementValue : sceneObject["elements"].toArray()) {
         QJsonObject elementObj = elementValue.toObject();
         QString elementType = elementObj["elementType"].toString();
@@ -552,6 +565,8 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
             qWarning() << "Invalid element type" << elementType;
             continue;
         }
+
+        element->deserialize(elementObj);
 
         scene->addElement(element);
     }
