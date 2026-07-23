@@ -8,5 +8,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/grid_effect.cpp
   src/animatable/effect/scale_effect.cpp
   src/animatable/effect/crt_effect.cpp
+  src/animatable/effect/opacity_effect.cpp
   PARENT_SCOPE
 )
