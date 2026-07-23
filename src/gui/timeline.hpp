@@ -12,8 +12,28 @@ constexpr double TIMELINE_START_OFFSET = 16;
 constexpr double OBJECT_TRACK_HEIGHT = 16;
 constexpr double PROPERTY_TRACK_HEIGHT = 16;
 
+class TimelineWidget;
 class TimelineContentWidget;
 class NewMainWindow;
+
+class TimelineElementButton : public QPushButton {
+  public:
+    explicit TimelineElementButton(Element *element,
+                                   TimelineWidget *timelineWidget);
+
+  protected:
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+
+  private slots:
+    void elementNameChanged(const QString &objectName);
+    void clickedSlot();
+
+  private:
+    TimelineWidget *timelineWidget;
+    Element *element;
+    QPoint dragStartPosition;
+};
 
 class TimelineWidget : public QWidget {
   public:
@@ -29,6 +49,9 @@ class TimelineWidget : public QWidget {
     Scene *scene;
     NewMainWindow *mainWindow;
     QSlider *zoomSlider;
+    QFrame *elementMoveBar{nullptr};
+    int elementMoveTarget;
+    QList<TimelineElementButton *> elementButtons;
     void updateContents();
     void timelineScrolled();
 
@@ -48,6 +71,10 @@ class TimelineWidget : public QWidget {
 
   protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dragLeaveEvent(QDragLeaveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 };
 
 struct TimelineKeyframeData {

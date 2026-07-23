@@ -5,9 +5,11 @@
 #include <KIconLoader>
 #include <QActionGroup>
 #include <QApplication>
+#include <QDrag>
 #include <QEasingCurve>
 #include <QLabel>
 #include <QMenu>
+#include <QMimeData>
 #include <QPainter>
 #include <QPushButton>
 #include <QScrollArea>
@@ -19,11 +21,108 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
+const QString ELEMENT_DRAG_MIME_TYPE = "application/x-graphicscreator-element";
+
+TimelineElementButton::TimelineElementButton(Element *element,
+                                             TimelineWidget *timelineWidget)
+    : QPushButton(timelineWidget->timelineLeftContents),
+      timelineWidget(timelineWidget), element(element) {
+    bool selected = timelineWidget->scene->selectedElements.contains(element);
+    setStyleSheet("QPushButton {"
+                  "   text-align: left;"
+                  "   padding-left: 8px;"
+                  "   background: transparent;"
+                  "   border-radius: 0px;"
+                  "   font-weight: 600;"
+                  "}"
+                  "QPushButton:hover {"
+                  "   background: rgba(128,128,128,0.1);"
+                  "}"
+                  "QPushButton[flat=\"false\"] {"
+                  "   background: rgba(128,128,128,0.25);"
+                  "   border-left: 3px solid palette(accent);"
+                  "   padding-left: 5px;"
+                  "}"
+                  "QPushButton:pressed {"
+                  "   background: rgba(128,128,128,0.3);"
+                  "}");
+    if (element->collapsed) {
+        setIcon(QIcon::fromTheme("arrow-right"));
+    } else {
+        setIcon(QIcon::fromTheme("arrow-down"));
+    }
+    setText(element->objectName());
+    setFixedHeight(OBJECT_TRACK_HEIGHT);
+    setFlat(!selected);
+
+    connect(element, &Element::objectNameChanged, this,
+            &TimelineElementButton::elementNameChanged);
+    connect(this, &QPushButton::clicked, this,
+            &TimelineElementButton::clickedSlot);
+}
+
+void TimelineElementButton::elementNameChanged(const QString &objectName) {
+    setText(objectName);
+}
+
+void TimelineElementButton::clickedSlot() {
+    QPoint pos = mapFromGlobal(QCursor::pos());
+    bool isInsideCollapsedButton =
+        pos.y() < OBJECT_TRACK_HEIGHT && pos.x() < 32;
+    if (isInsideCollapsedButton) {
+        element->collapsed = !element->collapsed;
+        QTimer::singleShot(0, timelineWidget, &TimelineWidget::updateContents);
+        return;
+    }
+
+    Scene *scene = timelineWidget->scene;
+    auto modifiers = QApplication::queryKeyboardModifiers();
+    // TODO: Shift should select range
+    if (modifiers.testFlag(Qt::ControlModifier) ||
+        modifiers.testFlag(Qt::ShiftModifier)) {
+        QList<Element *> newSelected = scene->selectedElements;
+        if (newSelected.contains(element)) {
+            newSelected.removeOne(element);
+        } else {
+            newSelected.append(element);
+        }
+        scene->selectElements(newSelected);
+    } else {
+        scene->selectElements({element});
+    }
+}
+
+void TimelineElementButton::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        dragStartPosition = event->pos();
+    }
+
+    return QPushButton::mousePressEvent(event);
+}
+
+void TimelineElementButton::mouseMoveEvent(QMouseEvent *event) {
+    if (!(event->buttons() & Qt::LeftButton))
+        return QPushButton::mouseMoveEvent(event);
+    if ((event->pos() - dragStartPosition).manhattanLength() <
+        QApplication::startDragDistance())
+        return QPushButton::mouseMoveEvent(event);
+
+    QDrag *drag = new QDrag(this);
+    QMimeData *mimeData = new QMimeData();
+    // This is some very cursed code :')
+    mimeData->setData(ELEMENT_DRAG_MIME_TYPE,
+                      QString::number((uint64_t)(element)).toUtf8());
+    drag->setMimeData(mimeData);
+
+    Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+}
+
 TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
                                QWidget *parent)
     : QWidget(parent), mainWindow(mainWindow), keyframeNo(24, 24),
       keyframeYes(24, 24) {
     this->scene = scene;
+    setAcceptDrops(true);
 
     createPixmaps();
 
@@ -31,6 +130,8 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     connect(scene, &Scene::elementRemoved, this,
             &TimelineWidget::updateContents);
     connect(scene, &Scene::elementSelectionChanged, this,
+            &TimelineWidget::updateContents);
+    connect(scene, &Scene::elementOrderChanged, this,
             &TimelineWidget::updateContents);
 
     auto mainLay = new QVBoxLayout(this);
@@ -115,6 +216,70 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
 
     connect(zoomSlider, &QSlider::valueChanged, timelineContent,
             &TimelineContentWidget::updateContents);
+}
+
+void TimelineWidget::dragEnterEvent(QDragEnterEvent *event) {
+    if (event->mimeData()->hasFormat(ELEMENT_DRAG_MIME_TYPE)) {
+        event->accept();
+    }
+}
+
+void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
+    if (event->mimeData()->hasFormat(ELEMENT_DRAG_MIME_TYPE)) {
+        if (!elementMoveBar) {
+            elementMoveBar = new QFrame(timelineLeftContents);
+            elementMoveBar->setFrameShape(QFrame::Shape::StyledPanel);
+            elementMoveBar->setFrameShadow(QFrame::Shadow::Raised);
+            elementMoveBar->setFixedWidth(timelineLeftContents->width());
+            elementMoveBar->setFixedHeight(2);
+            elementMoveBar->setAutoFillBackground(true);
+            elementMoveBar->setBackgroundRole(QPalette::ColorRole::Accent);
+            timelineLeftLayout->addWidget(elementMoveBar);
+        }
+
+        QList<int> yPositions;
+
+        yPositions.append(elementButtons[0]->y());
+
+        for (auto element : elementButtons) {
+            yPositions.append(element->y() + OBJECT_TRACK_HEIGHT);
+        }
+
+        QPointF pos =
+            timelineLeftContents->mapFromGlobal(mapToGlobal(event->position()));
+        int yPos = pos.y();
+        int targetElementIndex = 0;
+        int lastClosest = INT32_MAX;
+        for (int i = 0; i < yPositions.size(); i++) {
+            int diff = std::abs(yPositions[i] - yPos);
+            if (diff < lastClosest) {
+                targetElementIndex = i;
+                lastClosest = diff;
+            }
+        }
+        elementMoveTarget = targetElementIndex;
+        elementMoveBar->move(0, yPositions[targetElementIndex]);
+    }
+}
+
+void TimelineWidget::dragLeaveEvent(QDragLeaveEvent *event) {
+    if (elementMoveBar) {
+        elementMoveBar->deleteLater();
+        elementMoveBar = nullptr;
+    }
+}
+
+void TimelineWidget::dropEvent(QDropEvent *event) {
+    if (elementMoveBar) {
+        uint64_t address =
+            QString::fromUtf8(event->mimeData()->data(ELEMENT_DRAG_MIME_TYPE))
+                .toULongLong();
+        Element *gotElement = (Element *)address;
+        scene->reorderElement(gotElement, elementMoveTarget);
+
+        elementMoveBar->deleteLater();
+        elementMoveBar = nullptr;
+    }
 }
 
 void TimelineWidget::createPixmaps() {
@@ -202,6 +367,7 @@ void TimelineWidget::updateContents() {
 
     timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
 
+    elementButtons.clear();
     bool stripe = false;
     for (auto element : scene->elements) {
         disconnect(element, &Element::effectListUpdated, this,
@@ -217,65 +383,9 @@ void TimelineWidget::updateContents() {
         connect(element, &Element::effectPropertyUpdated, timelineContent,
                 &TimelineContentWidget::updatePaint);
         bool selected = scene->selectedElements.contains(element);
-        QPushButton *elementButton = new QPushButton(timelineLeftContents);
-        elementButton->setStyleSheet(
-            "QPushButton {"
-            "   text-align: left;"
-            "   padding-left: 8px;"
-            "   background: transparent;"
-            "   border-radius: 0px;"
-            "   font-weight: 600;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(128,128,128,0.1);"
-            "}"
-            "QPushButton[flat=\"false\"] {"
-            "   background: rgba(128,128,128,0.25);"
-            "   border-left: 3px solid palette(accent);"
-            "   padding-left: 5px;"
-            "}"
-            "QPushButton:pressed {"
-            "   background: rgba(128,128,128,0.3);"
-            "}");
-        if (element->collapsed) {
-            elementButton->setIcon(QIcon::fromTheme("arrow-right"));
-        } else {
-            elementButton->setIcon(QIcon::fromTheme("arrow-down"));
-        }
-        elementButton->setText(element->objectName());
-        elementButton->setFixedHeight(OBJECT_TRACK_HEIGHT);
-        elementButton->setFlat(!selected);
-        connect(elementButton, &QPushButton::clicked, this,
-                [this, element, elementButton]() {
-                    QPoint pos = elementButton->mapFromGlobal(QCursor::pos());
-                    bool isInsideCollapsedButton =
-                        pos.y() < OBJECT_TRACK_HEIGHT && pos.x() < 32;
-                    if (isInsideCollapsedButton) {
-                        element->collapsed = !element->collapsed;
-                        QTimer::singleShot(0, this,
-                                           &TimelineWidget::updateContents);
-                        return;
-                    }
-
-                    auto modifiers = QApplication::queryKeyboardModifiers();
-                    // TODO: Shift should select range
-                    if (modifiers.testFlag(Qt::ControlModifier) ||
-                        modifiers.testFlag(Qt::ShiftModifier)) {
-                        QList<Element *> newSelected = scene->selectedElements;
-                        if (newSelected.contains(element)) {
-                            newSelected.removeOne(element);
-                        } else {
-                            newSelected.append(element);
-                        }
-                        scene->selectElements(newSelected);
-                    } else {
-                        scene->selectElements({element});
-                    }
-                });
-        connect(element, &Element::objectNameChanged, elementButton,
-                [elementButton](const QString &objectName) {
-                    elementButton->setText(objectName);
-                });
+        TimelineElementButton *elementButton =
+            new TimelineElementButton(element, this);
+        elementButtons.append(elementButton);
         timelineLeftLayout->addWidget(elementButton);
 
         stripe = !stripe;

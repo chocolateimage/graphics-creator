@@ -27,6 +27,7 @@ class Scene : public QObject {
     void addElement(Element *element);
     void removeElement(Element *element);
     void insertElement(Element *element, int index);
+    void reorderElement(Element *element, int newIndex);
     void selectElements(QList<Element *> elements);
 
     std::function<bool()> canContinuePlayback;

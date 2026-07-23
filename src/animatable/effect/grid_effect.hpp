@@ -20,8 +20,8 @@ class GridEffect : public Effect {
   public:
     GridEffect();
     ~GridEffect() {}
-    QString effectName() override { return "Grid"; };
-    AnimatableRender *createClass() override { return new GridEffectRender(); };
+    QString effectName() override { return "Grid"; }
+    AnimatableRender *createClass() override { return new GridEffectRender(); }
 
     Property<Color> lineColor{this, "lineColor", {0, 0, 0, 255}};
     Property<Color> backgroundColor{

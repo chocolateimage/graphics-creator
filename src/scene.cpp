@@ -36,15 +36,14 @@ void Scene::_elementEditModeChangedSlot(bool editMode) {
 
 void Scene::selectElements(QList<Element *> elements) {
     for (auto element : selectedElements) {
-        if (element->editMode) {
-            element->setEditMode(false);
-        }
+        element->setEditMode(false);
     }
     selectedElements = elements;
     emit elementSelectionChanged(elements);
 }
 
 void Scene::removeElement(Element *element) {
+    element->setEditMode(false);
     disconnect(element, &Element::propertyUpdated, this,
                &Scene::_elementUpdatedSlot);
     disconnect(element, &Element::effectPropertyUpdated, this,
@@ -56,6 +55,21 @@ void Scene::removeElement(Element *element) {
 
     elements.removeOne(element);
     emit elementRemoved(element);
+}
+
+void Scene::reorderElement(Element *element, int newIndex) {
+    int oldIndex = elements.indexOf(element);
+    if (newIndex == oldIndex)
+        return;
+
+    int toAddIndex = newIndex;
+    if (toAddIndex > oldIndex) {
+        toAddIndex--;
+    }
+    elements.removeOne(element);
+    elements.insert(toAddIndex, element);
+
+    emit elementOrderChanged();
 }
 
 void Scene::startTimer() {
