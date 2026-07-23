@@ -44,6 +44,14 @@ struct Easing {
 
 struct Rect {
     int x, y, w, h;
+
+    Rect united(const Rect &other) {
+        int left = std::min(x, other.x);
+        int top = std::min(y, other.y);
+        int right = std::max(x + w, other.x + other.w);
+        int bottom = std::max(y + h, other.y + other.h);
+        return {left, top, right - left, bottom - top};
+    }
 };
 
 struct Brush {
