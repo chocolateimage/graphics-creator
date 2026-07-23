@@ -7,6 +7,7 @@
 #include <QString>
 #include <QTextBoundaryFinder>
 #include <QWidget>
+#include <fontconfig/fontconfig.h>
 
 TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
                                      TextElement *textElement, QObject *parent)
@@ -446,6 +447,46 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
         spans.spans.removeAt(selectionStart);
         selectionLength--;
     }
+
+    FontInfo *fontInfo = textElement->fontManager->getFont(
+        span.font, span.fontSize, span.antialiased, {});
+    char32_t codepoint = addedText.toStdU32String()[0];
+    auto charIndex = FT_Get_Char_Index(fontInfo->face, codepoint);
+    bool unavailable = charIndex == 0;
+    if (unavailable) {
+        FcCharSet *charset = FcCharSetCreate();
+        FcCharSetAddChar(charset, codepoint);
+
+        FcPattern *pattern = FcPatternCreate();
+        FcPatternAddCharSet(pattern, FC_CHARSET, charset);
+
+        FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
+        FcDefaultSubstitute(pattern);
+
+        FcResult result;
+        FcPattern *font = FcFontMatch(nullptr, pattern, &result);
+        if (result != FcResultMatch || !font) {
+            FcPatternDestroy(pattern);
+        } else {
+            FcChar8 *rawFileName;
+            FcChar8 *rawFamily;
+            FcChar8 *rawStyle;
+            int fontIndex;
+            FcPatternGetString(font, FC_FILE, 0, &rawFileName);
+            FcPatternGetInteger(font, FC_INDEX, 0, &fontIndex);
+            FcPatternGetString(font, FC_FAMILY, 0, &rawFamily);
+            FcPatternGetString(font, FC_STYLE, 0, &rawStyle);
+
+            span.font = {std::string((char *)rawFileName), fontIndex,
+                         std::string((char *)rawFamily) + " " +
+                             std::string((char *)rawStyle)};
+
+            FcPatternDestroy(font);
+
+            FcPatternDestroy(pattern);
+        }
+    }
+
     span.text = addedText;
     spans.spans.insert(selectionStart, span);
 
