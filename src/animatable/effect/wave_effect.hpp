@@ -8,7 +8,7 @@ class WaveEffectRender : public EffectRender {
 
     PropertyRender<int> extend{this};
     PropertyRender<int> infrequency{this};
-    PropertyRender<int> speed{this};
+    PropertyRender<double> speed{this};
 
     bool render(const uint32_t *source, const Rect &sourceRect,
                 uint32_t *target) override;
@@ -23,7 +23,7 @@ class WaveEffect : public Effect {
 
     Property<int> extend{this, "extend", 100};
     Property<int> infrequency{this, "infrequency", 100};
-    Property<int> speed{this, "speed", 5};
+    Property<double> speed{this, "speed", 5};
 
     AnimatableRender *createClass() override { return new WaveEffectRender(); }
 };

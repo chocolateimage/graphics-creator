@@ -16,7 +16,7 @@ bool WaveEffectRender::render(const uint32_t *source, const Rect &sourceRect,
     Rect rect = renderBox;
     int extend = this->extend;
     int infrequency = this->infrequency;
-    int speed = this->speed;
+    double speed = this->speed;
     int mxo = sourceRect.x - element->x;
     for (int y = 0; y < rect.h; y++) {
         for (int x = 0; x < rect.w; x++) {
