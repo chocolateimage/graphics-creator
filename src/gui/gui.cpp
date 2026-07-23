@@ -831,9 +831,11 @@ void NewMainWindow::elementUpdated(Element *element) {
 }
 
 void NewMainWindow::invalidateAndRerender() {
-    for (int i = 0; i < scene->durationFrames; i++) {
-        invalidateFrame(i);
+    for (auto &frame : savedFrames) {
+        delete[] frame.second.values;
     }
+    savedFrames.clear();
+
     rerender();
     for (int i = scene->currentFrame + 1;
          i < std::min(scene->durationFrames, scene->currentFrame + 50); i++) {
@@ -903,15 +905,6 @@ void NewMainWindow::updatePreview() {
                      .copy();
 
     scenePreviewWidget->updateImage(img);
-}
-
-void NewMainWindow::invalidateFrame(int frame) {
-    auto it = savedFrames.find(frame);
-    if (it == savedFrames.end())
-        return;
-
-    delete[] it->second.values;
-    savedFrames.erase(it);
 }
 
 NewMainWindow::~NewMainWindow() {

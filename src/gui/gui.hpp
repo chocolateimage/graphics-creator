@@ -106,7 +106,6 @@ class NewMainWindow : public QMainWindow {
     void elementOrderChanged();
     void frameChanged(int frame);
     bool createTask(int frame);
-    void invalidateFrame(int frame);
     void taskCompleted(FrameTask *task);
     void elementSelectionChanged(QList<Element *> elements);
     void deleteTriggered();
