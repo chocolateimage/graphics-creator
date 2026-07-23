@@ -102,6 +102,7 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
         if (textElement != nullptr) {
             textElementEditor =
                 new TextElementEditor(mainWindow, scene, textElement, this);
+            setFocus();
         }
     }
 
