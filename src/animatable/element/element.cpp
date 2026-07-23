@@ -71,7 +71,7 @@ void Element::deserialize(const QJsonObject &obj) {
         QString effectType = effectObject["effectType"].toString();
         Effect *effect{nullptr};
 
-        for (auto effectInfo : effectList) {
+        for (const auto &effectInfo : effectList) {
             if (effectInfo.name == effectType) {
                 effect = effectInfo.create();
                 break;

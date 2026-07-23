@@ -119,6 +119,13 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
 
     for (Effect *effect : element->effects) {
         QString name = effect->effectName();
+        QString displayName = name;
+        for (const auto &effect : effectList) {
+            if (effect.name == name) {
+                displayName = effect.displayName;
+                break;
+            }
+        }
         QPushButton *effectButton = new QPushButton(scrollContents);
         effectButton->setFlat(true);
         effectButton->setObjectName("effectButton");
@@ -130,7 +137,7 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
         QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
         effectButtonLayout->setContentsMargins(8, 0, 0, 0);
 
-        QLabel *lbl = new QLabel(name, effectButton);
+        QLabel *lbl = new QLabel(displayName, effectButton);
         effectButtonLayout->addWidget(lbl);
         effectButtonLayout->addStretch();
 
@@ -165,7 +172,7 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
     QAction *action;
     QMap<QString, QMenu *> menus;
 
-    for (auto effectInfo : effectList) {
+    for (const auto &effectInfo : effectList) {
         QMenu *categoryMenu;
         if (menus.contains(effectInfo.category)) {
             categoryMenu = menus[effectInfo.category];
@@ -186,7 +193,7 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
     QString effectType = action->data().toString();
     Effect *effect{nullptr};
 
-    for (auto effectInfo : effectList) {
+    for (const auto &effectInfo : effectList) {
         if (effectInfo.name == effectType) {
             effect = effectInfo.create();
             break;

@@ -115,7 +115,7 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
     }
 
     FT_Glyph _glyph;
-    FT_Load_Glyph(face, codepoint, FT_LOAD_COLOR);
+    FT_Load_Glyph(face, codepoint, FT_LOAD_COLOR | FT_LOAD_NO_HINTING);
 
     FT_Render_Mode renderMode =
         antialiased ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
