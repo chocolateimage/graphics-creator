@@ -39,6 +39,7 @@ class Scene : public QObject {
     void elementOrderChanged();
     void elementSelectionChanged(QList<Element *> elements);
     void elementEditModeChanged(Element *element, bool editMode);
+    void sceneInfoChanged();
     void frameChanged(int frame);
     void playbackStateChanged(bool playing);
 

@@ -15,6 +15,7 @@
 #include <KStyleManager>
 #include <QActionGroup>
 #include <QApplication>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QJsonArray>
@@ -131,6 +132,86 @@ void FramePreviewThread::run() {
     renderThread.close();
 }
 
+VideoSettingsDialog::VideoSettingsDialog(Scene *scene, QWidget *parent)
+    : QDialog(parent), scene(scene) {
+    setAttribute(Qt::WA_DeleteOnClose);
+    setWindowTitle("Video Settings");
+    auto parentLay = new QVBoxLayout(this);
+    auto lay = new QFormLayout();
+    lay->setContentsMargins(0, 0, 0, 0);
+    parentLay->addLayout(lay);
+
+    width = new QSpinBox(this);
+    width->setRange(1, 999999);
+    width->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    height = new QSpinBox(this);
+    height->setRange(1, 999999);
+    height->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    frameRate = new QSpinBox(this);
+    frameRate->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    frameRate->setRange(1, 999999);
+
+    duration = new QDoubleSpinBox(this);
+    duration->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    duration->setRange(0, 999999);
+    duration->setSuffix(" seconds");
+
+    durationFramesLabel = new QLabel(this);
+    durationFramesLabel->setAlignment(Qt::AlignRight);
+
+    width->setValue(scene->width);
+    height->setValue(scene->height);
+    frameRate->setValue(scene->frameRate);
+    connect(frameRate, &QSpinBox::valueChanged, this,
+            &VideoSettingsDialog::updateDuration);
+    connect(frameRate, &QSpinBox::valueChanged, this,
+            &VideoSettingsDialog::updateDurationFrames);
+    connect(duration, &QDoubleSpinBox::valueChanged, this,
+            &VideoSettingsDialog::updateDurationFrames);
+    updateDuration();
+    updateDurationFrames();
+
+    lay->addRow("Width", width);
+    lay->addRow("Height", height);
+    lay->addRow("Frame Rate", frameRate);
+    lay->addRow("Duration", duration);
+    lay->addWidget(durationFramesLabel);
+
+    setMinimumWidth(400);
+
+    parentLay->addStretch();
+
+    auto buttonBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    parentLay->addWidget(buttonBox);
+
+    connect(this, &VideoSettingsDialog::accepted, this,
+            &VideoSettingsDialog::save);
+}
+
+void VideoSettingsDialog::updateDuration() {
+    QSignalBlocker blocker(duration);
+    duration->setValue((double)scene->durationFrames / scene->frameRate);
+}
+
+void VideoSettingsDialog::updateDurationFrames() {
+    durationFramesLabel->setText(
+        QString::number((int)(duration->value() * frameRate->value())) +
+        " frames");
+}
+
+void VideoSettingsDialog::save() {
+    scene->frameRate = frameRate->value();
+    scene->width = width->value();
+    scene->height = height->value();
+    scene->durationFrames = (int)(duration->value() * frameRate->value());
+    emit scene->sceneInfoChanged();
+}
+
 class AddElementCommand : public QUndoCommand {
   public:
     AddElementCommand(Scene *scene, Element *element)
@@ -230,6 +311,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &NewMainWindow::elementUpdated); // hack
     connect(scene, &Scene::elementOrderChanged, this,
             &NewMainWindow::elementOrderChanged);
+    connect(scene, &Scene::sceneInfoChanged, this,
+            &NewMainWindow::invalidateAndRerender);
     connect(scene, &Scene::frameChanged, this, &NewMainWindow::frameChanged);
     connect(scene, &Scene::elementSelectionChanged, this,
             &NewMainWindow::elementSelectionChanged);
@@ -299,6 +382,13 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     playbackAction = videoMenu->addAction("");
     playbackAction->setShortcut(QKeySequence(" "));
+
+    videoMenu->addSeparator();
+
+    QAction *videoSettingsAction = videoMenu->addAction("Settings…");
+    videoSettingsAction->setIcon(QIcon::fromTheme("settings-configure"));
+    connect(videoSettingsAction, &QAction::triggered, this,
+            &NewMainWindow::openVideoSettings);
 
     QMenu *viewMenu = menuBar->addMenu("View");
     setMenuBar(menuBar);
@@ -439,6 +529,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     playbackStateChanged(false);
     rerender();
+}
+
+void NewMainWindow::openVideoSettings() {
+    VideoSettingsDialog *dialog = new VideoSettingsDialog(scene, this);
+    dialog->open();
 }
 
 void NewMainWindow::openSlot() {

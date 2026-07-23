@@ -82,21 +82,6 @@ struct NewTemplateCategory {
     QList<NewTemplate> templates;
 };
 
-class VideoSettingsDialog : public QDialog {
-    Q_OBJECT
-  public:
-    explicit VideoSettingsDialog(std::shared_ptr<Video> oldVideo,
-                                 QWidget *parent = nullptr);
-    std::shared_ptr<Video> oldVideo;
-
-    std::shared_ptr<Video> video();
-
-  private:
-    QSpinBox *width;
-    QSpinBox *height;
-    QSpinBox *frameRate;
-};
-
 class MainWindow : public QMainWindow {
   public:
     QString dataPath = "";

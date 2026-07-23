@@ -133,6 +133,8 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
             &TimelineWidget::updateContents);
     connect(scene, &Scene::elementOrderChanged, this,
             &TimelineWidget::updateContents);
+    connect(scene, &Scene::sceneInfoChanged, this,
+            &TimelineWidget::updateContents);
 
     auto mainLay = new QVBoxLayout(this);
     mainLay->setContentsMargins(0, 0, 0, 0);

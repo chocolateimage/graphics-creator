@@ -6,6 +6,7 @@
 #include <DockManager.h>
 #include <QChronoTimer>
 #include <QComboBox>
+#include <QDialog>
 #include <QElapsedTimer>
 #include <QFormLayout>
 #include <QLabel>
@@ -56,6 +57,25 @@ class FramePreviewThread : public QThread {
     void taskDone(FrameTask *task);
 };
 
+class VideoSettingsDialog : public QDialog {
+    Q_OBJECT
+  public:
+    explicit VideoSettingsDialog(Scene *scene, QWidget *parent = nullptr);
+    Scene *scene;
+
+  private slots:
+    void save();
+    void updateDuration();
+    void updateDurationFrames();
+
+  private:
+    QSpinBox *width;
+    QSpinBox *height;
+    QSpinBox *frameRate;
+    QDoubleSpinBox *duration;
+    QLabel *durationFramesLabel;
+};
+
 class NewMainWindow : public QMainWindow {
   public:
     NewMainWindow();
@@ -98,6 +118,7 @@ class NewMainWindow : public QMainWindow {
     void saveAsSlot();
     void save();
     void openSlot();
+    void openVideoSettings();
 
     QJsonDocument saveInto();
     bool loadFrom(const QJsonDocument &document);

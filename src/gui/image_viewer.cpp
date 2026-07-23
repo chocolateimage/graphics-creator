@@ -119,7 +119,7 @@ QPoint ImageViewer::getActualPickPosition() {
         if (QApplication::queryKeyboardModifiers().testFlag(
                 Qt::ShiftModifier)) {
             QPoint fullSize = (pickPosition - startPickPosition);
-            int size = (fullSize.x() + fullSize.y()) / 2;
+            int size = std::max(fullSize.x(), fullSize.y());
             return startPickPosition + QPoint(size, size);
         }
     }

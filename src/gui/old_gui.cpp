@@ -118,54 +118,6 @@ MainWindow::MainWindow() : QMainWindow() {
     qDebug() << "init took" << measure.elapsed() << "ms";
 }
 
-VideoSettingsDialog::VideoSettingsDialog(std::shared_ptr<Video> oldVideo,
-                                         QWidget *parent)
-    : QDialog(parent), oldVideo(oldVideo) {
-    setAttribute(Qt::WA_DeleteOnClose);
-    setWindowTitle("Video Settings");
-    auto parentLay = new QVBoxLayout(this);
-    auto lay = new QFormLayout();
-    lay->setContentsMargins(0, 0, 0, 0);
-    parentLay->addLayout(lay);
-
-    width = new DraggableSpinBox(this);
-    width->setRange(1, 999999);
-    width->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-    height = new DraggableSpinBox(this);
-    height->setRange(1, 999999);
-    height->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-    frameRate = new DraggableSpinBox(this);
-    frameRate->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    frameRate->setRange(1, 999999);
-
-    width->setValue(oldVideo->width);
-    height->setValue(oldVideo->height);
-    frameRate->setValue(oldVideo->frameRate);
-
-    lay->addRow("Width", width);
-    lay->addRow("Height", height);
-    lay->addRow("Frame Rate", frameRate);
-    setMinimumWidth(400);
-
-    parentLay->addStretch();
-
-    auto buttonBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
-    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    parentLay->addWidget(buttonBox);
-}
-
-std::shared_ptr<Video> VideoSettingsDialog::video() {
-    auto video = std::make_shared<Video>(*oldVideo);
-    video->frameRate = frameRate->value();
-    video->width = width->value();
-    video->height = height->value();
-    return video;
-}
-
 void MainWindow::loadLate() {
     QElapsedTimer measure;
     measure.start();
