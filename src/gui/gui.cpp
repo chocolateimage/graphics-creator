@@ -520,7 +520,33 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &TimelineWidget::togglePlay);
 
     playbackStateChanged(false);
+    setOpenFilePath("");
     rerender();
+}
+
+void NewMainWindow::closeEvent(QCloseEvent *event) {
+    if (askSaveConfirmation()) {
+        event->accept();
+    } else {
+        event->ignore();
+    }
+}
+
+bool NewMainWindow::askSaveConfirmation() {
+    if (!isWindowModified())
+        return true;
+
+    KMessageBox::ButtonCode result = KMessageBox::warningTwoActionsCancel(
+        this, "Your unsaved changes will be lost. Do you want to save changes?",
+        "Unsaved changes", KStandardGuiItem::save(),
+        KStandardGuiItem::dontSave(), KStandardGuiItem::cancel());
+    if (result == KMessageBox::ButtonCode::PrimaryAction) {
+        return saveSlot();
+    } else if (result == KMessageBox::ButtonCode::SecondaryAction) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void NewMainWindow::openVideoSettings() {
@@ -529,6 +555,9 @@ void NewMainWindow::openVideoSettings() {
 }
 
 void NewMainWindow::openSlot() {
+    if (!askSaveConfirmation())
+        return;
+
     QString filePath = QFileDialog::getOpenFileName(
         this, "Open Project", "", "Graphics Creator Project (*.gcp)");
     if (filePath.isEmpty())
@@ -550,41 +579,48 @@ void NewMainWindow::openSlot() {
     loadFrom(doc);
 }
 
-void NewMainWindow::saveSlot() {
+bool NewMainWindow::saveSlot() {
     if (openFilePath.isEmpty()) {
-        saveAsSlot();
+        return saveAsSlot();
     } else {
-        save();
+        return save();
     }
 }
 
-void NewMainWindow::saveAsSlot() {
+bool NewMainWindow::saveAsSlot() {
     QString filePath = QFileDialog::getSaveFileName(
         this, "Save Project", "", "Graphics Creator Project (*.gcp)");
     if (filePath.isEmpty())
-        return;
+        return false;
     setOpenFilePath(filePath);
     save();
+    return true;
 }
 
-void NewMainWindow::save() {
+bool NewMainWindow::save() {
     QFile file(openFilePath);
     if (!file.open(QFile::WriteOnly)) {
         KMessageBox::error(
             this, "Could not open file for writing\n\n" + file.errorString(),
             "Error saving");
-        return;
+        return false;
     }
 
     QJsonDocument doc = saveInto();
     doc.toJson();
     file.write(doc.toJson(QJsonDocument::Compact));
     file.close();
+    setWindowModified(false);
+    return true;
 }
 
 void NewMainWindow::setOpenFilePath(const QString &newPath) {
     openFilePath = newPath;
-    setWindowTitle(openFilePath);
+    if (openFilePath.isEmpty()) {
+        setWindowTitle("Untitled Project [*]");
+    } else {
+        setWindowTitle(openFilePath + " [*]");
+    }
 }
 
 QJsonDocument NewMainWindow::saveInto() {
@@ -661,6 +697,7 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
     scene->setFramesChanging(true);
     scene->setFrame(newFrame);
     scene->setFramesChanging(false);
+    setWindowModified(false);
 
     undoStack->clear();
     return true;
@@ -835,6 +872,8 @@ void NewMainWindow::invalidateAndRerender() {
         delete[] frame.second.values;
     }
     savedFrames.clear();
+
+    setWindowModified(true);
 
     rerender();
     for (int i = scene->currentFrame + 1;

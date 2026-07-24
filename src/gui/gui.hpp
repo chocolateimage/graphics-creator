@@ -112,11 +112,12 @@ class NewMainWindow : public QMainWindow {
     void invalidateAndRerender();
     void playbackStateChanged(bool playing);
     void openRenderWindow();
-    void saveSlot();
-    void saveAsSlot();
-    void save();
+    bool saveSlot();
+    bool saveAsSlot();
+    bool save();
     void openSlot();
     void openVideoSettings();
+    bool askSaveConfirmation();
 
     QJsonDocument saveInto();
     bool loadFrom(const QJsonDocument &document);
@@ -141,4 +142,7 @@ class NewMainWindow : public QMainWindow {
     TimelineWidget *timeline;
 
     QLabel *statusText;
+
+  protected:
+    void closeEvent(QCloseEvent *event) override;
 };
