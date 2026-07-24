@@ -1,7 +1,32 @@
 #include "render.hpp"
 #include "math.hpp"
 #include <QDebug>
+#include <QImage>
+#include <QMutexLocker>
 #include <freetype/ftoutln.h>
+
+ImageData::~ImageData() { delete[] data; }
+
+std::shared_ptr<ImageData> ImageLoader::loadImage(const std::string &path) {
+    QMutexLocker locker(&imageDatasMutex);
+    auto it = imageDatas.find(path);
+    if (it != imageDatas.end()) {
+        return it->second;
+    }
+
+    QImage img(QString::fromStdString(path));
+    img = img.convertToFormat(QImage::Format_ARGB32);
+
+    std::shared_ptr<ImageData> data = std::make_shared<ImageData>();
+    data->width = img.width();
+    data->height = img.height();
+    data->data = new uint32_t[data->width * data->height];
+    memcpy(data->data, img.bits(), data->width * data->height * 4);
+    imageDatas.emplace(path, data);
+    return data;
+}
+
+ImageLoader globalImageLoader;
 
 std::string getFontHash(const Font &font, int fontSize, bool antialiased,
                         const StrokeInfo &strokeInfo) {

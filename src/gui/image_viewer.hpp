@@ -65,6 +65,11 @@ class ImageViewer : public QWidget {
     bool isMovingElements{false};
     QPoint startMovePosition;
 
+    bool isDroppingImage{false};
+    QString dropImagePath;
+    QImage dropImagePreview;
+    QPoint dropImageCursor;
+
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -77,6 +82,10 @@ class ImageViewer : public QWidget {
     void leaveEvent(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void inputMethodEvent(QInputMethodEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dragLeaveEvent(QDragLeaveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
     bool event(QEvent *event) override;
 
     TextElementEditor *textElementEditor{nullptr};

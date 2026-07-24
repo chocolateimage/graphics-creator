@@ -1,5 +1,6 @@
 #include "gui.hpp"
 #include "animatable/element/ellipse_element.hpp"
+#include "animatable/element/image_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
 #include "effects_window.hpp"
@@ -682,6 +683,8 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
             element = new EllipseElement();
         } else if (elementType == "text") {
             element = new TextElement();
+        } else if (elementType == "image") {
+            element = new ImageElement();
         }
 
         if (!element) {
@@ -816,6 +819,10 @@ void NewMainWindow::controlsUpdated() {
     }
 }
 
+void NewMainWindow::addElementUndoable(Element *element) {
+    undoStack->push(new AddElementCommand(scene, element));
+}
+
 void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
     Element *element{nullptr};
     if (controlRectangle->isChecked()) {
@@ -849,7 +856,7 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
         element->y.set(rect.y(), {0});
         element->w.set(rect.width(), {0});
         element->h.set(rect.height(), {0});
-        undoStack->push(new AddElementCommand(scene, element));
+        addElementUndoable(element);
         if (dynamic_cast<TextElement *>(element)) {
             element->setEditMode(true);
         }

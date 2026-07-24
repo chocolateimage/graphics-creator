@@ -130,6 +130,10 @@ template <> inline bool deserializeAnyValue(const QJsonValue &value) {
     return value.toBool();
 }
 
+template <> inline std::string deserializeAnyValue(const QJsonValue &value) {
+    return value.toString().toStdString();
+}
+
 template <> inline Color deserializeAnyValue(const QJsonValue &value) {
     QJsonObject obj = value.toObject();
     return Color{.r = obj["r"].toInt(),

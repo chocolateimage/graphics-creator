@@ -1,5 +1,6 @@
 #pragma once
 #include "variant.hpp"
+#include <QMutex>
 #include <freetype/freetype.h>
 #include <freetype/ftglyph.h>
 #include <freetype/ftstroke.h>
@@ -15,6 +16,24 @@ extern "C" {
 class FontManager;
 
 void convertToAvFrame(AVFrame *frame, uint32_t *source, int w, int h);
+
+class ImageData {
+  public:
+    ~ImageData();
+    int width;
+    int height;
+    uint32_t *data;
+};
+
+class ImageLoader {
+  public:
+    std::unordered_map<std::string, std::shared_ptr<ImageData>> imageDatas{};
+    QMutex imageDatasMutex{};
+
+    std::shared_ptr<ImageData> loadImage(const std::string &path);
+};
+
+extern ImageLoader globalImageLoader;
 
 class StrokeInfo {
   public:

@@ -118,6 +118,7 @@ class NewMainWindow : public QMainWindow {
     void openSlot();
     void openVideoSettings();
     bool askSaveConfirmation();
+    void addElementUndoable(Element *element);
 
     QJsonDocument saveInto();
     bool loadFrom(const QJsonDocument &document);

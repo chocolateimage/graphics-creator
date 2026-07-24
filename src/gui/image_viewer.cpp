@@ -1,4 +1,6 @@
 #include "image_viewer.hpp"
+#include "animatable/element/image_element.hpp"
+#include "gui.hpp"
 #include <QApplication>
 #include <QFileDialog>
 #include <QFrame>
@@ -6,6 +8,8 @@
 #include <QHBoxLayout>
 #include <QMatrix4x4>
 #include <QMenu>
+#include <QMimeData>
+#include <QMimeDatabase>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QToolButton>
@@ -35,6 +39,7 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     setAttribute(Qt::WidgetAttribute::WA_MouseTracking);
     setAttribute(Qt::WidgetAttribute::WA_InputMethodEnabled);
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
+    setAcceptDrops(true);
     setWindowTitle("Preview");
 
     auto lay = new QHBoxLayout(this);
@@ -264,6 +269,8 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
                          "Left click to confirm. Right click to cancel.");
     }
 
+    float zoomElement =
+        pixelToViewport({2, 2}).x() - pixelToViewport({1, 1}).x();
     if (scene && !scene->isPlaying()) {
         FrameInfo fi = {scene->currentFrame};
         painter.setPen(QPen(palette().accent(), 2));
@@ -278,13 +285,70 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
 
             if (element->editMode) {
+                painter.save();
                 painter.translate(pos);
-                float zoomElement =
-                    pixelToViewport({2, 2}).x() - pixelToViewport({1, 1}).x();
                 painter.scale(zoomElement, zoomElement);
                 textElementEditor->paint(painter);
+                painter.restore();
             }
         }
+    }
+
+    if (isDroppingImage) {
+        QPointF pos = pixelToViewport(dropImageCursor);
+        painter.save();
+        painter.translate(pos);
+        painter.scale(zoomElement, zoomElement);
+        painter.drawImage(0, 0, dropImagePreview);
+        painter.restore();
+    }
+}
+
+void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
+    const QMimeData *mimeData = event->mimeData();
+    if (scene && mimeData->hasUrls() && !mimeData->urls().isEmpty()) {
+        QUrl url = mimeData->urls().first();
+        QMimeDatabase db;
+        QMimeType type = db.mimeTypeForUrl(url);
+        if (type.name().startsWith("image/")) {
+            dropImagePath = url.toLocalFile();
+            dropImagePreview = QImage(dropImagePath);
+            dropImageCursor = viewportToPixel(event->position());
+            isDroppingImage = true;
+            event->setDropAction(Qt::DropAction::LinkAction);
+            event->accept();
+            update();
+        }
+    }
+}
+
+void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
+    if (isDroppingImage) {
+        dropImageCursor = viewportToPixel(event->position());
+        update();
+    }
+}
+
+void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
+    if (isDroppingImage) {
+        isDroppingImage = false;
+        dropImagePreview = QImage();
+    }
+}
+
+void ImageViewer::dropEvent(QDropEvent *event) {
+    if (isDroppingImage) {
+        ImageElement *imageElement = new ImageElement();
+        imageElement->x.set(dropImageCursor.x(), {0});
+        imageElement->y.set(dropImageCursor.y(), {0});
+        imageElement->w.set(dropImagePreview.width(), {0});
+        imageElement->h.set(dropImagePreview.height(), {0});
+        imageElement->path.set(dropImagePath.toStdString(), {0});
+        imageElement->setObjectName(
+            dropImagePath.split("/").last().split("\\").last());
+        mainWindow->addElementUndoable(imageElement);
+        dropImagePreview = QImage();
+        isDroppingImage = false;
     }
 }
 
@@ -334,8 +398,6 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     QPointF current = event->position();
 
     if (isPicking) {
-        QRectF fitRect = fittedRect();
-        QPointF pos = current;
         pickPosition = viewportToPixel(current);
 
         update();
