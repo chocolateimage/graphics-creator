@@ -12,7 +12,8 @@ class DropShadowEffectRender : public EffectRender {
     PropertyRender<double> distance{this};
     PropertyRender<double> angle{this};
     PropertyRender<Color> color{this};
-    std::pair<int, int> distS();
+    PropertyRender<int> softness{this};
+    PropertyRender<bool> shadowOnly{this};
 };
 
 class DropShadowEffect : public Effect {
@@ -27,5 +28,6 @@ class DropShadowEffect : public Effect {
     Property<double> distance{this, "distance", 10};
     Property<double> angle{this, "angle", 135};
     Property<Color> color{this, "color", {0, 0, 0, 128}};
-    // TODO: softness
+    Property<int> softness{this, "softness", 3};
+    Property<bool> shadowOnly{this, "shadowOnly", false};
 };
