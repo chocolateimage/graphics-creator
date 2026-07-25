@@ -88,6 +88,8 @@ class NewMainWindow : public QMainWindow {
     QAction *controlLua;
 
     QAction *playbackAction;
+    QAction *copyAction;
+    QAction *pasteAction;
     QAction *deleteAction;
 
     QAction *renderAction;
@@ -119,11 +121,15 @@ class NewMainWindow : public QMainWindow {
     void openVideoSettings();
     bool askSaveConfirmation();
     void addElementUndoable(Element *element);
+    void copySlot();
+    void pasteSlot();
+    void clipboardContentsChanged();
 
     QJsonDocument saveInto();
     bool loadFrom(const QJsonDocument &document);
     QString openFilePath;
     void setOpenFilePath(const QString &newPath);
+    Element *loadElementFromJson(const QJsonObject &obj);
 
     Scene *scene;
 

@@ -16,6 +16,7 @@
 #include <KStyleManager>
 #include <QActionGroup>
 #include <QApplication>
+#include <QClipboard>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFileDialog>
@@ -24,8 +25,12 @@
 #include <QJsonObject>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
+
+const QString ELEMENT_COPY_MIME_TYPE =
+    "application/x-graphicscreator-element-copy";
 
 void FrameTask::render(RenderThread &renderThread) {
     uint32_t *frameValues = new uint32_t[width * height];
@@ -362,6 +367,16 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     editMenu->addAction(redoAction);
 
     editMenu->addSeparator();
+    copyAction = editMenu->addAction("Copy");
+    copyAction->setShortcut(QKeySequence::Copy);
+    copyAction->setIcon(QIcon::fromTheme("edit-copy"));
+    connect(copyAction, &QAction::triggered, this, &NewMainWindow::copySlot);
+
+    pasteAction = editMenu->addAction("Paste");
+    pasteAction->setShortcut(QKeySequence::Paste);
+    pasteAction->setIcon(QIcon::fromTheme("edit-paste"));
+    connect(pasteAction, &QAction::triggered, this, &NewMainWindow::pasteSlot);
+
     deleteAction = editMenu->addAction("Delete");
     deleteAction->setShortcut(QKeySequence::Delete);
     deleteAction->setIcon(QIcon::fromTheme("delete"));
@@ -522,9 +537,59 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(playbackAction, &QAction::triggered, timeline,
             &TimelineWidget::togglePlay);
 
+    connect(QApplication::clipboard(), &QClipboard::dataChanged, this,
+            &NewMainWindow::clipboardContentsChanged);
+
+    clipboardContentsChanged();
+    elementSelectionChanged({});
     playbackStateChanged(false);
     setOpenFilePath("");
     rerender();
+}
+
+void NewMainWindow::clipboardContentsChanged() {
+    const QMimeData *data = QApplication::clipboard()->mimeData();
+    if (!data) {
+        return;
+    }
+    pasteAction->setEnabled(data->hasFormat(ELEMENT_COPY_MIME_TYPE));
+}
+
+void NewMainWindow::copySlot() {
+    QJsonArray array;
+    for (auto element : scene->selectedElements) {
+        array.append(element->serialize());
+    }
+
+    QJsonDocument doc;
+    doc.setArray(array);
+
+    QMimeData *mimeData = new QMimeData();
+    mimeData->setData(ELEMENT_COPY_MIME_TYPE,
+                      doc.toJson(QJsonDocument::Compact));
+    QApplication::clipboard()->setMimeData(mimeData);
+}
+
+void NewMainWindow::pasteSlot() {
+    const QMimeData *data = QApplication::clipboard()->mimeData();
+    if (!data->hasFormat(ELEMENT_COPY_MIME_TYPE))
+        return;
+
+    auto byteData = data->data(ELEMENT_COPY_MIME_TYPE);
+    QJsonDocument doc = QJsonDocument::fromJson(byteData);
+    QJsonArray array = doc.array();
+    QList<Element *> newSelected;
+    QUndoCommand *command{nullptr};
+    for (auto elementValue : array) {
+        QJsonObject elementObj = elementValue.toObject();
+        Element *element = loadElementFromJson(elementObj);
+        if (!element) {
+            continue;
+        }
+        scene->insertElement(element, 0);
+        newSelected.append(element);
+    }
+    scene->selectElements(newSelected);
 }
 
 void NewMainWindow::closeEvent(QCloseEvent *event) {
@@ -677,25 +742,10 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
 
     for (auto elementValue : sceneObject["elements"].toArray()) {
         QJsonObject elementObj = elementValue.toObject();
-        QString elementType = elementObj["elementType"].toString();
-        Element *element{nullptr};
-        if (elementType == "rectangle") {
-            element = new RectangleElement();
-        } else if (elementType == "ellipse") {
-            element = new EllipseElement();
-        } else if (elementType == "text") {
-            element = new TextElement();
-        } else if (elementType == "image") {
-            element = new ImageElement();
-        }
-
+        Element *element = loadElementFromJson(elementObj);
         if (!element) {
-            qWarning() << "Invalid element type" << elementType;
             continue;
         }
-
-        element->deserialize(elementObj);
-
         scene->addElement(element);
     }
 
@@ -706,6 +756,28 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
 
     undoStack->clear();
     return true;
+}
+
+Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
+    QString elementType = obj["elementType"].toString();
+    Element *element{nullptr};
+    if (elementType == "rectangle") {
+        element = new RectangleElement();
+    } else if (elementType == "ellipse") {
+        element = new EllipseElement();
+    } else if (elementType == "text") {
+        element = new TextElement();
+    } else if (elementType == "image") {
+        element = new ImageElement();
+    }
+
+    if (!element) {
+        qWarning() << "Invalid element type" << elementType;
+        return element;
+    }
+
+    element->deserialize(obj);
+    return element;
 }
 
 void NewMainWindow::openRenderWindow() {
@@ -762,7 +834,8 @@ void NewMainWindow::loadDefaultFont() {
 }
 
 void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
-    deleteAction->setEnabled(!elements.isEmpty());
+    copyAction->setDisabled(elements.isEmpty());
+    deleteAction->setDisabled(elements.isEmpty());
 }
 
 void NewMainWindow::deleteTriggered() {

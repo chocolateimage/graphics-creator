@@ -21,7 +21,8 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
-const QString ELEMENT_DRAG_MIME_TYPE = "application/x-graphicscreator-element";
+const QString ELEMENT_DRAG_MIME_TYPE =
+    "application/x-graphicscreator-element-drag";
 
 TimelineElementButton::TimelineElementButton(Element *element,
                                              TimelineWidget *timelineWidget)
