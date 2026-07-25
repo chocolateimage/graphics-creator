@@ -69,7 +69,9 @@ void FrameTask::render(RenderThread &renderThread) {
                 continue;
             }
 
-            delete[] finalValues;
+            if (elementValues != finalValues) {
+                delete[] finalValues;
+            }
             finalValues = effectValues;
             finalRect = effectBox;
         }
@@ -87,7 +89,10 @@ void FrameTask::render(RenderThread &renderThread) {
             }
         }
 
-        delete[] finalValues;
+        if (elementValues != finalValues) {
+            delete[] finalValues;
+        }
+        delete[] elementValues;
     }
 
     values = frameValues;
