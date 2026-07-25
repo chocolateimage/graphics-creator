@@ -1,6 +1,7 @@
 #include "effect_list.hpp"
 #include "blur_effect.hpp"
 #include "brightness_effect.hpp"
+#include "crop_effect.hpp"
 #include "crt_effect.hpp"
 #include "drop_shadow_effect.hpp"
 #include "flip_effect.hpp"
@@ -28,6 +29,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Tools", "Flip", "flip", FlipEffect),
     DEFINE_EFFECT("Tools", "Place Original", "placeOriginal",
                   PlaceOriginalEffect),
+    DEFINE_EFFECT("Tools", "Crop", "crop", CropEffect),
 
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),

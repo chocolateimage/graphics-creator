@@ -18,5 +18,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/long_shadow_effect.cpp
   src/animatable/effect/tint_effect.cpp
   src/animatable/effect/threshold_effect.cpp
+  src/animatable/effect/crop_effect.cpp
   PARENT_SCOPE
 )
