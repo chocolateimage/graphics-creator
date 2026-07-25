@@ -49,7 +49,7 @@ struct Easing {
 struct Rect {
     int x, y, w, h;
 
-    Rect united(const Rect &other) {
+    Rect united(const Rect &other) const {
         int left = std::min(x, other.x);
         int top = std::min(y, other.y);
         int right = std::max(x + w, other.x + other.w);
