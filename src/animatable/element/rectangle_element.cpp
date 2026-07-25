@@ -54,7 +54,7 @@ bool RectangleElementRender::render(uint32_t *target) {
             fc.a *= fv;
 
             if (sv > 0) {
-                Color sc = getBrushPixel(stroke, sx, sy, w, h);
+                Color sc = getBrushPixel(stroke, x, y, rect.w, rect.h);
                 sc.a *= sv;
                 target[pixelIndex(x, y, rect.w)] =
                     makePixel(mix(sv, fc.r, sc.r), mix(sv, fc.g, sc.g),
