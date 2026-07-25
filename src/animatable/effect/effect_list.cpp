@@ -12,6 +12,7 @@
 #include "pixelate_effect.hpp"
 #include "place_original_effect.hpp"
 #include "scale_effect.hpp"
+#include "tint_effect.hpp"
 #include "wave_effect.hpp"
 
 const std::vector<EffectInfo> effectList = {
@@ -22,6 +23,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Tools", "Scale", "scale", ScaleEffect),
     DEFINE_EFFECT("Tools", "Opacity", "opacity", OpacityEffect),
     DEFINE_EFFECT("Tools", "Brightness", "brightness", BrightnessEffect),
+    DEFINE_EFFECT("Tools", "Tint", "tint", TintEffect),
     DEFINE_EFFECT("Tools", "Flip", "flip", FlipEffect),
     DEFINE_EFFECT("Tools", "Place Original", "placeOriginal",
                   PlaceOriginalEffect),
