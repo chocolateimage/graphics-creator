@@ -506,6 +506,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     policy.setVerticalStretch(0);
     timelineDockArea->setSizePolicy(policy);
 
+    dockManager->setSplitterSizes(sceneDockArea, {0, 350});
+
     viewMenu->addAction(sceneDockWidget->toggleViewAction());
     viewMenu->addAction(timelineDockWidget->toggleViewAction());
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
