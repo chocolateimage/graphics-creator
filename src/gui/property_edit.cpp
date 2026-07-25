@@ -128,6 +128,34 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         //                                 "Pick \"" + optionLabel + "\"",
         //                                 ImageViewer::PickType::Point);
         // });
+    } else if (variantType == VariantTypeEnum::Vector2DFloat) {
+        widget = new QWidget(this);
+        auto layout = new QHBoxLayout(widget);
+        layout->setContentsMargins(0, 0, 0, 0);
+
+        auto value = variant.get<Vector2DFloat>();
+
+        auto inputX = new DraggableDoubleSpinBox(this);
+        inputX->setMinimum(min);
+        inputX->setMaximum(max);
+        inputX->setValue(value.x);
+
+        auto inputY = new DraggableDoubleSpinBox(this);
+        inputY->setMinimum(min);
+        inputY->setMaximum(max);
+        inputY->setValue(value.y);
+
+        layout->addWidget(inputX);
+        layout->addWidget(inputY);
+
+        connect(inputX, &DraggableDoubleSpinBox::valueChanged, this,
+                [this, inputY](double value) {
+                    set((Vector2DFloat){(float)value, (float)inputY->value()});
+                });
+        connect(inputY, &DraggableDoubleSpinBox::valueChanged, this,
+                [this, inputX](double value) {
+                    set((Vector2DFloat){(float)inputX->value(), (float)value});
+                });
     } else if (variantType == VariantTypeEnum::Color) {
         auto colorButton = new KColorButton(this);
         colorButton->setAlphaChannelEnabled(true);

@@ -114,6 +114,13 @@ template <> inline QJsonValue serializeAnyValue(const TextSpans &value) {
     return obj;
 }
 
+template <> inline QJsonValue serializeAnyValue(const Vector2DFloat &value) {
+    QJsonArray array;
+    array << value.x;
+    array << value.y;
+    return array;
+}
+
 template <typename T> inline T deserializeAnyValue(const QJsonValue &value) {
     return value;
 }
@@ -132,6 +139,11 @@ template <> inline bool deserializeAnyValue(const QJsonValue &value) {
 
 template <> inline std::string deserializeAnyValue(const QJsonValue &value) {
     return value.toString().toStdString();
+}
+
+template <> inline Vector2DFloat deserializeAnyValue(const QJsonValue &value) {
+    QJsonArray array = value.toArray();
+    return {(float)array[0].toDouble(), (float)array[1].toDouble()};
 }
 
 template <> inline Color deserializeAnyValue(const QJsonValue &value) {

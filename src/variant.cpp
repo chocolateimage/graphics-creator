@@ -56,6 +56,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Brush;
     } else if (type == "textSpans") {
         return VariantTypeEnum::TextSpans;
+    } else if (type == "vector2dfloat") {
+        return VariantTypeEnum::Vector2DFloat;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -85,6 +87,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(Brush{});
     case VariantTypeEnum::TextSpans:
         return Variant(TextSpans{});
+    case VariantTypeEnum::Vector2DFloat:
+        return Variant(Vector2DFloat{0, 0});
     }
 }
 

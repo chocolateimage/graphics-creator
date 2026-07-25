@@ -32,6 +32,10 @@ struct Vector2DInt {
     int x, y;
 };
 
+struct Vector2DFloat {
+    float x, y;
+};
+
 struct Font {
     std::string path;
     int index;
@@ -97,7 +101,7 @@ Brush::Type getBrushTypeFromString(const std::string &str);
 
 using VariantType =
     std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,
-                 Font, bool, Easing, Brush, TextSpans>;
+                 Font, bool, Easing, Brush, TextSpans, Vector2DFloat>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -112,6 +116,7 @@ struct VariantTypeEnum {
         Easing,
         Brush,
         TextSpans,
+        Vector2DFloat,
     };
 };
 

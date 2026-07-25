@@ -10,5 +10,7 @@ set(graphicscreator_SRCS
   src/animatable/effect/crt_effect.cpp
   src/animatable/effect/opacity_effect.cpp
   src/animatable/effect/drop_shadow_effect.cpp
+  src/animatable/effect/offset_effect.cpp
+  src/animatable/effect/flip_effect.cpp
   PARENT_SCOPE
 )
