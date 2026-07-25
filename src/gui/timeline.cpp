@@ -363,6 +363,7 @@ void TimelineWidget::updateContents() {
         if (widget != nullptr) {
             widget->hide();
             widget->setParent(nullptr);
+            widget->blockSignals(true);
             widget->deleteLater();
         }
         delete item;
@@ -560,7 +561,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     propertyLayout->addWidget(nextButton);
 
     auto updateKeyframe = [this, property, keyframeButton, previousButton,
-                           nextButton]() {
+                           nextButton, elementButton]() {
+        if (elementButton->signalsBlocked())
+            return;
         if (!property->isAnimating)
             return;
 
@@ -612,10 +615,10 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     updateAnimating(property);
 
     connect(property->animatable, &Animatable::propertyIsAnimatingUpdated,
-            propertyButton, updateAnimating);
-    connect(property->animatable, &Animatable::propertyUpdated, propertyButton,
+            elementButton, updateAnimating);
+    connect(property->animatable, &Animatable::propertyUpdated, elementButton,
             propertyUpdated);
-    connect(scene, &Scene::frameChanged, propertyButton, updateKeyframe);
+    connect(scene, &Scene::frameChanged, elementButton, updateKeyframe);
 
     timelineLeftLayout->addWidget(propertyButton);
     *stripe = !*stripe;

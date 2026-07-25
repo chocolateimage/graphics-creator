@@ -739,6 +739,7 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
         delete element;
     }
     scene->elements.clear();
+    timeline->updateContents();
 
     for (auto elementValue : sceneObject["elements"].toArray()) {
         QJsonObject elementObj = elementValue.toObject();
