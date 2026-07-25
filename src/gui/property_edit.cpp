@@ -63,6 +63,16 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             connect(input, &QSlider::valueChanged, this,
                     [this](int value) { set(value); });
             widget = input;
+        } else if (!propertyTyped->enumList.empty()) {
+            auto input = new QComboBox(this);
+            for (const auto &item : propertyTyped->enumList) {
+                input->addItem(QString::fromStdString(item));
+            }
+            input->setCurrentIndex(variant.get<int>());
+
+            connect(input, &QComboBox::currentIndexChanged, this,
+                    [this](int value) { set(value); });
+            widget = input;
         } else {
             auto input = new DraggableSpinBox(this);
             input->setMinimum(min);
