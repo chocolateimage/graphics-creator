@@ -136,6 +136,16 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
 
         QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
         effectButtonLayout->setContentsMargins(8, 0, 0, 0);
+        effectButtonLayout->setSpacing(0);
+
+        QPushButton *collapseButton = new QPushButton(effectButton);
+        collapseButton->setFlat(true);
+        collapseButton->setIcon(effect->collapsed
+                                    ? QIcon::fromTheme("arrow-right")
+                                    : QIcon::fromTheme("arrow-down"));
+        connect(collapseButton, &QPushButton::clicked, this,
+                [effect]() { effect->setCollapsed(!effect->collapsed); });
+        effectButtonLayout->addWidget(collapseButton);
 
         QLabel *lbl = new QLabel(displayName, effectButton);
         effectButtonLayout->addWidget(lbl);
@@ -151,12 +161,20 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
         effectsLayout->addWidget(effectButton);
 
         QWidget *propertiesWidget = new QWidget(scrollContents);
+        propertiesWidget->setVisible(!effect->collapsed);
         QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
         for (auto property : effect->properties) {
             PropertyEdit *propertyEdit =
                 new PropertyEdit(property, scene, propertiesWidget);
             propertiesLayout->addRow(property->getDisplayName(), propertyEdit);
         }
+        connect(effect, &Effect::collapsedChanged, effectButton,
+                [collapseButton, propertiesWidget, effect](bool newValue) {
+                    collapseButton->setIcon(
+                        effect->collapsed ? QIcon::fromTheme("arrow-right")
+                                          : QIcon::fromTheme("arrow-down"));
+                    propertiesWidget->setVisible(!effect->collapsed);
+                });
         effectsLayout->addWidget(propertiesWidget);
     }
 

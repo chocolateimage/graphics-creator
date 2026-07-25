@@ -18,11 +18,17 @@ class EffectRender : public AnimatableRender {
 };
 
 class Effect : public Animatable {
+    Q_OBJECT
   public:
     virtual ~Effect() {}
 
     bool collapsed{false};
 
+    void setCollapsed(bool newValue);
     virtual QString effectName() = 0;
     QJsonObject serialize() override;
+    void deserialize(const QJsonObject &obj) override;
+
+  signals:
+    void collapsedChanged(bool newValue);
 };
