@@ -12,5 +12,7 @@ set(graphicscreator_SRCS
   src/animatable/effect/drop_shadow_effect.cpp
   src/animatable/effect/offset_effect.cpp
   src/animatable/effect/flip_effect.cpp
+  src/animatable/effect/place_original_effect.cpp
+  src/animatable/effect/brightness_effect.cpp
   PARENT_SCOPE
 )

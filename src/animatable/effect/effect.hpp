@@ -10,6 +10,9 @@ class EffectRender : public AnimatableRender {
     Rect renderBox;
     ElementRender *element;
 
+    Rect originalBox;
+    uint32_t *originalValues;
+
     int currentFrame{0};
     double currentSeconds{0};
 

@@ -58,6 +58,8 @@ void FrameTask::render(RenderThread &renderThread) {
             effect->currentFrame = frame;
             effect->currentSeconds = seconds;
             effect->renderBox = effectBox;
+            effect->originalBox = rect;
+            effect->originalValues = elementValues;
             uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
             memset(effectValues, 0, effectBox.w * effectBox.h * 4);
 
