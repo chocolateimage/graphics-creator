@@ -14,6 +14,8 @@
 #include <QPainter>
 #include <QToolButton>
 
+constexpr int RESIZE_HANDLE_SIZE = 8;
+
 TransparentCornerFrame::TransparentCornerFrame(QWidget *parent)
     : QFrame(parent) {
     setFrameShape(QFrame::Shape::StyledPanel);
@@ -41,6 +43,87 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     setAcceptDrops(true);
     setWindowTitle("Preview");
+
+    // top left
+    resizeModes.push_back({
+        .moveX = 1,
+        .moveY = 1,
+        .sizeX = -1,
+        .sizeY = -1,
+        .sideX = 0,
+        .sideY = 0,
+        .cursor = Qt::CursorShape::SizeFDiagCursor,
+    });
+    // top
+    resizeModes.push_back({
+        .moveX = 0,
+        .moveY = 1,
+        .sizeX = 0,
+        .sizeY = -1,
+        .sideX = .5,
+        .sideY = 0,
+        .cursor = Qt::CursorShape::SizeVerCursor,
+    });
+    // top right
+    resizeModes.push_back({
+        .moveX = 0,
+        .moveY = 1,
+        .sizeX = 1,
+        .sizeY = -1,
+        .sideX = 1,
+        .sideY = 0,
+        .cursor = Qt::CursorShape::SizeBDiagCursor,
+    });
+    // right
+    resizeModes.push_back({
+        .moveX = 0,
+        .moveY = 0,
+        .sizeX = 1,
+        .sizeY = 0,
+        .sideX = 1,
+        .sideY = 0.5,
+        .cursor = Qt::CursorShape::SizeHorCursor,
+    });
+    // bottom right
+    resizeModes.push_back({
+        .moveX = 0,
+        .moveY = 0,
+        .sizeX = 1,
+        .sizeY = 1,
+        .sideX = 1,
+        .sideY = 1,
+        .cursor = Qt::CursorShape::SizeFDiagCursor,
+    });
+    // bottom
+    resizeModes.push_back({
+        .moveX = 0,
+        .moveY = 0,
+        .sizeX = 0,
+        .sizeY = 1,
+        .sideX = .5,
+        .sideY = 1,
+        .cursor = Qt::CursorShape::SizeVerCursor,
+    });
+    // bottom left
+    resizeModes.push_back({
+        .moveX = 1,
+        .moveY = 0,
+        .sizeX = -1,
+        .sizeY = 1,
+        .sideX = 0,
+        .sideY = 1,
+        .cursor = Qt::CursorShape::SizeBDiagCursor,
+    });
+    // left
+    resizeModes.push_back({
+        .moveX = 1,
+        .moveY = 0,
+        .sizeX = -1,
+        .sizeY = 0,
+        .sideX = 0,
+        .sideY = .5,
+        .cursor = Qt::CursorShape::SizeHorCursor,
+    });
 
     auto lay = new QHBoxLayout(this);
     lay->setAlignment(Qt::AlignmentFlag::AlignTop |
@@ -273,16 +356,27 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         pixelToViewport({2, 2}).x() - pixelToViewport({1, 1}).x();
     if (scene && !scene->isPlaying()) {
         FrameInfo fi = {scene->currentFrame};
-        painter.setPen(QPen(palette().accent(), 2));
-        painter.setBrush(Qt::NoBrush);
 
         for (auto element : scene->selectedElements) {
+            painter.setPen(QPen(palette().accent(), 2));
+            painter.setBrush(Qt::NoBrush);
+
             QRect boundingBox = element->getBoundingBox(fi);
             QPointF pos = boundingBox.topLeft();
             QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
             pos = pixelToViewport(pos);
             QPointF size = pixelToViewport(bottomRight) - pos;
             painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+
+            painter.setPen(QPen(palette().accent().color().darker(), 1));
+            painter.setBrush(palette().accent());
+            for (const auto &resizeMode : resizeModes) {
+                QPointF resizePos = pos + QPointF{size.x() * resizeMode.sideX,
+                                                  size.y() * resizeMode.sideY};
+                painter.drawRect(resizePos.x() + RESIZE_HANDLE_SIZE / -2. + 1,
+                                 resizePos.y() + RESIZE_HANDLE_SIZE / -2. + 1,
+                                 RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+            }
 
             if (element->editMode) {
                 painter.save();
@@ -398,19 +492,42 @@ QRectF ImageViewer::fittedRect() {
 
 void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     QPointF current = event->position();
+    QPoint pixelPos = viewportToPixel(current);
 
     if (isPicking) {
-        pickPosition = viewportToPixel(current);
+        pickPosition = pixelPos;
 
         update();
     }
 
+    FrameInfo frameInfo{scene->currentFrame};
+
+    if (activeResizeMode != -1) {
+        ResizeMode &resizeMode = resizeModes[activeResizeMode];
+        int resizeX = pixelPos.x() - startResizePosition.x();
+        int resizeY = pixelPos.y() - startResizePosition.y();
+        int targetW = resizeX * resizeMode.sizeX + startResizeRect.width();
+        int targetH = resizeY * resizeMode.sizeY + startResizeRect.height();
+        if (targetW < 1) {
+            resizeX += targetW - 1;
+        }
+        if (targetH < 1) {
+            resizeY += targetH - 1;
+        }
+        resizeElement->x.set(resizeX * resizeMode.moveX + startResizeRect.x(),
+                             frameInfo);
+        resizeElement->y.set(resizeY * resizeMode.moveY + startResizeRect.y(),
+                             frameInfo);
+        resizeElement->w.set(targetW, frameInfo);
+        resizeElement->h.set(targetH, frameInfo);
+        update();
+        return;
+    }
+
     if (isMovingElements) {
-        QPoint newPos = viewportToPixel(current);
+        QPoint newPos = pixelPos;
         QPoint diff = newPos - startMovePosition;
         startMovePosition = newPos;
-
-        FrameInfo frameInfo{scene->currentFrame};
 
         for (auto element : scene->selectedElements) {
             element->x.set(element->x.get(frameInfo) + diff.x(), frameInfo);
@@ -421,6 +538,33 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
 
         return;
     }
+
+    hoverResizeMode = -1;
+    hoverResizeElement = nullptr;
+    for (auto element : scene->selectedElements) {
+        QRect boundingBox = element->getBoundingBox(frameInfo);
+        QPointF pos = boundingBox.topLeft();
+        QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
+        pos = pixelToViewport(pos);
+        QPointF size = pixelToViewport(bottomRight) - pos;
+        int index = 0;
+        for (const auto &resizeMode : resizeModes) {
+            QPointF resizePos =
+                pos +
+                QPointF{size.x() * resizeMode.sideX - RESIZE_HANDLE_SIZE / 2.,
+                        size.y() * resizeMode.sideY - RESIZE_HANDLE_SIZE / 2.};
+            QRectF resizeRect = QRect(resizePos.x(), resizePos.y(),
+                                      RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+            if (resizeRect.contains(current)) {
+                hoverResizeMode = index;
+                hoverResizeElement = element;
+                break;
+            }
+            index++;
+        }
+    }
+
+    updateCursor();
 
     if (!dragging)
         return;
@@ -492,10 +636,22 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 
     if (event->button() == Qt::LeftButton) {
         if (scene && !scene->isPlaying()) {
+            FrameInfo frameInfo = {scene->currentFrame};
+            if (hoverResizeMode != -1) {
+                startResizePosition = viewportToPixel(event->position());
+                resizeElement = hoverResizeElement;
+                // startResizeRect = {resizeElement->x.get(frameInfo),
+                //                    resizeElement->y.get(frameInfo),
+                //                    resizeElement->w.get(frameInfo),
+                //                    resizeElement->h.get(frameInfo)};
+                startResizeRect = resizeElement->getBoundingBox(frameInfo);
+                activeResizeMode = hoverResizeMode;
+                return;
+            }
+
             Element *clickedElement{nullptr};
             startMovePosition = viewportToPixel(event->position());
 
-            FrameInfo frameInfo = {scene->currentFrame};
             for (auto element : scene->elements) {
                 if (element->getBoundingBox(frameInfo).contains(
                         startMovePosition)) {
@@ -562,8 +718,16 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
     }
 
     if (event->button() == Qt::LeftButton) {
+        if (isMovingElements || activeResizeMode != -1) {
+            // hack to make properties panel update
+            scene->selectElements(scene->selectedElements);
+        }
         if (isMovingElements) {
             isMovingElements = false;
+        }
+        if (activeResizeMode != -1) {
+            activeResizeMode = -1;
+            updateCursor();
         }
     }
 
@@ -630,6 +794,16 @@ void ImageViewer::stopPicking() {
 void ImageViewer::updateCursor() {
     if (isPicking) {
         setCursor(Qt::CursorShape::CrossCursor);
+        return;
+    }
+
+    if (activeResizeMode != -1) {
+        setCursor(resizeModes[activeResizeMode].cursor);
+        return;
+    }
+
+    if (hoverResizeMode != -1) {
+        setCursor(resizeModes[hoverResizeMode].cursor);
         return;
     }
 

@@ -68,6 +68,7 @@ class TimelineWidget : public QWidget {
     void togglePlay();
     void goToStart();
     void playbackStateChanged(bool playing);
+    void elementSelectionChanged(QList<Element *> elements);
 
   protected:
     bool eventFilter(QObject *obj, QEvent *event) override;

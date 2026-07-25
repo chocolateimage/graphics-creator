@@ -21,6 +21,19 @@ class TransparentCornerFrame : public QFrame {
 
 class NewMainWindow;
 
+struct ResizeMode {
+    // resizing itself
+    int moveX;
+    int moveY;
+    int sizeX;
+    int sizeY;
+
+    // Which side you can click and drag 0, 0.5, 1
+    float sideX;
+    float sideY;
+    Qt::CursorShape cursor;
+};
+
 class ImageViewer : public QWidget {
     Q_OBJECT
   public:
@@ -59,6 +72,8 @@ class ImageViewer : public QWidget {
     void updateCursor();
     Scene *scene;
 
+    std::vector<ResizeMode> resizeModes;
+
     QPointF pixelToViewport(QPointF pos);
     QPoint viewportToPixel(QPointF pos);
 
@@ -69,6 +84,13 @@ class ImageViewer : public QWidget {
     QString dropImagePath;
     QImage dropImagePreview;
     QPoint dropImageCursor;
+
+    Element *hoverResizeElement;
+    int hoverResizeMode{-1};
+    int activeResizeMode{-1};
+    QPoint startResizePosition;
+    QRect startResizeRect;
+    Element *resizeElement;
 
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

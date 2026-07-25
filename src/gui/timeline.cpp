@@ -131,7 +131,7 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     connect(scene, &Scene::elementRemoved, this,
             &TimelineWidget::updateContents);
     connect(scene, &Scene::elementSelectionChanged, this,
-            &TimelineWidget::updateContents);
+            &TimelineWidget::elementSelectionChanged);
     connect(scene, &Scene::elementOrderChanged, this,
             &TimelineWidget::updateContents);
     connect(scene, &Scene::sceneInfoChanged, this,
@@ -219,6 +219,11 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
 
     connect(zoomSlider, &QSlider::valueChanged, timelineContent,
             &TimelineContentWidget::updateContents);
+}
+
+void TimelineWidget::elementSelectionChanged(QList<Element *> elements) {
+    timelineContent->selectedKeyframes.clear();
+    updateContents();
 }
 
 void TimelineWidget::dragEnterEvent(QDragEnterEvent *event) {
