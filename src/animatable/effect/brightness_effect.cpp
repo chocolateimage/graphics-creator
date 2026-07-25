@@ -3,7 +3,7 @@
 
 BrightnessEffect::BrightnessEffect() {
     brightness.setMin(0);
-    brightness.setMax(100);
+    brightness.setMax(25500);
 }
 
 bool BrightnessEffectRender::render(const uint32_t *source,
@@ -14,9 +14,9 @@ bool BrightnessEffectRender::render(const uint32_t *source,
         for (int x = 0; x < sourceRect.w; x++) {
             auto [r, g, b, a] =
                 extractRGBA(source[pixelIndex(x, y, sourceRect.w)]);
-            r *= brightness;
-            g *= brightness;
-            b *= brightness;
+            r = std::min(r * brightness, 255.);
+            g = std::min(g * brightness, 255.);
+            b = std::min(b * brightness, 255.);
             target[pixelIndex(x, y, rect.w)] = makePixel(r, g, b, a);
         }
     }
