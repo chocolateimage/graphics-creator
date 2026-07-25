@@ -22,9 +22,14 @@ class EffectWidget : public QWidget {
     Element *element;
     Effect *effect;
 
+    QPoint dragStartPosition;
+
     void deleteClick();
     void collapseClick();
     void collapsedChanged();
+
+  protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 
 class EffectsWindow : public QWidget {
@@ -46,6 +51,17 @@ class EffectsWindow : public QWidget {
     QMenu *createEffectsMenu(QWidget *parent);
 
     QMetaObject::Connection effectUpdateConnection;
+
+    QFrame *effectMoveBar{nullptr};
+    int effectMoveTarget;
+
+    QList<EffectWidget *> effectWidgets;
+
+  protected:
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dragLeaveEvent(QDragLeaveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 
   public slots:
     void selectedElementsUpdated(QList<Element *> selectedElements);

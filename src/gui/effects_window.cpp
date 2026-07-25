@@ -2,11 +2,19 @@
 #include "animatable/effect/effect_list.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
+#include <QApplication>
+#include <QDrag>
 #include <QFormLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMimeData>
+#include <QMouseEvent>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QVBoxLayout>
+
+const QString EFFECT_DRAG_MIME_TYPE =
+    "application/x-graphicscreator-effect-drag";
 
 EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
                            QWidget *parent)
@@ -29,6 +37,7 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
         "#effectButton {border-radius: 0px; border-top: 1px solid "
         "palette(light); border-bottom: 1px solid palette(light); "
         "background: palette(mid);}");
+    effectButton->installEventFilter(this);
 
     QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
     effectButtonLayout->setContentsMargins(8, 0, 0, 0);
@@ -76,6 +85,34 @@ void EffectWidget::collapsedChanged() {
     collapseButton->setIcon(effect->collapsed ? QIcon::fromTheme("arrow-right")
                                               : QIcon::fromTheme("arrow-down"));
     propertiesWidget->setVisible(!effect->collapsed);
+}
+
+bool EffectWidget::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == effectButton) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+            if (mouseEvent->button() == Qt::LeftButton) {
+                dragStartPosition = mouseEvent->pos();
+            }
+        } else if (event->type() == QEvent::MouseMove) {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+            if (mouseEvent->buttons() & Qt::LeftButton) {
+                if ((mouseEvent->pos() - dragStartPosition).manhattanLength() >=
+                    QApplication::startDragDistance()) {
+
+                    QDrag *drag = new QDrag(this);
+                    QMimeData *mimeData = new QMimeData();
+                    mimeData->setData(
+                        EFFECT_DRAG_MIME_TYPE,
+                        QString::number((uint64_t)(effect)).toUtf8());
+                    drag->setMimeData(mimeData);
+
+                    Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+                }
+            }
+        }
+    }
+    return QObject::eventFilter(obj, event);
 }
 
 EffectsWindow::EffectsWindow(Scene *scene) : scene(scene) {
@@ -155,6 +192,7 @@ void EffectsWindow::effectListUpdated() {
 
 void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
     disconnect(effectUpdateConnection);
+    effectWidgets.clear();
 
     while (effectsLayout->count() > 0) {
         auto item = effectsLayout->takeAt(0);
@@ -192,6 +230,7 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
     for (Effect *effect : element->effects) {
         EffectWidget *effectWidget =
             new EffectWidget(scene, element, effect, scrollContents);
+        effectWidgets.append(effectWidget);
         effectsLayout->addWidget(effectWidget);
     }
 
@@ -237,5 +276,70 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
 
     if (effect) {
         scene->selectedElements[0]->addEffect(effect);
+    }
+}
+
+void EffectsWindow::dragEnterEvent(QDragEnterEvent *event) {
+    if (event->mimeData()->hasFormat(EFFECT_DRAG_MIME_TYPE)) {
+        event->accept();
+    }
+}
+
+void EffectsWindow::dragMoveEvent(QDragMoveEvent *event) {
+    if (event->mimeData()->hasFormat(EFFECT_DRAG_MIME_TYPE)) {
+        if (!effectMoveBar) {
+            effectMoveBar = new QFrame(this);
+            effectMoveBar->setFrameShape(QFrame::Shape::StyledPanel);
+            effectMoveBar->setFrameShadow(QFrame::Shadow::Raised);
+            effectMoveBar->setFixedWidth(width());
+            effectMoveBar->setFixedHeight(2);
+            effectMoveBar->setAutoFillBackground(true);
+            effectMoveBar->setBackgroundRole(QPalette::ColorRole::Accent);
+            effectMoveBar->move(0, -100);
+            effectMoveBar->show();
+        }
+
+        QList<int> yPositions;
+
+        int offset = scrollArea->y() - scrollArea->verticalScrollBar()->value();
+        yPositions.append(effectWidgets[0]->y() + offset);
+
+        for (auto widget : effectWidgets) {
+            yPositions.append(widget->y() + widget->height() + offset);
+        }
+
+        QPointF pos = mapFromGlobal(mapToGlobal(event->position()));
+        int yPos = pos.y();
+        int targetEffectIndex = 0;
+        int lastClosest = INT32_MAX;
+        for (int i = 0; i < yPositions.size(); i++) {
+            int diff = std::abs(yPositions[i] - yPos);
+            if (diff < lastClosest) {
+                targetEffectIndex = i;
+                lastClosest = diff;
+            }
+        }
+        effectMoveTarget = targetEffectIndex;
+        effectMoveBar->move(0, yPositions[targetEffectIndex]);
+    }
+}
+
+void EffectsWindow::dragLeaveEvent(QDragLeaveEvent *event) {
+    if (effectMoveBar) {
+        effectMoveBar->deleteLater();
+        effectMoveBar = nullptr;
+    }
+}
+
+void EffectsWindow::dropEvent(QDropEvent *event) {
+    if (effectMoveBar) {
+        uint64_t address =
+            QString::fromUtf8(event->mimeData()->data(EFFECT_DRAG_MIME_TYPE))
+                .toULongLong();
+        Effect *gotEffect = (Effect *)address;
+        scene->selectedElements[0]->reorderEffect(gotEffect, effectMoveTarget);
+
+        effectMoveBar->deleteLater();
+        effectMoveBar = nullptr;
     }
 }
