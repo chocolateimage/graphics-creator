@@ -8,7 +8,79 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
+EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
+                           QWidget *parent)
+    : QWidget(parent), scene(scene), element(element), effect(effect) {
+    QVBoxLayout *lay = new QVBoxLayout(this);
+    lay->setSpacing(0);
+    lay->setContentsMargins(0, 0, 0, 0);
+    QString name = effect->effectName();
+    QString displayName = name;
+    for (const auto &effect : effectList) {
+        if (effect.name == name) {
+            displayName = effect.displayName;
+            break;
+        }
+    }
+    effectButton = new QPushButton(this);
+    effectButton->setFlat(true);
+    effectButton->setObjectName("effectButton");
+    effectButton->setStyleSheet(
+        "#effectButton {border-radius: 0px; border-top: 1px solid "
+        "palette(light); border-bottom: 1px solid palette(light); "
+        "background: palette(mid);}");
+
+    QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
+    effectButtonLayout->setContentsMargins(8, 0, 0, 0);
+    effectButtonLayout->setSpacing(0);
+
+    collapseButton = new QPushButton(effectButton);
+    collapseButton->setFlat(true);
+    collapseButton->setIcon(effect->collapsed ? QIcon::fromTheme("arrow-right")
+                                              : QIcon::fromTheme("arrow-down"));
+    connect(collapseButton, &QPushButton::clicked, this,
+            &EffectWidget::collapseClick);
+    effectButtonLayout->addWidget(collapseButton);
+
+    QLabel *lbl = new QLabel(displayName, effectButton);
+    effectButtonLayout->addWidget(lbl);
+    effectButtonLayout->addStretch();
+
+    QPushButton *deleteButton = new QPushButton(effectButton);
+    deleteButton->setFlat(true);
+    deleteButton->setIcon(QIcon::fromTheme("window-close"));
+    connect(deleteButton, &QPushButton::clicked, this,
+            &EffectWidget::deleteClick);
+    effectButtonLayout->addWidget(deleteButton);
+
+    lay->addWidget(effectButton);
+
+    propertiesWidget = new QWidget(this);
+    propertiesWidget->setVisible(!effect->collapsed);
+    QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
+    for (auto property : effect->properties) {
+        PropertyEdit *propertyEdit =
+            new PropertyEdit(property, scene, propertiesWidget);
+        propertiesLayout->addRow(property->getDisplayName(), propertyEdit);
+    }
+    connect(effect, &Effect::collapsedChanged, this,
+            &EffectWidget::collapsedChanged);
+    lay->addWidget(propertiesWidget);
+}
+
+void EffectWidget::deleteClick() { element->removeEffect(effect); }
+
+void EffectWidget::collapseClick() { effect->setCollapsed(!effect->collapsed); }
+
+void EffectWidget::collapsedChanged() {
+    collapseButton->setIcon(effect->collapsed ? QIcon::fromTheme("arrow-right")
+                                              : QIcon::fromTheme("arrow-down"));
+    propertiesWidget->setVisible(!effect->collapsed);
+}
+
 EffectsWindow::EffectsWindow(Scene *scene) : scene(scene) {
+    setAcceptDrops(true);
+
     stackedWidget = new QStackedWidget(this);
     topMainLayout = new QVBoxLayout(this);
     topMainLayout->setContentsMargins(0, 0, 0, 0);
@@ -118,64 +190,9 @@ void EffectsWindow::selectedElementsUpdated(QList<Element *> selectedElements) {
     }
 
     for (Effect *effect : element->effects) {
-        QString name = effect->effectName();
-        QString displayName = name;
-        for (const auto &effect : effectList) {
-            if (effect.name == name) {
-                displayName = effect.displayName;
-                break;
-            }
-        }
-        QPushButton *effectButton = new QPushButton(scrollContents);
-        effectButton->setFlat(true);
-        effectButton->setObjectName("effectButton");
-        effectButton->setStyleSheet(
-            "#effectButton {border-radius: 0px; border-top: 1px solid "
-            "palette(light); border-bottom: 1px solid palette(light); "
-            "background: palette(mid);}");
-
-        QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
-        effectButtonLayout->setContentsMargins(8, 0, 0, 0);
-        effectButtonLayout->setSpacing(0);
-
-        QPushButton *collapseButton = new QPushButton(effectButton);
-        collapseButton->setFlat(true);
-        collapseButton->setIcon(effect->collapsed
-                                    ? QIcon::fromTheme("arrow-right")
-                                    : QIcon::fromTheme("arrow-down"));
-        connect(collapseButton, &QPushButton::clicked, this,
-                [effect]() { effect->setCollapsed(!effect->collapsed); });
-        effectButtonLayout->addWidget(collapseButton);
-
-        QLabel *lbl = new QLabel(displayName, effectButton);
-        effectButtonLayout->addWidget(lbl);
-        effectButtonLayout->addStretch();
-
-        QPushButton *deleteButton = new QPushButton(effectButton);
-        deleteButton->setFlat(true);
-        deleteButton->setIcon(QIcon::fromTheme("window-close"));
-        connect(deleteButton, &QPushButton::clicked, this,
-                [element, effect]() { element->removeEffect(effect); });
-        effectButtonLayout->addWidget(deleteButton);
-
-        effectsLayout->addWidget(effectButton);
-
-        QWidget *propertiesWidget = new QWidget(scrollContents);
-        propertiesWidget->setVisible(!effect->collapsed);
-        QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
-        for (auto property : effect->properties) {
-            PropertyEdit *propertyEdit =
-                new PropertyEdit(property, scene, propertiesWidget);
-            propertiesLayout->addRow(property->getDisplayName(), propertyEdit);
-        }
-        connect(effect, &Effect::collapsedChanged, effectButton,
-                [collapseButton, propertiesWidget, effect](bool newValue) {
-                    collapseButton->setIcon(
-                        effect->collapsed ? QIcon::fromTheme("arrow-right")
-                                          : QIcon::fromTheme("arrow-down"));
-                    propertiesWidget->setVisible(!effect->collapsed);
-                });
-        effectsLayout->addWidget(propertiesWidget);
+        EffectWidget *effectWidget =
+            new EffectWidget(scene, element, effect, scrollContents);
+        effectsLayout->addWidget(effectWidget);
     }
 
     stackedWidget->setCurrentIndex(1);

@@ -30,7 +30,7 @@ class Element : public Animatable {
     bool collapsed{true};
     // Text editing
     bool editMode{false};
-    std::vector<Effect *> effects;
+    QList<Effect *> effects;
 
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     virtual QRect getBoundingBox(const FrameInfo &frameInfo);
@@ -39,6 +39,7 @@ class Element : public Animatable {
     void addEffect(Effect *effect);
     void insertEffect(Effect *effect, int index);
     void removeEffect(Effect *effect);
+    void reorderEffect(Effect *effect, int newIndex);
 
     void setEditMode(bool newMode);
 

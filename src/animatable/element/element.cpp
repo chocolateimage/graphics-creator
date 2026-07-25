@@ -43,6 +43,21 @@ void Element::removeEffect(Effect *effect) {
     delete effect;
 }
 
+void Element::reorderEffect(Effect *effect, int newIndex) {
+    int oldIndex = effects.indexOf(effect);
+    if (newIndex == oldIndex)
+        return;
+
+    int toAddIndex = newIndex;
+    if (toAddIndex > oldIndex) {
+        toAddIndex--;
+    }
+    effects.removeOne(effect);
+    effects.insert(toAddIndex, effect);
+
+    emit effectListUpdated();
+}
+
 void Element::setEditMode(bool newMode) {
     if (newMode == editMode)
         return;
