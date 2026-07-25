@@ -21,7 +21,7 @@ bool ThresholdEffectRender::render(const uint32_t *source,
             auto [r, g, b, a] =
                 extractRGBA(source[pixelIndex(x, y, sourceRect.w)]);
             if (channel == 0) {
-                int lum = (r + g + b) / 3;
+                int lum = (r * 0.2 + g * 0.7 + b * 0.1);
                 if (lum >= t) {
                     r = 255;
                     g = 255;
