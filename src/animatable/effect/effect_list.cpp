@@ -6,6 +6,7 @@
 #include "flip_effect.hpp"
 #include "grid_effect.hpp"
 #include "invert_effect.hpp"
+#include "long_shadow_effect.hpp"
 #include "offset_effect.hpp"
 #include "opacity_effect.hpp"
 #include "pixelate_effect.hpp"
@@ -28,6 +29,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),
     DEFINE_EFFECT("Style", "Drop Shadow", "dropShadow", DropShadowEffect),
+    DEFINE_EFFECT("Style", "Long Shadow", "longShadow", LongShadowEffect),
     DEFINE_EFFECT("Style", "Pixelate", "pixelate", PixelateEffect),
 
     DEFINE_EFFECT("Generate", "Grid", "grid", GridEffect),

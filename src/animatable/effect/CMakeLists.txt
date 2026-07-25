@@ -15,5 +15,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/place_original_effect.cpp
   src/animatable/effect/brightness_effect.cpp
   src/animatable/effect/pixelate_effect.cpp
+  src/animatable/effect/long_shadow_effect.cpp
   PARENT_SCOPE
 )
