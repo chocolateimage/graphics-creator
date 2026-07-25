@@ -333,6 +333,7 @@ void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
     if (isDroppingImage) {
         isDroppingImage = false;
         dropImagePreview = QImage();
+        update();
     }
 }
 
@@ -349,6 +350,7 @@ void ImageViewer::dropEvent(QDropEvent *event) {
         mainWindow->addElementUndoable(imageElement);
         dropImagePreview = QImage();
         isDroppingImage = false;
+        update();
     }
 }
 
