@@ -24,19 +24,20 @@
 const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Blur", "Box Blur", "boxBlur", BlurEffect),
 
-    DEFINE_EFFECT("Tools", "Invert", "invert", InvertEffect),
+    DEFINE_EFFECT("Color", "Opacity", "opacity", OpacityEffect),
+    DEFINE_EFFECT("Color", "Brightness", "brightness", BrightnessEffect),
+    DEFINE_EFFECT("Color", "Tint", "tint", TintEffect),
+    DEFINE_EFFECT("Color", "Invert", "invert", InvertEffect),
+    DEFINE_EFFECT("Color", "HSV", "hsv", HsvEffect),
+    DEFINE_EFFECT("Color", "Fill", "fill", FillEffect),
+
     DEFINE_EFFECT("Tools", "Offset", "offset", OffsetEffect),
     DEFINE_EFFECT("Tools", "Scale", "scale", ScaleEffect),
-    DEFINE_EFFECT("Tools", "Opacity", "opacity", OpacityEffect),
-    DEFINE_EFFECT("Tools", "Brightness", "brightness", BrightnessEffect),
-    DEFINE_EFFECT("Tools", "Tint", "tint", TintEffect),
     DEFINE_EFFECT("Tools", "Flip", "flip", FlipEffect),
     DEFINE_EFFECT("Tools", "Place Original", "placeOriginal",
                   PlaceOriginalEffect),
     DEFINE_EFFECT("Tools", "Crop", "crop", CropEffect),
     DEFINE_EFFECT("Tools", "In/Out", "inOut", InOutEffect),
-    DEFINE_EFFECT("Tools", "HSV", "hsv", HsvEffect),
-    DEFINE_EFFECT("Tools", "Fill", "fill", FillEffect),
 
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),
