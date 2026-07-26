@@ -98,7 +98,7 @@ class RenderThread {
 
 class RenderedElement {
   public:
-    RenderedElement(ElementRender *element, int frame, double seconds);
+    RenderedElement(ElementRender *element);
     ~RenderedElement();
     ElementRender *element;
 

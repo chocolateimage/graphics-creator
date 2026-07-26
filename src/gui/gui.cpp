@@ -38,9 +38,16 @@ void FrameTask::render(RenderThread &renderThread) {
 
     for (auto element : renderElements) {
         element->renderThread = &renderThread;
+        element->currentFrame = frame;
+        element->currentSeconds = seconds;
         element->prepare();
 
-        RenderedElement renderedElement{element, frame, seconds};
+        if (!element->visible)
+            continue;
+
+        RenderedElement renderedElement{element};
+        if (renderedElement.hasError)
+            continue;
 
         Rect &finalRect = renderedElement.finalRect;
         uint32_t *__restrict__ finalValues = renderedElement.finalValues;

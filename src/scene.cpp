@@ -24,6 +24,8 @@ void Scene::insertElement(Element *element, int index) {
             &Scene::_elementUpdatedSlot);
     connect(element, &Element::effectListUpdated, this,
             &Scene::_elementUpdatedSlot);
+    connect(element, &Element::visibilityUpdated, this,
+            &Scene::_elementUpdatedSlot);
     connect(element, &Element::editModeUpdated, this,
             &Scene::_elementEditModeChangedSlot);
 }
@@ -49,6 +51,8 @@ void Scene::removeElement(Element *element) {
     disconnect(element, &Element::effectPropertyUpdated, this,
                &Scene::_elementUpdatedSlot);
     disconnect(element, &Element::effectListUpdated, this,
+               &Scene::_elementUpdatedSlot);
+    disconnect(element, &Element::visibilityUpdated, this,
                &Scene::_elementUpdatedSlot);
     disconnect(element, &Element::editModeUpdated, this,
                &Scene::_elementEditModeChangedSlot);

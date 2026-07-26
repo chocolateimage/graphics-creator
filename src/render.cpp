@@ -223,9 +223,7 @@ void RenderThread::close() {
     fontManager = nullptr;
 }
 
-RenderedElement::RenderedElement(ElementRender *element, int frame,
-                                 double seconds)
-    : element(element) {
+RenderedElement::RenderedElement(ElementRender *element) : element(element) {
     auto rect = element->getRenderBox();
     elementValues = new uint32_t[rect.w * rect.h];
     memset(elementValues, 0, rect.w * rect.h * 4);
@@ -242,8 +240,8 @@ RenderedElement::RenderedElement(ElementRender *element, int frame,
     }
 
     for (auto effect : element->effects) {
-        effect->currentFrame = frame;
-        effect->currentSeconds = seconds;
+        effect->currentFrame = element->currentFrame;
+        effect->currentSeconds = element->currentSeconds;
         effect->originalBox = rect;
         effect->originalValues = elementValues;
         Rect effectBox = effect->getRenderBox(finalRect);

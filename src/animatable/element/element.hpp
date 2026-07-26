@@ -31,7 +31,7 @@ class Element : public Animatable {
     // Text editing
     bool editMode{false};
     QList<Effect *> effects;
-    bool visible{false};
+    bool visible{true};
 
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     virtual QRect getBoundingBox(const FrameInfo &frameInfo);
@@ -73,4 +73,9 @@ class ElementRender : public AnimatableRender {
     virtual void prepare() {};
     virtual Rect getRenderBox();
     virtual bool render(uint32_t *target) = 0;
+
+    bool visible;
+
+    int currentFrame{0};
+    double currentSeconds{0};
 };

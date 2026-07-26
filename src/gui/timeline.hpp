@@ -1,5 +1,6 @@
 #pragma once
 #include "scene.hpp"
+#include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSlider>
@@ -27,12 +28,17 @@ class TimelineElementButton : public QPushButton {
 
   private slots:
     void elementNameChanged(const QString &objectName);
+    void collapseClicked();
     void clickedSlot();
+    void visibilityClicked();
+    void visibilityUpdated();
 
   private:
     TimelineWidget *timelineWidget;
     Element *element;
     QPoint dragStartPosition;
+    QLabel *objectNameLabel;
+    QPushButton *visibilityButton;
 };
 
 class TimelineWidget : public QWidget {
