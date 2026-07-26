@@ -12,8 +12,10 @@ bool TintEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             auto [r, g, b, a] =
                 extractRGBA(source[pixelIndex(x, y, sourceRect.w)]);
             Color c = getBrushPixel(tint, x, y, sourceRect.w, sourceRect.h);
+            float value = (r * 0.2 + g * 0.7 + b * 0.1) / 255.;
+
             target[pixelIndex(x, y, sourceRect.w)] = makePixel(
-                c.r * r / 255., c.g * g / 255., c.b * b / 255., c.a * a / 255.);
+                c.r * value, c.g * value, c.b * value, c.a * a / 255.);
         }
     }
     return true;
