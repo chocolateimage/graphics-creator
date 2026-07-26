@@ -6,6 +6,7 @@
 
 PropertyWindow::PropertyWindow(Scene *scene) : scene(scene) {
     formLayout = new QFormLayout(this);
+    formLayout->setVerticalSpacing(2);
     connect(scene, &Scene::elementSelectionChanged, this,
             &PropertyWindow::selectedElementsUpdated);
     connect(scene, &Scene::framesChanging, this,

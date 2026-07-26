@@ -67,6 +67,7 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
     propertiesWidget = new QWidget(this);
     propertiesWidget->setVisible(!effect->collapsed);
     QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
+    propertiesLayout->setVerticalSpacing(2);
     QString description = effect->effectDescription();
     if (!description.isEmpty()) {
         QLabel *descriptionLabel = new QLabel(propertiesWidget);
