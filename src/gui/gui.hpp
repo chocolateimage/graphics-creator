@@ -124,6 +124,8 @@ class NewMainWindow : public QMainWindow {
     void copySlot();
     void pasteSlot();
     void clipboardContentsChanged();
+    void previousFrameSlot();
+    void nextFrameSlot();
 
     QJsonDocument saveInto();
     bool loadFrom(const QJsonDocument &document);

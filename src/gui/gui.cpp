@@ -398,6 +398,17 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackAction = videoMenu->addAction("");
     playbackAction->setShortcut(QKeySequence(" "));
 
+    QAction *previousFrameAction = videoMenu->addAction("Previous frame");
+    previousFrameAction->setShortcuts(
+        {QKeySequence("Ctrl+Left"), QKeySequence("PgUp")});
+    connect(previousFrameAction, &QAction::triggered, this,
+            &NewMainWindow::previousFrameSlot);
+    QAction *nextFrameAction = videoMenu->addAction("Next frame");
+    nextFrameAction->setShortcuts(
+        {QKeySequence("Ctrl+Right"), QKeySequence("PgDown")});
+    connect(nextFrameAction, &QAction::triggered, this,
+            &NewMainWindow::nextFrameSlot);
+
     videoMenu->addSeparator();
 
     QAction *videoSettingsAction = videoMenu->addAction("Settings…");
@@ -552,6 +563,18 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
     setOpenFilePath("");
     rerender();
+}
+
+void NewMainWindow::previousFrameSlot() {
+    scene->setFramesChanging(true);
+    scene->setFrame(scene->currentFrame - 1);
+    scene->setFramesChanging(false);
+}
+
+void NewMainWindow::nextFrameSlot() {
+    scene->setFramesChanging(true);
+    scene->setFrame(scene->currentFrame + 1);
+    scene->setFramesChanging(false);
 }
 
 void NewMainWindow::clipboardContentsChanged() {
