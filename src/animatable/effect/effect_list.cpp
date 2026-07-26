@@ -1,6 +1,7 @@
 #include "effect_list.hpp"
 #include "blur_effect.hpp"
 #include "brightness_effect.hpp"
+#include "color_link_effect.hpp"
 #include "crop_effect.hpp"
 #include "crt_effect.hpp"
 #include "drop_shadow_effect.hpp"
@@ -31,6 +32,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Color", "Invert", "invert", InvertEffect),
     DEFINE_EFFECT("Color", "HSV", "hsv", HsvEffect),
     DEFINE_EFFECT("Color", "Fill", "fill", FillEffect),
+    DEFINE_EFFECT("Color", "Color Link", "colorLink", ColorLinkEffect),
 
     DEFINE_EFFECT("Tools", "Offset", "offset", OffsetEffect),
     DEFINE_EFFECT("Tools", "Scale", "scale", ScaleEffect),
