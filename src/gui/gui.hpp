@@ -113,6 +113,7 @@ class NewMainWindow : public QMainWindow {
     void nextFrameSlot();
 
     QJsonDocument saveInto();
+    void loadFile(const QString &filePath);
     bool loadFrom(const QJsonDocument &document);
     QString openFilePath;
     void setOpenFilePath(const QString &newPath);

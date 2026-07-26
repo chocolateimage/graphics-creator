@@ -4,7 +4,6 @@
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
 #include "effects_window.hpp"
-#include "math.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
@@ -17,6 +16,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
+#include <QCommandLineParser>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFileDialog>
@@ -585,15 +585,21 @@ void NewMainWindow::openSlot() {
     if (filePath.isEmpty())
         return;
 
-    setOpenFilePath(filePath);
+    loadFile(filePath);
+}
 
-    QFile file(filePath);
+void NewMainWindow::loadFile(const QString &filePath) {
+    QFileInfo fileInfo{filePath};
+    QString newPath = fileInfo.absoluteFilePath();
+    QFile file(newPath);
     if (!file.open(QFile::ReadOnly)) {
         KMessageBox::error(
             this, "Could not open file for reading\n\n" + file.errorString(),
             "Error loading");
         return;
     }
+
+    setOpenFilePath(newPath);
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
@@ -1006,7 +1012,20 @@ int main(int argc, char **argv) {
     application.setDesktopFileName("me.chocolateimage.graphics-creator");
     application.setApplicationDisplayName(QStringLiteral("Graphics Creator"));
     KStyleManager::initStyle();
+
+    QCommandLineParser parser;
+    parser.addHelpOption();
+    parser.addPositionalArgument("filepath", "Project to open", "[filepath]");
+
+    parser.process(application);
+
+    const QStringList args = parser.positionalArguments();
+
     NewMainWindow widget;
+    if (!args.isEmpty()) {
+        widget.loadFile(args[0]);
+    }
+
     widget.show();
     return application.exec();
 }
