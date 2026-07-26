@@ -22,5 +22,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/twist_effect.cpp
   src/animatable/effect/in_out_effect.cpp
   src/animatable/effect/hsv_effect.cpp
+  src/animatable/effect/fill_effect.cpp
   PARENT_SCOPE
 )

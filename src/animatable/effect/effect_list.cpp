@@ -4,6 +4,7 @@
 #include "crop_effect.hpp"
 #include "crt_effect.hpp"
 #include "drop_shadow_effect.hpp"
+#include "fill_effect.hpp"
 #include "flip_effect.hpp"
 #include "grid_effect.hpp"
 #include "hsv_effect.hpp"
@@ -35,6 +36,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Tools", "Crop", "crop", CropEffect),
     DEFINE_EFFECT("Tools", "In/Out", "inOut", InOutEffect),
     DEFINE_EFFECT("Tools", "HSV", "hsv", HsvEffect),
+    DEFINE_EFFECT("Tools", "Fill", "fill", FillEffect),
 
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),
