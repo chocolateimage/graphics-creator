@@ -31,10 +31,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         widget = line;
     } else if (variantType == VariantTypeEnum::String) {
         auto input = new QPlainTextEdit(this);
-        // no idea why border isn't showing without it.
-        // maybe it's because of the docking widget
-        input->setFrameShadow(QFrame::Shadow::Plain);
-        input->setFrameShape(QFrame::Shape::Panel);
+        input->setProperty("_breeze_force_frame", true);
 
         input->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         input->setFixedHeight(50);
