@@ -29,6 +29,7 @@ class Effect : public Animatable {
 
     void setCollapsed(bool newValue);
     virtual QString effectName() = 0;
+    virtual QString effectDescription() { return ""; };
     QJsonObject serialize() override;
     void deserialize(const QJsonObject &obj) override;
 

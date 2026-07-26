@@ -67,6 +67,15 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
     propertiesWidget = new QWidget(this);
     propertiesWidget->setVisible(!effect->collapsed);
     QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
+    QString description = effect->effectDescription();
+    if (!description.isEmpty()) {
+        QLabel *descriptionLabel = new QLabel(propertiesWidget);
+        descriptionLabel->setWordWrap(true);
+        descriptionLabel->setText(description);
+        descriptionLabel->setSizePolicy(QSizePolicy::Policy::Expanding,
+                                        QSizePolicy::Policy::Minimum);
+        propertiesLayout->addWidget(descriptionLabel);
+    }
     for (auto property : effect->properties) {
         PropertyEdit *propertyEdit =
             new PropertyEdit(property, scene, propertiesWidget);
