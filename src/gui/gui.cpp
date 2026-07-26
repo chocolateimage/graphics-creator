@@ -231,6 +231,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         return realtime;
     };
 
+    lastRenderDelayTimer.setSingleShot(true);
+    lastRenderDelayTimer.setInterval(100);
+    connect(&lastRenderDelayTimer, &QTimer::timeout, this,
+            &NewMainWindow::invalidateAndRerender_afterDelay);
+
     connect(scene, &Scene::elementAdded, this, &NewMainWindow::elementAdded);
     connect(scene, &Scene::elementUpdated, this,
             &NewMainWindow::elementUpdated);
@@ -484,7 +489,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     elementSelectionChanged({});
     playbackStateChanged(false);
     setOpenFilePath("");
-    rerender();
+    rerender(false);
 }
 
 void NewMainWindow::previousFrameSlot() {
@@ -897,7 +902,6 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
             element->setEditMode(true);
         }
     }
-    rerender();
 }
 
 void NewMainWindow::elementAdded(Element *element, int index) {
@@ -918,7 +922,11 @@ void NewMainWindow::invalidateAndRerender() {
 
     setWindowModified(true);
 
-    rerender();
+    rerender(true);
+    lastRenderDelayTimer.start();
+}
+
+void NewMainWindow::invalidateAndRerender_afterDelay() {
     for (int i = scene->currentFrame + 1;
          i < std::min(scene->durationFrames, scene->currentFrame + 50); i++) {
         createTask(i);
@@ -929,15 +937,20 @@ void NewMainWindow::invalidateAndRerender() {
     }
 }
 
-void NewMainWindow::frameChanged(int frame) { rerender(); }
+void NewMainWindow::frameChanged(int frame) { rerender(false); }
 
-void NewMainWindow::rerender() {
+void NewMainWindow::rerender(bool onlyCurrentFrame) {
     if (!createTask(scene->currentFrame)) {
         updatePreview();
     }
-    for (int i = scene->currentFrame + 1;
-         i < scene->currentFrame + (int)previewThreads.length(); i++) {
-        createTask(i % scene->durationFrames);
+
+    if (!onlyCurrentFrame) {
+        for (int i = scene->currentFrame + 1;
+             i < std::min(scene->durationFrames,
+                          scene->currentFrame + (int)previewThreads.length());
+             i++) {
+            createTask(i % scene->durationFrames);
+        }
     }
 }
 

@@ -87,7 +87,7 @@ class NewMainWindow : public QMainWindow {
     void controlsUpdated();
     void sceneRectPicked(QString id, QRect rect);
     void updatePreview();
-    void rerender();
+    void rerender(bool onlyCurrentFrame);
     void elementAdded(Element *element, int index);
     void elementUpdated(Element *element);
     void elementOrderChanged();
@@ -97,6 +97,7 @@ class NewMainWindow : public QMainWindow {
     void elementSelectionChanged(QList<Element *> elements);
     void deleteTriggered();
     void invalidateAndRerender();
+    void invalidateAndRerender_afterDelay();
     void playbackStateChanged(bool playing);
     void openRenderWindow();
     bool saveSlot();
@@ -137,6 +138,8 @@ class NewMainWindow : public QMainWindow {
     TimelineWidget *timeline;
 
     QLabel *statusText;
+
+    QTimer lastRenderDelayTimer;
 
   protected:
     void closeEvent(QCloseEvent *event) override;
