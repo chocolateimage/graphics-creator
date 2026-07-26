@@ -419,6 +419,9 @@ void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
 void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
     if (isDroppingImage) {
         dropImageCursor = viewportToPixel(event->position());
+        if (dropImageCursor.manhattanLength() < 50) {
+            dropImageCursor = {0, 0};
+        }
         update();
     }
 }
