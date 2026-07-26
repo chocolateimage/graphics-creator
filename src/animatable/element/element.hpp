@@ -31,6 +31,7 @@ class Element : public Animatable {
     // Text editing
     bool editMode{false};
     QList<Effect *> effects;
+    bool visible{false};
 
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     virtual QRect getBoundingBox(const FrameInfo &frameInfo);
@@ -42,6 +43,7 @@ class Element : public Animatable {
     void reorderEffect(Effect *effect, int newIndex);
 
     void setEditMode(bool newMode);
+    void setVisible(bool visible);
 
     virtual QString const typeName() = 0;
 
@@ -51,6 +53,7 @@ class Element : public Animatable {
     void effectListUpdated();
     void effectPropertyUpdated(Effect *effect, PropertyBase *property);
     void editModeUpdated(bool newMode);
+    void visibilityUpdated(bool newValue);
 };
 
 class ElementRender : public AnimatableRender {

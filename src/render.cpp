@@ -1,4 +1,5 @@
 #include "render.hpp"
+#include "animatable/element/element.hpp"
 #include "math.hpp"
 #include <QDebug>
 #include <QImage>
@@ -220,4 +221,54 @@ void RenderThread::garbageCollect() { fontManager->garbageCollect(); }
 void RenderThread::close() {
     delete fontManager;
     fontManager = nullptr;
+}
+
+RenderedElement::RenderedElement(ElementRender *element, int frame,
+                                 double seconds)
+    : element(element) {
+    auto rect = element->getRenderBox();
+    elementValues = new uint32_t[rect.w * rect.h];
+    memset(elementValues, 0, rect.w * rect.h * 4);
+
+    finalRect = rect;
+    finalValues = elementValues;
+
+    bool success = element->render(elementValues);
+
+    if (!success) {
+        delete[] elementValues;
+        hasError = true;
+        return;
+    }
+
+    for (auto effect : element->effects) {
+        effect->currentFrame = frame;
+        effect->currentSeconds = seconds;
+        effect->originalBox = rect;
+        effect->originalValues = elementValues;
+        Rect effectBox = effect->getRenderBox(finalRect);
+        effect->renderBox = effectBox;
+        uint32_t *__restrict__ effectValues =
+            new uint32_t[effectBox.w * effectBox.h];
+        memset(effectValues, 0, effectBox.w * effectBox.h * 4);
+
+        bool success = effect->render(finalValues, finalRect, effectValues);
+        if (!success) {
+            delete[] effectValues;
+            continue;
+        }
+
+        if (elementValues != finalValues) {
+            delete[] finalValues;
+        }
+        finalValues = effectValues;
+        finalRect = effectBox;
+    }
+}
+
+RenderedElement::~RenderedElement() {
+    if (elementValues != finalValues) {
+        delete[] finalValues;
+    }
+    delete[] elementValues;
 }

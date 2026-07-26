@@ -66,6 +66,14 @@ void Element::setEditMode(bool newMode) {
     emit editModeUpdated(newMode);
 }
 
+void Element::setVisible(bool newValue) {
+    if (visible == newValue)
+        return;
+
+    visible = newValue;
+    emit visibilityUpdated(newValue);
+}
+
 QJsonObject Element::serialize() {
     QJsonObject obj = Animatable::serialize();
     obj["elementType"] = typeName();

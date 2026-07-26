@@ -39,43 +39,11 @@ void FrameTask::render(RenderThread &renderThread) {
     for (auto element : renderElements) {
         element->renderThread = &renderThread;
         element->prepare();
-        auto rect = element->getRenderBox();
-        uint32_t *__restrict__ elementValues = new uint32_t[rect.w * rect.h];
-        memset(elementValues, 0, rect.w * rect.h * 4);
 
-        Rect finalRect = rect;
-        uint32_t *__restrict__ finalValues = elementValues;
+        RenderedElement renderedElement{element, frame, seconds};
 
-        bool success = element->render(elementValues);
-
-        if (!success) {
-            delete[] elementValues;
-            continue;
-        }
-
-        for (auto effect : element->effects) {
-            effect->currentFrame = frame;
-            effect->currentSeconds = seconds;
-            effect->originalBox = rect;
-            effect->originalValues = elementValues;
-            Rect effectBox = effect->getRenderBox(finalRect);
-            effect->renderBox = effectBox;
-            uint32_t *__restrict__ effectValues =
-                new uint32_t[effectBox.w * effectBox.h];
-            memset(effectValues, 0, effectBox.w * effectBox.h * 4);
-
-            bool success = effect->render(finalValues, finalRect, effectValues);
-            if (!success) {
-                delete[] effectValues;
-                continue;
-            }
-
-            if (elementValues != finalValues) {
-                delete[] finalValues;
-            }
-            finalValues = effectValues;
-            finalRect = effectBox;
-        }
+        Rect &finalRect = renderedElement.finalRect;
+        uint32_t *__restrict__ finalValues = renderedElement.finalValues;
 
         int maxY = std::min(height, finalRect.y + finalRect.h) - finalRect.y;
         int maxX = std::min(width, finalRect.x + finalRect.w) - finalRect.x;
@@ -89,11 +57,6 @@ void FrameTask::render(RenderThread &renderThread) {
                          finalValues[pixelIndex(x, y, finalRect.w)]);
             }
         }
-
-        if (elementValues != finalValues) {
-            delete[] finalValues;
-        }
-        delete[] elementValues;
     }
 
     values = frameValues;

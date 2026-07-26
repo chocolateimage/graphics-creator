@@ -14,6 +14,7 @@ extern "C" {
 }
 
 class FontManager;
+class ElementRender;
 
 void convertToAvFrame(AVFrame *frame, uint32_t *source, int w, int h);
 
@@ -93,4 +94,16 @@ class RenderThread {
     void close();
 
     FontManager *fontManager{nullptr};
+};
+
+class RenderedElement {
+  public:
+    RenderedElement(ElementRender *element, int frame, double seconds);
+    ~RenderedElement();
+    ElementRender *element;
+
+    uint32_t *__restrict__ elementValues;
+    uint32_t *__restrict__ finalValues;
+    Rect finalRect;
+    bool hasError{false};
 };
