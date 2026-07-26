@@ -173,9 +173,9 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
 
     zoomSlider = new QSlider(toolbar);
     zoomSlider->setOrientation(Qt::Horizontal);
-    zoomSlider->setRange(1, 150);
+    zoomSlider->setRange(1, 250);
     zoomSlider->setValue(30);
-    zoomSlider->setMaximumWidth(100);
+    zoomSlider->setMaximumWidth(150);
     toolbarLay->addWidget(zoomSlider);
 
     mainLay->addWidget(toolbar);
@@ -926,9 +926,9 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
         if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
             mouseHeader = true;
             timelineWidget->scene->setFramesChanging(true);
-            timelineWidget->scene->setFrame(
+            timelineWidget->scene->setFrame(std::round(
                 (event->pos().x() - TIMELINE_START_OFFSET) / secondsToPixels() *
-                timelineWidget->scene->frameRate);
+                timelineWidget->scene->frameRate));
             event->accept();
             return;
         }
@@ -1106,9 +1106,9 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
 void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
     if (event->buttons() & Qt::LeftButton) {
         if (mouseHeader) {
-            timelineWidget->scene->setFrame(
+            timelineWidget->scene->setFrame(std::round(
                 (event->pos().x() - TIMELINE_START_OFFSET) / secondsToPixels() *
-                timelineWidget->scene->frameRate);
+                timelineWidget->scene->frameRate));
             event->accept();
             return;
         }
