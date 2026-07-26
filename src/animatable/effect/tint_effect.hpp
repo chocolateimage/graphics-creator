@@ -9,6 +9,7 @@ class TintEffectRender : public EffectRender {
                 uint32_t *target) override;
 
     PropertyRender<Brush> tint{this};
+    PropertyRender<double> amountToTint{this};
 };
 
 class TintEffect : public Effect {
@@ -19,4 +20,5 @@ class TintEffect : public Effect {
     AnimatableRender *createClass() override { return new TintEffectRender(); };
 
     Property<Brush> tint{this, "tint", {}};
+    Property<double> amountToTint{this, "amountToTint", 100};
 };
