@@ -5,8 +5,7 @@ ThresholdEffect::ThresholdEffect() {
     channel.enumList.push_back("Luminance");
     channel.enumList.push_back("RGB");
     channel.enumList.push_back("Alpha");
-    channel.setMin(0);
-    channel.setMax(channel.enumList.size() - 1);
+    channel.updateBoundsToEnumList();
     threshold.setMin(0);
     threshold.setMax(255);
 }

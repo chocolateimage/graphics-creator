@@ -9,6 +9,8 @@ class MatteEffectRender : public EffectRender {
                 uint32_t *target) override;
 
     PropertyRender<ElementSelection> selection{this};
+    PropertyRender<bool> invert{this};
+    PropertyRender<int> useForMatte{this};
 };
 
 class MatteEffect : public Effect {
@@ -21,4 +23,6 @@ class MatteEffect : public Effect {
     };
 
     Property<ElementSelection> selection{this, "selection", {}};
+    Property<bool> invert{this, "invert", false};
+    Property<int> useForMatte{this, "useForMatte", 0};
 };

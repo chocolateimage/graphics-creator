@@ -511,6 +511,11 @@ template <typename T> class Property : public PropertyBase {
         max = value;
     }
 
+    void updateBoundsToEnumList() {
+        setMin(0);
+        setMax(enumList.size() - 1);
+    }
+
     virtual QJsonObject serialize() {
         QJsonObject obj;
         QJsonArray keyframesArray;
