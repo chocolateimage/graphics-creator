@@ -121,6 +121,13 @@ template <> inline QJsonValue serializeAnyValue(const Vector2DFloat &value) {
     return array;
 }
 
+template <> inline QJsonValue serializeAnyValue(const ElementSelection &value) {
+    QJsonObject obj;
+    obj["elementId"] = value.elementId;
+    obj["frameType"] = value.frameType;
+    return obj;
+}
+
 template <typename T> inline T deserializeAnyValue(const QJsonValue &value) {
     return value;
 }
@@ -191,6 +198,16 @@ template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
         spans.spans.append(span);
     }
     return spans;
+}
+
+template <>
+inline ElementSelection deserializeAnyValue(const QJsonValue &value) {
+    QJsonObject obj = value.toObject();
+    ElementSelection elementSelection;
+    elementSelection.elementId = obj["elementId"].toString();
+    elementSelection.frameType =
+        (ElementSelection::FrameType)obj["frameType"].toInt();
+    return elementSelection;
 }
 
 class KeyframeBase {

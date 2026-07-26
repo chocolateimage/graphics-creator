@@ -32,55 +32,6 @@
 const QString ELEMENT_COPY_MIME_TYPE =
     "application/x-graphicscreator-element-copy";
 
-void FrameTask::render(RenderThread &renderThread) {
-    uint32_t *__restrict__ frameValues = new uint32_t[width * height];
-    memset(frameValues, 0, width * height * 4);
-
-    for (auto element : renderElements) {
-        element->renderThread = &renderThread;
-        element->currentFrame = frame;
-        element->currentSeconds = seconds;
-        element->prepare();
-
-        if (!element->visible)
-            continue;
-
-        RenderedElement renderedElement{element};
-        if (renderedElement.hasError)
-            continue;
-
-        Rect &finalRect = renderedElement.finalRect;
-        uint32_t *__restrict__ finalValues = renderedElement.finalValues;
-
-        int maxY = std::min(height, finalRect.y + finalRect.h) - finalRect.y;
-        int maxX = std::min(width, finalRect.x + finalRect.w) - finalRect.x;
-
-        for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
-            for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
-                auto index =
-                    pixelIndex(x + finalRect.x, y + finalRect.y, width);
-                frameValues[index] =
-                    over(frameValues[index],
-                         finalValues[pixelIndex(x, y, finalRect.w)]);
-            }
-        }
-    }
-
-    values = frameValues;
-
-    for (auto element : renderElements) {
-        delete element;
-    }
-    renderElements.clear();
-}
-
-FrameTask::~FrameTask() {
-    for (auto element : renderElements) {
-        delete element;
-    }
-    renderElements.clear();
-}
-
 void FramePreviewThread::run() {
     RenderThread renderThread;
     renderThread.init();
@@ -559,7 +510,9 @@ void NewMainWindow::clipboardContentsChanged() {
 void NewMainWindow::copySlot() {
     QJsonArray array;
     for (auto element : scene->selectedElements) {
-        array.append(element->serialize());
+        QJsonObject elementObj = element->serialize();
+        elementObj.remove("id");
+        array.append(elementObj);
     }
 
     QJsonDocument doc;

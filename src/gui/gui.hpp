@@ -24,21 +24,6 @@
 class NewMainWindow;
 class RenderWindow;
 
-class FrameTask {
-  public:
-    ~FrameTask();
-    std::vector<ElementRender *> renderElements;
-    int width;
-    int height;
-    int frame;
-    double seconds;
-
-    uint64_t id;
-    uint32_t *values;
-
-    void render(RenderThread &renderThread);
-};
-
 struct SavedFrame {
     uint32_t *values;
     uint64_t id;

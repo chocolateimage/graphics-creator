@@ -17,12 +17,14 @@ class Element : public Animatable {
     Q_OBJECT
   public:
     Element() {
+        id = QUuid::createUuid().toString(QUuid::StringFormat::WithoutBraces);
         w.setMin(1);
         h.setMin(1);
         w.setMax(5000);
         h.setMax(5000);
     };
     ~Element();
+    QString id;
     Property<int> x{this, "x", 0};
     Property<int> y{this, "y", 0};
     Property<int> w{this, "w", 100};
@@ -62,6 +64,7 @@ class ElementRender : public AnimatableRender {
     ElementRender() {};
     ~ElementRender();
 
+    QString id;
     PropertyRender<int> x{this};
     PropertyRender<int> y{this};
     PropertyRender<int> w{this};

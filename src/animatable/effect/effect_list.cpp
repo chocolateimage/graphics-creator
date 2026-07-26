@@ -11,6 +11,7 @@
 #include "in_out_effect.hpp"
 #include "invert_effect.hpp"
 #include "long_shadow_effect.hpp"
+#include "matte_effect.hpp"
 #include "offset_effect.hpp"
 #include "opacity_effect.hpp"
 #include "pixelate_effect.hpp"
@@ -38,6 +39,7 @@ const std::vector<EffectInfo> effectList = {
                   PlaceOriginalEffect),
     DEFINE_EFFECT("Tools", "Crop", "crop", CropEffect),
     DEFINE_EFFECT("Tools", "In/Out", "inOut", InOutEffect),
+    DEFINE_EFFECT("Tools", "Matte", "matte", MatteEffect),
 
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),

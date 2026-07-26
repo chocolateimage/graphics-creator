@@ -218,17 +218,57 @@ void RenderThread::init() { fontManager = new FontManager(); }
 
 void RenderThread::garbageCollect() { fontManager->garbageCollect(); }
 
+ElementSelectionSnippet
+RenderThread::getSnippet(const ElementSelection &selection) {
+    if (currentFrameTask->currentElementStack.contains(selection.elementId)) {
+        return {{0, 0, 0, 0}, nullptr};
+    }
+
+    currentFrameTask->currentElementStack.append(selection.elementId);
+
+    RenderedElement *renderedElement;
+
+    auto it = currentFrameTask->renderedElements.find(selection.elementId);
+    if (it == currentFrameTask->renderedElements.end()) {
+        ElementRender *element{nullptr};
+        for (auto renderElement : currentFrameTask->renderElements) {
+            if (renderElement->id == selection.elementId) {
+                element = renderElement;
+                break;
+            }
+        }
+        if (!element) {
+            return {{0, 0, 0, 0}, nullptr};
+        }
+        renderedElement = new RenderedElement(element);
+        if (renderedElement->hasError) {
+            delete renderedElement;
+            return {{0, 0, 0, 0}, nullptr};
+        }
+        currentFrameTask->renderedElements.emplace(element->id,
+                                                   renderedElement);
+    } else {
+        renderedElement = it->second;
+    }
+
+    if (selection.frameType == ElementSelection::Source) {
+        return {renderedElement->elementRect, renderedElement->elementValues};
+    } else {
+        return {renderedElement->finalRect, renderedElement->finalValues};
+    }
+}
+
 void RenderThread::close() {
     delete fontManager;
     fontManager = nullptr;
 }
 
 RenderedElement::RenderedElement(ElementRender *element) : element(element) {
-    auto rect = element->getRenderBox();
-    elementValues = new uint32_t[rect.w * rect.h];
-    memset(elementValues, 0, rect.w * rect.h * 4);
+    elementRect = element->getRenderBox();
+    elementValues = new uint32_t[elementRect.w * elementRect.h];
+    memset(elementValues, 0, elementRect.w * elementRect.h * 4);
 
-    finalRect = rect;
+    finalRect = elementRect;
     finalValues = elementValues;
 
     bool success = element->render(elementValues);
@@ -240,9 +280,10 @@ RenderedElement::RenderedElement(ElementRender *element) : element(element) {
     }
 
     for (auto effect : element->effects) {
+        effect->renderThread = element->renderThread;
         effect->currentFrame = element->currentFrame;
         effect->currentSeconds = element->currentSeconds;
-        effect->originalBox = rect;
+        effect->originalBox = elementRect;
         effect->originalValues = elementValues;
         Rect effectBox = effect->getRenderBox(finalRect);
         effect->renderBox = effectBox;
@@ -269,4 +310,76 @@ RenderedElement::~RenderedElement() {
         delete[] finalValues;
     }
     delete[] elementValues;
+}
+
+void FrameTask::render(RenderThread &renderThread) {
+    uint32_t *__restrict__ frameValues = new uint32_t[width * height];
+    memset(frameValues, 0, width * height * 4);
+
+    renderThread.currentFrameTask = this;
+
+    for (auto element : renderElements) {
+        element->renderThread = &renderThread;
+        element->currentFrame = frame;
+        element->currentSeconds = seconds;
+        element->prepare();
+    }
+
+    for (auto element : renderElements) {
+        if (!element->visible)
+            continue;
+
+        RenderedElement *renderedElement;
+
+        currentElementStack.clear();
+        currentElementStack.append(element->id);
+        auto it = renderedElements.find(element->id);
+        if (it == renderedElements.end()) {
+            renderedElement = new RenderedElement(element);
+            if (renderedElement->hasError) {
+                delete renderedElement;
+                continue;
+            }
+            renderedElements.emplace(element->id, renderedElement);
+        } else {
+            renderedElement = it->second;
+        }
+
+        Rect &finalRect = renderedElement->finalRect;
+        uint32_t *__restrict__ finalValues = renderedElement->finalValues;
+
+        int maxY = std::min(height, finalRect.y + finalRect.h) - finalRect.y;
+        int maxX = std::min(width, finalRect.x + finalRect.w) - finalRect.x;
+
+        for (int y = std::max(0, -finalRect.y); y < maxY; y++) {
+            for (int x = std::max(0, -finalRect.x); x < maxX; x++) {
+                auto index =
+                    pixelIndex(x + finalRect.x, y + finalRect.y, width);
+                frameValues[index] =
+                    over(frameValues[index],
+                         finalValues[pixelIndex(x, y, finalRect.w)]);
+            }
+        }
+    }
+
+    for (auto element : renderedElements) {
+        delete element.second;
+    }
+    renderedElements.clear();
+
+    values = frameValues;
+
+    for (auto element : renderElements) {
+        delete element;
+    }
+    renderElements.clear();
+
+    renderThread.currentFrameTask = nullptr;
+}
+
+FrameTask::~FrameTask() {
+    for (auto element : renderElements) {
+        delete element;
+    }
+    renderElements.clear();
 }

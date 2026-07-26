@@ -15,6 +15,8 @@ extern "C" {
 
 class FontManager;
 class ElementRender;
+class RenderedElement;
+class FrameTask;
 
 void convertToAvFrame(AVFrame *frame, uint32_t *source, int w, int h);
 
@@ -87,23 +89,57 @@ class FontManager {
     std::unordered_map<std::string, FontInfo *> loadedFonts;
 };
 
+// Please excuse the names for this, I don't know what else I should call it.
+struct ElementSelectionSnippet {
+    Rect rect;
+    const uint32_t *__restrict__ values;
+};
+
 class RenderThread {
   public:
     void init();
     void garbageCollect();
     void close();
 
+    ElementSelectionSnippet getSnippet(const ElementSelection &selection);
+
     FontManager *fontManager{nullptr};
+    FrameTask *currentFrameTask{nullptr};
 };
 
 class RenderedElement {
   public:
+    RenderedElement(const RenderedElement &) = default;
+    RenderedElement(RenderedElement &&) = delete;
+    RenderedElement &operator=(const RenderedElement &) = default;
+    RenderedElement &operator=(RenderedElement &&) = delete;
+
     RenderedElement(ElementRender *element);
     ~RenderedElement();
     ElementRender *element;
 
+    Rect elementRect;
     uint32_t *__restrict__ elementValues;
     uint32_t *__restrict__ finalValues;
     Rect finalRect;
     bool hasError{false};
+};
+
+class FrameTask {
+  public:
+    ~FrameTask();
+    std::vector<ElementRender *> renderElements;
+    std::unordered_map<QString, RenderedElement *> renderedElements;
+    // used for detecting recursion on getSnippet
+    QList<QString> currentElementStack;
+
+    int width;
+    int height;
+    int frame;
+    double seconds;
+
+    uint64_t id;
+    uint32_t *values;
+
+    void render(RenderThread &renderThread);
 };

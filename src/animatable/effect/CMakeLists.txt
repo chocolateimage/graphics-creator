@@ -23,5 +23,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/in_out_effect.cpp
   src/animatable/effect/hsv_effect.cpp
   src/animatable/effect/fill_effect.cpp
+  src/animatable/effect/matte_effect.cpp
   PARENT_SCOPE
 )

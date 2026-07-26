@@ -8,6 +8,7 @@ Rect ElementRender::getRenderBox() {
 
 AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     ElementRender *render = (ElementRender *)Animatable::toRender(frameInfo);
+    render->id = id;
     render->visible = visible;
     for (auto effect : effects) {
         EffectRender *effectRender =
@@ -77,6 +78,7 @@ void Element::setVisible(bool newValue) {
 
 QJsonObject Element::serialize() {
     QJsonObject obj = Animatable::serialize();
+    obj["id"] = id;
     obj["elementType"] = typeName();
     obj["collapsed"] = collapsed;
     obj["visible"] = visible;
@@ -90,6 +92,9 @@ QJsonObject Element::serialize() {
 
 void Element::deserialize(const QJsonObject &obj) {
     Animatable::deserialize(obj);
+    if (obj.contains("id")) {
+        id = obj["id"].toString();
+    }
     collapsed = obj["collapsed"].toBool();
     visible = obj["visible"].toBool(true);
     for (auto effectJson : obj["effects"].toArray()) {

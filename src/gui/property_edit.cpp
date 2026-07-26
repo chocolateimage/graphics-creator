@@ -298,6 +298,45 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             ((Element *)this->property->animatable)->setEditMode(true);
         });
         widget = button;
+    } else if (variantType == VariantTypeEnum::ElementSelection) {
+        widget = new QWidget(this);
+        auto layout = new QHBoxLayout(widget);
+        layout->setContentsMargins(0, 0, 0, 0);
+
+        auto value = variant.get<ElementSelection>();
+
+        auto inputElement = new QComboBox(this);
+        int index = 0;
+        int selectedIndex = -1;
+        for (auto element : scene->elements) {
+            inputElement->addItem(element->objectName(), element->id);
+            if (element->id == value.elementId) {
+                selectedIndex = index;
+            }
+            index++;
+        }
+
+        inputElement->setCurrentIndex(selectedIndex);
+
+        auto inputType = new QComboBox(this);
+        inputType->addItem("Source");
+        inputType->addItem("Final");
+        inputType->setCurrentIndex(value.frameType);
+
+        layout->addWidget(inputElement);
+        layout->addWidget(inputType);
+
+        auto inputUpdated = [this, inputElement, inputType]() {
+            ElementSelection elementSelection;
+            elementSelection.elementId = inputElement->currentData().toString();
+            elementSelection.frameType =
+                (ElementSelection::FrameType)inputType->currentIndex();
+            set(elementSelection);
+        };
+
+        connect(inputElement, &QComboBox::currentIndexChanged, this,
+                inputUpdated);
+        connect(inputType, &QComboBox::currentIndexChanged, this, inputUpdated);
     }
 
     if (widget) {

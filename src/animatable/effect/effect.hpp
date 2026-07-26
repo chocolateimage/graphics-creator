@@ -3,12 +3,14 @@
 #include "variant.hpp"
 
 class ElementRender;
+class RenderThread;
 
 class EffectRender : public AnimatableRender {
   public:
     virtual Rect getRenderBox(const Rect &lastBox);
     Rect renderBox;
     ElementRender *element;
+    RenderThread *renderThread;
 
     Rect originalBox;
     uint32_t *originalValues;

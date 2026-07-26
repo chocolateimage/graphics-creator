@@ -97,11 +97,23 @@ class TextSpans {
     QList<TextSpan> spans;
 };
 
+class ElementSelection {
+  public:
+    enum FrameType {
+        Source,
+        Final,
+    };
+
+    ElementSelection() {}
+    QString elementId;
+    FrameType frameType{Final};
+};
+
 Brush::Type getBrushTypeFromString(const std::string &str);
 
-using VariantType =
-    std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,
-                 Font, bool, Easing, Brush, TextSpans, Vector2DFloat>;
+using VariantType = std::variant<std::monostate, std::string, int, double,
+                                 Color, Vector2DInt, Font, bool, Easing, Brush,
+                                 TextSpans, Vector2DFloat, ElementSelection>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -117,6 +129,7 @@ struct VariantTypeEnum {
         Brush,
         TextSpans,
         Vector2DFloat,
+        ElementSelection
     };
 };
 

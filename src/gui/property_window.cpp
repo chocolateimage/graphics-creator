@@ -48,6 +48,11 @@ void PropertyWindow::selectedElementsUpdated(
 
     Element *element = selectedElements.first();
 
+    QLabel *idLabel = new QLabel(element->id.first(8), this);
+    idLabel->setDisabled(true);
+    idLabel->setToolTip(element->id);
+    formLayout->addRow("ID", idLabel);
+
     QString name = element->objectName();
     QLineEdit *nameEdit = new QLineEdit(name, this);
     connect(
