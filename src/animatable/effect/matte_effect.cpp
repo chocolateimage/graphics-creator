@@ -33,7 +33,7 @@ bool MatteEffectRender::render(const uint32_t *source, const Rect &sourceRect,
                     value = (snippetValue >> 24) / 255.;
                 } else if (useForMatte == 1) {
                     auto [r, g, b, a] = extractRGBA(snippetValue);
-                    value = (r * 0.3 + g * 0.7 + b * 0.1) / 255.;
+                    value = (r * 0.2 + g * 0.7 + b * 0.1) / 255.;
                 }
             }
 
