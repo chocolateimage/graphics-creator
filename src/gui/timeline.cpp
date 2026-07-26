@@ -66,7 +66,7 @@ TimelineElementButton::TimelineElementButton(Element *element,
             &TimelineElementButton::collapseClicked);
     lay->addWidget(collapseButton);
 
-    QLabel *objectNameLabel = new QLabel(this);
+    objectNameLabel = new QLabel(this);
     objectNameLabel->setText(element->objectName());
     lay->addWidget(objectNameLabel);
 
