@@ -33,18 +33,18 @@ const QString ELEMENT_COPY_MIME_TYPE =
     "application/x-graphicscreator-element-copy";
 
 void FrameTask::render(RenderThread &renderThread) {
-    uint32_t *frameValues = new uint32_t[width * height];
+    uint32_t *__restrict__ frameValues = new uint32_t[width * height];
     memset(frameValues, 0, width * height * 4);
 
     for (auto element : renderElements) {
         element->renderThread = &renderThread;
         element->prepare();
         auto rect = element->getRenderBox();
-        uint32_t *elementValues = new uint32_t[rect.w * rect.h];
+        uint32_t *__restrict__ elementValues = new uint32_t[rect.w * rect.h];
         memset(elementValues, 0, rect.w * rect.h * 4);
 
         Rect finalRect = rect;
-        uint32_t *finalValues = elementValues;
+        uint32_t *__restrict__ finalValues = elementValues;
 
         bool success = element->render(elementValues);
 
@@ -60,7 +60,8 @@ void FrameTask::render(RenderThread &renderThread) {
             effect->originalValues = elementValues;
             Rect effectBox = effect->getRenderBox(finalRect);
             effect->renderBox = effectBox;
-            uint32_t *effectValues = new uint32_t[effectBox.w * effectBox.h];
+            uint32_t *__restrict__ effectValues =
+                new uint32_t[effectBox.w * effectBox.h];
             memset(effectValues, 0, effectBox.w * effectBox.h * 4);
 
             bool success = effect->render(finalValues, finalRect, effectValues);
