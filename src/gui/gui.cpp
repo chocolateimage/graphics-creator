@@ -929,12 +929,23 @@ void NewMainWindow::invalidateAndRerender() {
 void NewMainWindow::invalidateAndRerender_afterDelay() {
     for (int i = scene->currentFrame + 1;
          i < std::min(scene->durationFrames, scene->currentFrame + 50); i++) {
+        invalidateFrame(i);
         createTask(i);
     }
     for (int i = std::max(0, scene->currentFrame - 50); i < scene->currentFrame;
          i++) {
+        invalidateFrame(i);
         createTask(i);
     }
+}
+
+void NewMainWindow::invalidateFrame(int frame) {
+    auto it = savedFrames.find(frame);
+    if (it == savedFrames.end())
+        return;
+
+    delete[] it->second.values;
+    savedFrames.erase(it);
 }
 
 void NewMainWindow::frameChanged(int frame) { rerender(false); }

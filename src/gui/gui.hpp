@@ -112,6 +112,7 @@ class NewMainWindow : public QMainWindow {
     void clipboardContentsChanged();
     void previousFrameSlot();
     void nextFrameSlot();
+    void invalidateFrame(int frame);
 
     QJsonDocument saveInto();
     void loadFile(const QString &filePath);
