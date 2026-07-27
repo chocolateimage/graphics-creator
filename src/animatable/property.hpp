@@ -557,6 +557,8 @@ template <typename T> class Property : public PropertyBase {
     // Only useful in Property<int>. When it's not empty, then a dropdown is
     // shown in the properties with the string values.
     std::vector<std::string> enumList;
+
+    std::string suffix;
 };
 
 class PropertyRenderBase {

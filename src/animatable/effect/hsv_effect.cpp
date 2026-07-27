@@ -3,6 +3,7 @@
 #include "math.hpp"
 
 HsvEffect::HsvEffect() {
+    hue.suffix = "°";
     saturation.setMin(-100);
     saturation.setMax(100);
     lightness.setMin(-100);

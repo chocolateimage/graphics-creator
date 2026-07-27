@@ -74,6 +74,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             auto input = new DraggableSpinBox(this);
             input->setMinimum(min);
             input->setMaximum(max);
+            input->setSuffix(QString::fromStdString(propertyTyped->suffix));
             input->setValue(variant.get<int>());
             connect(input, &DraggableSpinBox::valueChanged, this,
                     [this](int value) { set(value); });
@@ -92,6 +93,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
 
         input->setMinimum(min);
         input->setMaximum(max);
+        input->setSuffix(QString::fromStdString(propertyTyped->suffix));
         input->setValue(variant.get<double>());
         connect(input, &DraggableDoubleSpinBox::valueChanged, this,
                 [this](double value) { set(value); });

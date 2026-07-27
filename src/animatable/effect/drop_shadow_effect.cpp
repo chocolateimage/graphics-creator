@@ -2,6 +2,7 @@
 #include "math.hpp"
 
 DropShadowEffect::DropShadowEffect() {
+    angle.suffix = "°";
     distance.setMin(0);
     softness.setMin(0);
 }

@@ -4,6 +4,7 @@
 BrightnessEffect::BrightnessEffect() {
     brightness.setMin(0);
     brightness.setMax(25500);
+    brightness.suffix = "%";
 }
 
 bool BrightnessEffectRender::render(const uint32_t *source,

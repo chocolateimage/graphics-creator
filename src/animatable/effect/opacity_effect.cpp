@@ -4,6 +4,7 @@
 OpacityEffect::OpacityEffect() {
     opacity.setMin(0);
     opacity.setMax(100);
+    opacity.suffix = "%";
 }
 
 bool OpacityEffectRender::render(const uint32_t *source, const Rect &sourceRect,
