@@ -19,6 +19,7 @@ class TextLayoutItem {
 
     int height;
     double opacity{1};
+    int strokeWidth{0};
 };
 
 class TextLayout {
@@ -86,6 +87,8 @@ class TextAnimatorRender : public AnimatableRender {
     PropertyRender<double> x{this};
     PropertyRender<double> y{this};
     PropertyRender<double> opacity{this};
+    PropertyRender<int> letterSpacing{this};
+    PropertyRender<int> strokeWidth{this};
 };
 
 class TextAnimator : public Animatable, public ICollapsible {
@@ -111,6 +114,8 @@ class TextAnimator : public Animatable, public ICollapsible {
     Property<double> x{this, "x", 0};
     Property<double> y{this, "y", 0};
     Property<double> opacity{this, "opacity", 100};
+    Property<int> letterSpacing{this, "letterSpacing", 0};
+    Property<int> strokeWidth{this, "strokeWidth", 0};
 
     void _propertyUpdated(PropertyBase *property) override;
     void _propertyIsAnimatingUpdated(PropertyBase *property) override;

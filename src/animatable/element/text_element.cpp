@@ -267,6 +267,8 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             offsetY += animator->y * percent;
             item.opacity =
                 lerp(item.opacity, animator->opacity.get() / 100., percent);
+            item.strokeWidth += animator->strokeWidth * percent;
+            curX += animator->letterSpacing * percent;
         }
         item.line = line;
         item.startPoint = {curX + offsetX, curY + offsetY};
@@ -282,7 +284,6 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             item.endPoint = {curX, curY};
             line++;
             character++;
-            character = 0;
             layout.items.append(item);
             continue;
         }
@@ -446,6 +447,8 @@ void TextElementRender::prepare() {
     layout = layoutText(renderThread->fontManager, text, w, textAnimators);
 
     for (auto span : text.get().spans) {
+        TextLayoutItem &item = layout.items[spanCount];
+
         hb_buffer_t *hbBuffer = hb_buffer_create();
         hb_buffer_add_utf8(hbBuffer, qUtf8Printable(span.text), -1, 0, -1);
 
@@ -454,6 +457,8 @@ void TextElementRender::prepare() {
         FontInfo *fontInfo = renderThread->fontManager->getFont(
             span.font, std::max(1, span.fontSize), span.antialiased, {});
         fontInfos.push_back(fontInfo);
+
+        span.strokeWidth += item.strokeWidth;
 
         if (span.strokeWidth > 0) {
             FontInfo *strokeFontInfo = renderThread->fontManager->getFont(
