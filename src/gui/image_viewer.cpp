@@ -393,7 +393,10 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         painter.save();
         painter.translate(pos);
         painter.scale(zoomElement, zoomElement);
-        painter.drawImage(0, 0, dropImagePreview);
+        painter.drawImage(0, 0,
+                          dropImageFitted
+                              ? dropImagePreview.scaled(dropImageSize)
+                              : dropImagePreview);
         painter.restore();
     }
 }
@@ -408,6 +411,8 @@ void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
             dropImagePath = url.toLocalFile();
             dropImagePreview = QImage(dropImagePath);
             dropImageCursor = viewportToPixel(event->position());
+            dropImageSize = dropImagePreview.size();
+            dropImageFitted = false;
             isDroppingImage = true;
             event->setDropAction(Qt::DropAction::LinkAction);
             event->accept();
@@ -421,6 +426,20 @@ void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
         dropImageCursor = viewportToPixel(event->position());
         if (dropImageCursor.manhattanLength() < 50) {
             dropImageCursor = {0, 0};
+            int w = scene->width;
+            int h = scene->height;
+            float verticalScale = (float)h / dropImagePreview.height();
+            float horizontalScale = (float)w / dropImagePreview.width();
+            float scale = std::max(verticalScale, horizontalScale);
+
+            int newWidth = dropImagePreview.width() * scale;
+            int newHeight = dropImagePreview.height() * scale;
+            dropImageCursor = {w / 2 - newWidth / 2, h / 2 - newHeight / 2};
+            dropImageSize = {newWidth, newHeight};
+            dropImageFitted = true;
+        } else {
+            dropImageSize = dropImagePreview.size();
+            dropImageFitted = false;
         }
         update();
     }
@@ -439,8 +458,8 @@ void ImageViewer::dropEvent(QDropEvent *event) {
         ImageElement *imageElement = new ImageElement();
         imageElement->x.set(dropImageCursor.x(), {0});
         imageElement->y.set(dropImageCursor.y(), {0});
-        imageElement->w.set(dropImagePreview.width(), {0});
-        imageElement->h.set(dropImagePreview.height(), {0});
+        imageElement->w.set(dropImageSize.width(), {0});
+        imageElement->h.set(dropImageSize.height(), {0});
         imageElement->path.set(dropImagePath.toStdString(), {0});
         imageElement->setObjectName(
             dropImagePath.split("/").last().split("\\").last());

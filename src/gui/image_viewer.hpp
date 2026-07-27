@@ -84,6 +84,8 @@ class ImageViewer : public QWidget {
     QString dropImagePath;
     QImage dropImagePreview;
     QPoint dropImageCursor;
+    QSize dropImageSize;
+    bool dropImageFitted{false};
 
     Element *hoverResizeElement;
     int hoverResizeMode{-1};
