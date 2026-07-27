@@ -656,6 +656,16 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
             startMovePosition = viewportToPixel(event->position());
 
             for (auto element : scene->elements) {
+                if (!element->visible)
+                    continue;
+                if (element->getBoundingBox(frameInfo).contains(
+                        startMovePosition)) {
+                    clickedElement = element;
+                    break;
+                }
+            }
+
+            for (auto element : scene->selectedElements) {
                 if (element->getBoundingBox(frameInfo).contains(
                         startMovePosition)) {
                     clickedElement = element;
