@@ -65,6 +65,7 @@ class NewMainWindow : public QMainWindow {
     NewMainWindow();
     ~NewMainWindow();
 
+    QToolBar *toolBar;
     QAction *controlSelect;
     QAction *controlRectangle;
     QAction *controlEllipse;
@@ -145,4 +146,5 @@ class NewMainWindow : public QMainWindow {
 
   protected:
     void closeEvent(QCloseEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };

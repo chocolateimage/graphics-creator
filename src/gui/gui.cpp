@@ -348,7 +348,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     viewMenu->setToolTipsVisible(true);
     setMenuBar(menuBar);
 
-    QToolBar *toolBar = addToolBar("Controls");
+    toolBar = addToolBar("Controls");
     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     QActionGroup *controlsGroup = new QActionGroup(toolBar);
     controlSelect = toolBar->addAction(QIcon::fromTheme("select"), "Select");
@@ -357,6 +357,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlRectangle =
         toolBar->addAction(QIcon::fromTheme("draw-rectangle"), "Rectangle");
     controlRectangle->setShortcut(QKeySequence("R"));
+    toolBar->widgetForAction(controlRectangle)->installEventFilter(this);
     controlEllipse =
         toolBar->addAction(QIcon::fromTheme("draw-circle"), "Ellipse");
     controlEllipse->setShortcut(QKeySequence("E"));
@@ -502,6 +503,17 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
     setOpenFilePath("");
     rerender(false);
+}
+
+bool NewMainWindow::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == toolBar->widgetForAction(controlRectangle)) {
+        if (event->type() == QEvent::MouseButtonDblClick) {
+            sceneRectPicked("", {0, 0, scene->width, scene->height});
+            scenePreviewWidget->stopPicking();
+            return true;
+        }
+    }
+    return QObject::eventFilter(obj, event);
 }
 
 void NewMainWindow::saveLayout() {
