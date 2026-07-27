@@ -38,11 +38,18 @@ class TextAnimatorSelectorRender : public AnimatableRender {
         Square = 2,
     };
 
+    enum BasedOn {
+        Characters = 0,
+        Words = 1,
+        Lines = 2,
+    };
+
     PropertyRender<double> start{this};
     PropertyRender<double> end{this};
     PropertyRender<double> offset{this};
     PropertyRender<int> shape{this};
     PropertyRender<Easing> easing{this};
+    PropertyRender<int> basedOn{this};
 
     double percent(int character, int totalCharacters, int word, int totalWords,
                    int line, int totalLines);
@@ -57,6 +64,7 @@ class TextAnimatorSelector : public Animatable, public ICollapsible {
     Property<double> offset{this, "offset", 0};
     Property<int> shape{this, "shape", 0};
     Property<Easing> easing{this, "easing", {""}};
+    Property<int> basedOn{this, "basedOn", 0};
 
     TextAnimator *textAnimator;
 

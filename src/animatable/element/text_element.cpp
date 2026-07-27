@@ -16,8 +16,28 @@ double TextAnimatorSelectorRender::percent(int character, int totalCharacters,
     if (start > end)
         std::swap(start, end);
 
-    int index = character;
-    int total = std::max(totalCharacters, 1);
+    int index = 0;
+    int total = 1;
+
+    BasedOn basedOn = (BasedOn)(this->basedOn.get());
+
+    switch (basedOn) {
+    case Characters: {
+        index = character;
+        total = std::max(totalCharacters, 1);
+        break;
+    }
+    case Words: {
+        index = word;
+        total = std::max(totalWords, 1);
+        break;
+    }
+    case Lines: {
+        index = line;
+        total = std::max(totalLines, 1);
+        break;
+    }
+    }
 
     double thisValue = (double)index / total;
     double finalValue = 0;
@@ -79,6 +99,11 @@ TextAnimatorSelector::TextAnimatorSelector(TextAnimator *textAnimator)
     shape.enumList.push_back("Down");
     shape.enumList.push_back("Square");
     shape.updateBoundsToEnumList();
+
+    basedOn.enumList.push_back("Characters");
+    basedOn.enumList.push_back("Words");
+    basedOn.enumList.push_back("Lines");
+    basedOn.updateBoundsToEnumList();
 }
 
 AnimatableRender *TextAnimatorSelector::createClass() {
@@ -189,7 +214,11 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
     TextLayout layout;
 
     int maxLineHeight = 0;
+    int totalWords = 0;
     for (auto &span : spans.spans) {
+        if (span.text == " ")
+            totalWords++;
+
         if (span.newLine) {
             if (maxLineHeight == 0) {
                 maxLineHeight = span.fontSize;
@@ -217,6 +246,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
     int line = 0;
     int character = 0;
+    int word = 0;
     for (auto &span : spans.spans) {
         TextLayoutItem item;
         int offsetX = 0;
@@ -224,10 +254,9 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
         for (auto animator : textAnimators) {
             double percent = 0;
             for (auto selector : animator->selectors) {
-                // TODO: words
-                double selectorPercent =
-                    selector->percent(character, spans.spans.size(), 0, 0, line,
-                                      layout.lineHeights.size());
+                double selectorPercent = selector->percent(
+                    character, spans.spans.size(), word, totalWords, line,
+                    layout.lineHeights.size());
 
                 // TODO: modes
                 percent += selectorPercent;
@@ -242,6 +271,9 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
         item.line = line;
         item.startPoint = {curX + offsetX, curY + offsetY};
         item.height = span.fontSize;
+
+        if (span.text == " ")
+            word++;
 
         if (span.newLine) {
             item.selectionEndPoint = {curX + (int)(span.fontSize * .3), curY};
