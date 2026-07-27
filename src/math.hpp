@@ -3,6 +3,17 @@
 #include <cmath>
 #include <cstdint>
 
+template <typename T> inline constexpr T mod(T a, T b) {
+    T r = a % b;
+    return r < 0 ? r + b : r;
+}
+
+template <typename T> inline constexpr T floorDiv(T a, T b) {
+    T q = a / b;
+    T r = a % b;
+    return (r != 0 && r < 0) ? q - 1 : q;
+}
+
 inline constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
                                     uint8_t alpha) {
     return (alpha << 24) | (red << 16) | (green << 8) | blue;

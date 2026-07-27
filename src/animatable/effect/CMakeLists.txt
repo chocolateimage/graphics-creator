@@ -26,5 +26,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/matte_effect.cpp
   src/animatable/effect/color_link_effect.cpp
   src/animatable/effect/noise_effect.cpp
+  src/animatable/effect/tile_effect.cpp
   PARENT_SCOPE
 )

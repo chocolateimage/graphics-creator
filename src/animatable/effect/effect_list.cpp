@@ -20,6 +20,7 @@
 #include "place_original_effect.hpp"
 #include "scale_effect.hpp"
 #include "threshold_effect.hpp"
+#include "tile_effect.hpp"
 #include "tint_effect.hpp"
 #include "twist_effect.hpp"
 #include "wave_effect.hpp"
@@ -51,6 +52,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Style", "Pixelate", "pixelate", PixelateEffect),
     DEFINE_EFFECT("Style", "Threshold", "threshold", ThresholdEffect),
     DEFINE_EFFECT("Style", "Twist", "twist", TwistEffect),
+    DEFINE_EFFECT("Style", "Tile", "tile", TileEffect),
 
     DEFINE_EFFECT("Generate", "Grid", "grid", GridEffect),
     DEFINE_EFFECT("Generate", "Noise", "noise", NoiseEffect),
