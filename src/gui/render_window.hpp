@@ -1,4 +1,5 @@
 #pragma once
+#include "video_file_button.hpp"
 #include <QComboBox>
 #include <QFileInfo>
 #include <QLabel>
@@ -99,6 +100,7 @@ class RenderWindow : public QWidget {
     QPushButton *renderButton;
     QLabel *renderProgressLabel;
     QProgressBar *renderProgressBar;
+    VideoFileButton *renderedFileButton;
 
     void resetRenderFilePathInput();
     void renderButtonClicked();

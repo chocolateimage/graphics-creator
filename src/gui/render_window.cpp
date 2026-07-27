@@ -363,6 +363,10 @@ RenderWindow::RenderWindow(NewMainWindow *mainWindow) : mainWindow(mainWindow) {
             &RenderWindow::renderButtonClicked);
     renderLayout->addWidget(renderButton);
 
+    renderedFileButton = new VideoFileButton(this);
+    renderedFileButton->hide();
+    renderLayout->addWidget(renderedFileButton, 0, Qt::AlignCenter);
+
     renderLayout->addStretch();
 
     renderProgressLabel = new QLabel(this);
@@ -411,7 +415,7 @@ void RenderWindow::renderButtonClicked() {
         }
     }
 
-    // renderedFileButton->hide();
+    renderedFileButton->hide();
     renderButton->setDisabled(true);
     renderProgressLabel->setText("Preparing...");
     renderProgressBar->setRange(0, 0);
@@ -472,7 +476,7 @@ void RenderWindow::renderButtonClicked() {
 
     connect(thread, &GuiRenderThread::finishedSuccessfully, thread,
             [this, fileInfo]() {
-                // renderedFileButton->show();
-                // renderedFileButton->setFile(fileInfo.filePath());
+                renderedFileButton->show();
+                renderedFileButton->setFile(fileInfo.filePath());
             });
 }
