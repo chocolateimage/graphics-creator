@@ -1,6 +1,8 @@
 #include "timeline.hpp"
+#include "animatable/element/text_element.hpp"
 #include "gui.hpp"
 #include "line.hpp"
+#include "property_edit.hpp"
 #include <KIconColors>
 #include <KIconLoader>
 #include <QActionGroup>
@@ -258,6 +260,8 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
 
     connect(zoomSlider, &QSlider::valueChanged, timelineContent,
             &TimelineContentWidget::updateContents);
+
+    updateContents();
 }
 
 void TimelineWidget::elementSelectionChanged(QList<Element *> elements) {
@@ -416,6 +420,7 @@ void TimelineWidget::updateContents() {
     timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
 
     elementButtons.clear();
+    timelineContent->updatedHeight = TIMELINE_HEADER_HEIGHT;
     bool stripe = false;
     for (auto element : scene->elements) {
         disconnect(element, &Element::effectListUpdated, this,
@@ -435,65 +440,36 @@ void TimelineWidget::updateContents() {
             new TimelineElementButton(element, this);
         elementButtons.append(elementButton);
         timelineLeftLayout->addWidget(elementButton);
+        timelineContent->updatedHeight += OBJECT_TRACK_HEIGHT;
 
         stripe = !stripe;
 
         if (!element->collapsed) {
             for (auto property : element->properties) {
-                addProperty(property, &stripe, elementButton, 24);
+                addProperty(property, &stripe, elementButton, 24, false);
+            }
+
+            TextElement *textElement = dynamic_cast<TextElement *>(element);
+            if (textElement) {
+                for (auto animator : textElement->textAnimators) {
+                    if (!addCollapsible(animator, &stripe, selected))
+                        continue;
+
+                    for (auto property : animator->properties) {
+                        addProperty(property, &stripe, elementButton, 48, true);
+                    }
+                }
             }
 
             for (auto effect : element->effects) {
                 if (effect->properties.empty())
                     continue;
 
-                QPushButton *effectButton =
-                    new QPushButton(timelineLeftContents);
-                QString background = "transparent";
-                QString backgroundSelected = "rgba(128,128,128,0.1)";
-                if (stripe) {
-                    background = "palette(alternate-base)";
-                    backgroundSelected = "rgba(128,128,128,0.13)";
-                }
-                effectButton->setStyleSheet(
-                    "QPushButton {"
-                    "   text-align: left;"
-                    "   padding-left: 32px;"
-                    "   background: " +
-                    background +
-                    ";"
-                    "   border-radius: 0px;"
-                    "   font-weight: 600;"
-                    "}"
-                    "QPushButton[flat=\"false\"] {"
-                    "   background: " +
-                    backgroundSelected +
-                    ";"
-                    "   border-left: 3px solid palette(accent);"
-                    "   padding-left: 29px;"
-                    "}");
-                if (effect->collapsed) {
-                    effectButton->setIcon(QIcon::fromTheme("arrow-right"));
-                } else {
-                    effectButton->setIcon(QIcon::fromTheme("arrow-down"));
-                }
-                effectButton->setText(effect->effectName());
-                effectButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
-                effectButton->setFlat(!selected);
-                connect(effectButton, &QPushButton::clicked, this,
-                        [this, effect]() {
-                            effect->collapsed = !effect->collapsed;
-                            QTimer::singleShot(0, this,
-                                               &TimelineWidget::updateContents);
-                        });
-                timelineLeftLayout->addWidget(effectButton);
-                stripe = !stripe;
-
-                if (effect->collapsed)
+                if (!addCollapsible(effect, &stripe, selected))
                     continue;
 
                 for (auto property : effect->properties) {
-                    addProperty(property, &stripe, elementButton, 48);
+                    addProperty(property, &stripe, elementButton, 48, false);
                 }
             }
         }
@@ -505,12 +481,59 @@ void TimelineWidget::updateContents() {
     timelineScrolled();
 }
 
+bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
+                                    bool selected) {
+    bool collapsed = collapsible->isCollapsed();
+
+    QPushButton *effectButton = new QPushButton(timelineLeftContents);
+    QString background = "transparent";
+    QString backgroundSelected = "rgba(128,128,128,0.1)";
+    if (*stripe) {
+        background = "palette(alternate-base)";
+        backgroundSelected = "rgba(128,128,128,0.13)";
+    }
+    effectButton->setStyleSheet("QPushButton {"
+                                "   text-align: left;"
+                                "   padding-left: 32px;"
+                                "   background: " +
+                                background +
+                                ";"
+                                "   border-radius: 0px;"
+                                "   font-weight: 600;"
+                                "}"
+                                "QPushButton[flat=\"false\"] {"
+                                "   background: " +
+                                backgroundSelected +
+                                ";"
+                                "   border-left: 3px solid palette(accent);"
+                                "   padding-left: 29px;"
+                                "}");
+    if (collapsed) {
+        effectButton->setIcon(QIcon::fromTheme("arrow-right"));
+    } else {
+        effectButton->setIcon(QIcon::fromTheme("arrow-down"));
+    }
+    effectButton->setText(collapsible->displayName());
+    effectButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+    effectButton->setFlat(!selected);
+    connect(effectButton, &QPushButton::clicked, this, [this, collapsible]() {
+        collapsible->setCollapsed(!collapsible->isCollapsed());
+        QTimer::singleShot(0, this, &TimelineWidget::updateContents);
+    });
+    timelineLeftLayout->addWidget(effectButton);
+    *stripe = !*stripe;
+
+    return !collapsed;
+}
+
 void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
-                                 QPushButton *elementButton, int indent) {
+                                 QPushButton *elementButton, int indent,
+                                 bool showEdit) {
     if (!property->isAnimatable()) {
         return;
     }
 
+    timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
     QPushButton *propertyButton = new QPushButton(timelineLeftContents);
     propertyButton->setObjectName("property");
     QString background = "transparent";
@@ -553,7 +576,33 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
 
     QLabel *label = new QLabel(propertyButton);
     label->setText(property->getDisplayName());
+    label->setFixedWidth(100);
     propertyLayout->addWidget(label);
+
+    if (property->flags.contains("textElementText")) {
+        QPushButton *addAnimation = new QPushButton();
+        addAnimation->setFixedWidth(100);
+        addAnimation->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+        addAnimation->setText("Animation");
+        addAnimation->setIcon(QIcon::fromTheme("list-add"));
+        connect(
+            addAnimation, &QPushButton::clicked, addAnimation, [property]() {
+                TextElement *textElement = (TextElement *)property->animatable;
+                TextAnimator *newAnimator = new TextAnimator();
+                newAnimator->textElement = textElement;
+                TextAnimatorSelector *selector = new TextAnimatorSelector();
+                newAnimator->selectors.append(selector);
+                textElement->textAnimators.append(newAnimator);
+                emit textElement->effectListUpdated(); // hack
+            });
+        propertyLayout->addWidget(addAnimation);
+    }
+
+    if (showEdit) {
+        PropertyEdit *edit = new PropertyEdit(property, scene, this);
+        edit->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+        propertyLayout->addWidget(edit);
+    }
 
     propertyLayout->addStretch();
 
@@ -691,42 +740,10 @@ void TimelineContentWidget::frameChanged(int frame) { update(); }
 void TimelineContentWidget::updatePaint() { update(); }
 
 void TimelineContentWidget::updateContents() {
-    double height = TIMELINE_HEADER_HEIGHT;
-    for (auto element : timelineWidget->scene->elements) {
-        height += OBJECT_TRACK_HEIGHT;
-
-        if (element->collapsed)
-            continue;
-
-        for (auto property : element->properties) {
-            if (!property->isAnimatable())
-                continue;
-
-            height += PROPERTY_TRACK_HEIGHT;
-        }
-
-        for (auto effect : element->effects) {
-            if (effect->properties.empty())
-                continue;
-
-            height += PROPERTY_TRACK_HEIGHT;
-
-            if (effect->collapsed)
-                continue;
-
-            for (auto property : effect->properties) {
-                if (!property->isAnimatable())
-                    continue;
-
-                height += PROPERTY_TRACK_HEIGHT;
-            }
-        }
-    }
-
     this->setFixedSize(secondsToPixels(timelineWidget->scene->durationFrames /
                                        timelineWidget->scene->frameRate) +
                            TIMELINE_START_OFFSET * 2,
-                       height);
+                       updatedHeight);
     update();
 }
 

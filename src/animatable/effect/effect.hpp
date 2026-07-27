@@ -22,14 +22,16 @@ class EffectRender : public AnimatableRender {
                         uint32_t *target) = 0;
 };
 
-class Effect : public Animatable {
+class Effect : public Animatable, public ICollapsible {
     Q_OBJECT
   public:
     virtual ~Effect() {}
 
     bool collapsed{false};
 
-    void setCollapsed(bool newValue);
+    bool isCollapsed() override;
+    void setCollapsed(bool newValue) override;
+    QString displayName() override;
     virtual QString effectName() = 0;
     virtual QString effectDescription() { return ""; };
     QJsonObject serialize() override;

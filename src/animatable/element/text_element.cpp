@@ -4,8 +4,61 @@
 #include "math.hpp"
 #include "render.hpp"
 
+double TextAnimatorSelectorRender::percent(int character, int totalCharacters,
+                                           int word, int totalWords, int line,
+                                           int totalLine) {
+    // TODO
+    return (double)character / std::max((totalCharacters - 1), 1);
+}
+
+AnimatableRender *TextAnimatorSelector::createClass() {
+    return new TextAnimatorSelectorRender();
+}
+
+TextAnimatorRender::~TextAnimatorRender() { qDeleteAll(selectors); }
+
+AnimatableRender *TextAnimator::createClass() {
+    return new TextAnimatorRender();
+}
+
+AnimatableRender *TextAnimator::toRender(const FrameInfo &frameInfo) {
+    TextAnimatorRender *render =
+        (TextAnimatorRender *)Animatable::toRender(frameInfo);
+    for (auto selector : selectors) {
+        render->selectors.append(
+            (TextAnimatorSelectorRender *)selector->toRender(frameInfo));
+    }
+    return render;
+}
+
+void TextAnimator::_propertyUpdated(PropertyBase *property) {
+    Animatable::_propertyUpdated(property);
+    textElement->_propertyUpdated(property);
+}
+
+void TextAnimator::_propertyIsAnimatingUpdated(PropertyBase *property) {
+    Animatable::_propertyIsAnimatingUpdated(property);
+    textElement->_propertyIsAnimatingUpdated(property);
+}
+
+QString TextAnimator::displayName() { return "Text Animator"; }
+
+bool TextAnimator::isCollapsed() { return collapsed; }
+
+void TextAnimator::setCollapsed(bool newValue) {
+    if (collapsed == newValue)
+        return;
+
+    collapsed = newValue;
+    // TODO
+    // emit collapsedChanged(collapsed);
+}
+
+TextAnimator::~TextAnimator() { qDeleteAll(selectors); }
+
 TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
-                      int width) {
+                      int width,
+                      const QList<TextAnimatorRender *> &textAnimators) {
     TextLayout layout;
 
     int maxLineHeight = 0;
@@ -36,10 +89,29 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
     int maxY = INT32_MIN;
 
     int line = 0;
+    int character = 0;
     for (auto &span : spans.spans) {
+        int offsetX = 0;
+        int offsetY = 0;
+        for (auto animator : textAnimators) {
+            double percent = 0;
+            for (auto selector : animator->selectors) {
+                // TODO: words
+                double selectorPercent =
+                    selector->percent(character, spans.spans.size(), 0, 0, line,
+                                      layout.lineHeights.size());
+
+                // TODO: modes
+                percent += selectorPercent;
+                if (percent > 1)
+                    percent = 1;
+            }
+            offsetX += animator->x * percent;
+            offsetY += animator->y * percent;
+        }
         TextLayoutItem item;
         item.line = line;
-        item.startPoint = {curX, curY};
+        item.startPoint = {curX + offsetX, curY + offsetY};
         item.height = span.fontSize;
 
         if (span.newLine) {
@@ -48,6 +120,8 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             curY += layout.lineHeights[line + 1];
             item.endPoint = {curX, curY};
             line++;
+            character++;
+            character = 0;
             layout.items.append(item);
             continue;
         }
@@ -91,9 +165,10 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             curY += layout.lineHeights[line];
         }
 
-        item.endPoint = {curX, curY};
+        item.endPoint = {curX + offsetX, curY + offsetY};
         item.selectionEndPoint = item.endPoint;
         layout.items.append(item);
+        character++;
     }
 
     layout.width = maxX - minX;
@@ -108,6 +183,9 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
 TextElement::TextElement() : Element() {
     fontManager = new FontManager();
+
+    text.flags.append("textElementText");
+
     TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
     std::string defaultText = "Enter text";
     for (auto character : defaultText) {
@@ -117,7 +195,10 @@ TextElement::TextElement() : Element() {
     }
 }
 
-TextElement::~TextElement() { delete fontManager; }
+TextElement::~TextElement() {
+    delete fontManager;
+    qDeleteAll(textAnimators);
+}
 
 TextSpan TextElement::createDefaultTextSpan() {
     TextSpan defaultSpan;
@@ -130,8 +211,11 @@ TextSpan TextElement::createDefaultTextSpan() {
 
 TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
     TextSpans spans = text.get(frameInfo);
-
-    return layoutText(fontManager, spans, w.get(frameInfo));
+    auto animators = toRenderAnimators(frameInfo);
+    TextLayout lay =
+        layoutText(fontManager, spans, w.get(frameInfo), animators);
+    qDeleteAll(animators);
+    return lay;
 }
 
 QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
@@ -150,6 +234,22 @@ QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
 
 AnimatableRender *TextElement::createClass() { return new TextElementRender(); }
 
+AnimatableRender *TextElement::toRender(const FrameInfo &frameInfo) {
+    TextElementRender *render =
+        (TextElementRender *)Element::toRender(frameInfo);
+    render->textAnimators = toRenderAnimators(frameInfo);
+    return render;
+}
+
+QList<TextAnimatorRender *>
+TextElement::toRenderAnimators(const FrameInfo &frameInfo) {
+    QList<TextAnimatorRender *> newList;
+    for (auto animator : textAnimators) {
+        newList.append((TextAnimatorRender *)animator->toRender(frameInfo));
+    }
+    return newList;
+}
+
 Rect TextElementRender::getRenderBox() {
     int yOffset = 0;
     int height = maxY - minY;
@@ -162,7 +262,7 @@ Rect TextElementRender::getRenderBox() {
 }
 
 void TextElementRender::prepare() {
-    layout = layoutText(renderThread->fontManager, text, w);
+    layout = layoutText(renderThread->fontManager, text, w, textAnimators);
 
     for (auto span : text.get().spans) {
         hb_buffer_t *hbBuffer = hb_buffer_create();
@@ -348,4 +448,5 @@ TextElementRender::~TextElementRender() {
     for (auto buffer : hbBuffers) {
         hb_buffer_destroy(buffer);
     }
+    qDeleteAll(textAnimators);
 }

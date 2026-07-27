@@ -5,6 +5,8 @@
 #include <hb-ft.h>
 #include <hb.h>
 
+class TextElement;
+
 class TextLayoutItem {
   public:
     // Starting from 0
@@ -26,8 +28,58 @@ class TextLayout {
     int height{0};
 };
 
+class TextAnimatorSelectorRender : public AnimatableRender {
+  public:
+    PropertyRender<double> start{this};
+    PropertyRender<double> end{this};
+    PropertyRender<double> offset{this};
+
+    double percent(int character, int totalCharacters, int word, int totalWords,
+                   int line, int totalLine);
+};
+
+class TextAnimatorSelector : public Animatable {
+  public:
+    AnimatableRender *createClass() override;
+    Property<double> start{this, "start", 0};
+    Property<double> end{this, "end", 100};
+    Property<double> offset{this, "offset", 100};
+};
+
+class TextAnimatorRender : public AnimatableRender {
+  public:
+    ~TextAnimatorRender();
+    QList<TextAnimatorSelectorRender *> selectors;
+
+    PropertyRender<double> x{this};
+    PropertyRender<double> y{this};
+};
+
+class TextAnimator : public Animatable, public ICollapsible {
+  public:
+    ~TextAnimator();
+    AnimatableRender *createClass() override;
+    AnimatableRender *toRender(const FrameInfo &frameInfo) override;
+    TextElement *textElement;
+
+    QString displayName() override;
+
+    bool collapsed{false};
+    bool isCollapsed() override;
+    void setCollapsed(bool newValue) override;
+
+    QList<TextAnimatorSelector *> selectors;
+
+    Property<double> x{this, "x", 0};
+    Property<double> y{this, "y", 0};
+
+    void _propertyUpdated(PropertyBase *property) override;
+    void _propertyIsAnimatingUpdated(PropertyBase *property) override;
+};
+
 TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
-                      int width);
+                      int width,
+                      const QList<TextAnimatorRender *> &textAnimators);
 
 class TextElement : public Element {
   public:
@@ -39,10 +91,14 @@ class TextElement : public Element {
     FontManager *fontManager;
     AnimatableRender *createClass() override;
     QRect getBoundingBox(const FrameInfo &frameInfo) override;
+    AnimatableRender *toRender(const FrameInfo &frameInfo) override;
+    QList<TextAnimatorRender *> toRenderAnimators(const FrameInfo &frameInfo);
 
     TextLayout layTheTextOut(const FrameInfo &frameInfo);
 
     Property<TextSpans> text{this, "text", {}};
+
+    QList<TextAnimator *> textAnimators;
 
     QString const typeName() override { return "text"; }
 };
@@ -69,6 +125,7 @@ class TextElementRender : public ElementRender {
     std::vector<uint32_t> glyphCounts;
 
     TextLayout layout;
+    QList<TextAnimatorRender *> textAnimators;
 
     int minX{INT_MAX};
     int minY{INT_MAX};

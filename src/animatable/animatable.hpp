@@ -6,6 +6,14 @@ class PropertyBase;
 class PropertyRenderBase;
 class AnimatableRender;
 
+// For timeline
+class ICollapsible {
+  public:
+    virtual bool isCollapsed() = 0;
+    virtual void setCollapsed(bool newValue) = 0;
+    virtual QString displayName() = 0;
+};
+
 class Animatable : public QObject {
     Q_OBJECT
   public:
@@ -17,8 +25,8 @@ class Animatable : public QObject {
     virtual QJsonObject serialize();
     virtual void deserialize(const QJsonObject &obj);
 
-    void _propertyUpdated(PropertyBase *property);
-    void _propertyIsAnimatingUpdated(PropertyBase *property);
+    virtual void _propertyUpdated(PropertyBase *property);
+    virtual void _propertyIsAnimatingUpdated(PropertyBase *property);
 
   signals:
     void propertyUpdated(PropertyBase *property);

@@ -1,4 +1,5 @@
 #include "effect.hpp"
+#include "effect_list.hpp"
 #include <QJsonObject>
 
 QJsonObject Effect::serialize() {
@@ -8,12 +9,24 @@ QJsonObject Effect::serialize() {
     return obj;
 }
 
+bool Effect::isCollapsed() { return collapsed; }
+
 void Effect::setCollapsed(bool newValue) {
     if (collapsed == newValue)
         return;
 
     collapsed = newValue;
     emit collapsedChanged(collapsed);
+}
+
+QString Effect::displayName() {
+    QString targetName = this->effectName();
+    for (const auto &effect : effectList) {
+        if (effect.name == targetName) {
+            return effect.displayName;
+        }
+    }
+    return targetName;
 }
 
 void Effect::deserialize(const QJsonObject &obj) {

@@ -387,6 +387,7 @@ class PropertyBase {
     virtual void addToPosition(const FrameInfo &frameInfo) {}
 
     bool isAnimating{false};
+    QList<QString> flags;
 };
 
 template <typename T> class Property : public PropertyBase {

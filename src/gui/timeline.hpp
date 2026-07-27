@@ -65,8 +65,9 @@ class TimelineWidget : public QWidget {
     QPixmap keyframeNo;
     QPixmap keyframeYes;
 
+    bool addCollapsible(ICollapsible *collapsible, bool *stripe, bool selected);
     void addProperty(PropertyBase *property, bool *stripe,
-                     QPushButton *elementButton, int indent);
+                     QPushButton *elementButton, int indent, bool showEdit);
 
     void createPixmaps();
 
@@ -105,6 +106,7 @@ class TimelineContentWidget : public QWidget {
     double headerPos();
     bool deleteSelected();
     QList<KeyframeBase *> selectedKeyframes;
+    int updatedHeight{0};
 
   public slots:
     void frameChanged(int frame);
