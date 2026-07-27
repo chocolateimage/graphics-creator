@@ -800,7 +800,6 @@ void TimelineContentWidget::frameChanged(int frame) { update(); }
 void TimelineContentWidget::updatePaint() { update(); }
 
 void TimelineContentWidget::updateContents() {
-    qInfo() << "UPDATE CONTENTS" << updatedHeight;
     this->setFixedSize(secondsToPixels(timelineWidget->scene->durationFrames /
                                        timelineWidget->scene->frameRate) +
                            TIMELINE_START_OFFSET * 2,
