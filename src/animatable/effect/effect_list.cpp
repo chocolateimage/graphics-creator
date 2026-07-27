@@ -13,6 +13,7 @@
 #include "invert_effect.hpp"
 #include "long_shadow_effect.hpp"
 #include "matte_effect.hpp"
+#include "noise_effect.hpp"
 #include "offset_effect.hpp"
 #include "opacity_effect.hpp"
 #include "pixelate_effect.hpp"
@@ -52,4 +53,5 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Style", "Twist", "twist", TwistEffect),
 
     DEFINE_EFFECT("Generate", "Grid", "grid", GridEffect),
+    DEFINE_EFFECT("Generate", "Noise", "noise", NoiseEffect),
 };
