@@ -26,6 +26,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeData>
+#include <QSettings>
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
 
@@ -344,6 +345,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &NewMainWindow::openVideoSettings);
 
     QMenu *viewMenu = menuBar->addMenu("View");
+    viewMenu->setToolTipsVisible(true);
     setMenuBar(menuBar);
 
     QToolBar *toolBar = addToolBar("Controls");
@@ -468,10 +470,20 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     dockManager->setSplitterSizes(sceneDockArea, {0, 350});
 
+    QAction *saveLayoutAction = viewMenu->addAction("Save layout");
+    saveLayoutAction->setToolTip(
+        "This layout will be automatically loaded when the program is opened.");
+    connect(saveLayoutAction, &QAction::triggered, this,
+            &NewMainWindow::saveLayout);
+    viewMenu->addSeparator();
     viewMenu->addAction(sceneDockWidget->toggleViewAction());
     viewMenu->addAction(timelineDockWidget->toggleViewAction());
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
+
+    QSettings settings;
+    dockManager->loadPerspectives(settings);
+    dockManager->openPerspective("Default");
 
     for (int i = 0; i < std::max(1, QThread::idealThreadCount() - 1); i++) {
         createThread();
@@ -490,6 +502,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
     setOpenFilePath("");
     rerender(false);
+}
+
+void NewMainWindow::saveLayout() {
+    QSettings settings;
+    dockManager->addPerspective("Default");
+    dockManager->savePerspectives(settings);
 }
 
 void NewMainWindow::previousFrameSlot() {
@@ -1033,6 +1051,8 @@ int main(int argc, char **argv) {
     KIconTheme::initTheme();
     QApplication application(argc, argv);
     qInfo() << "pid:" << application.applicationPid();
+    application.setOrganizationName(QStringLiteral("graphics-creator"));
+    application.setApplicationName(QStringLiteral("graphics-creator"));
     application.setDesktopFileName("me.chocolateimage.graphics-creator");
     application.setApplicationDisplayName(QStringLiteral("Graphics Creator"));
     KStyleManager::initStyle();
