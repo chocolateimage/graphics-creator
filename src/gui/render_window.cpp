@@ -286,9 +286,11 @@ void GuiRenderDrawThread::run() {
     renderThread.close();
 }
 
-RenderWindow::RenderWindow(NewMainWindow *mainWindow) : mainWindow(mainWindow) {
+RenderWindow::RenderWindow(NewMainWindow *mainWindow)
+    : QWidget(mainWindow), mainWindow(mainWindow) {
     resize(500, 300);
     setWindowTitle("Render");
+    setWindowFlag(Qt::WindowType::Window);
 
     encoders = {
         // prores_ks not used because it gives out of order frames and causes
