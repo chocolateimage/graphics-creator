@@ -58,6 +58,8 @@ double TextAnimatorSelectorRender::percent(int character, int totalCharacters,
     }
     }
 
+    finalValue = easing.value.toFunction()(finalValue);
+
     return finalValue;
 }
 
@@ -109,7 +111,11 @@ void TextAnimatorSelector::_propertyIsAnimatingUpdated(PropertyBase *property) {
 TextAnimatorRender::~TextAnimatorRender() { qDeleteAll(selectors); }
 
 TextAnimator::TextAnimator(TextElement *textElement)
-    : textElement(textElement) {}
+    : textElement(textElement) {
+    opacity.setMin(0);
+    opacity.setMax(100);
+    opacity.suffix = "%";
+}
 
 AnimatableRender *TextAnimator::createClass() {
     return new TextAnimatorRender();
@@ -185,6 +191,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
     int line = 0;
     int character = 0;
     for (auto &span : spans.spans) {
+        TextLayoutItem item;
         int offsetX = 0;
         int offsetY = 0;
         for (auto animator : textAnimators) {
@@ -202,8 +209,9 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             }
             offsetX += animator->x * percent;
             offsetY += animator->y * percent;
+            item.opacity =
+                lerp(item.opacity, animator->opacity.get() / 100., percent);
         }
-        TextLayoutItem item;
         item.line = line;
         item.startPoint = {curX + offsetX, curY + offsetY};
         item.height = span.fontSize;
@@ -428,7 +436,8 @@ void TextElementRender::calculateSize() {
 }
 
 void TextElementRender::renderGlyph(uint32_t *target, FT_BitmapGlyph glyph,
-                                    int x, int y, Rect &rect, Brush &brush) {
+                                    int x, int y, Rect &rect, Brush &brush,
+                                    double opacity) {
     int drawX = x + glyph->left;
     int drawY = y - glyph->top;
     bool invalid = false;
@@ -448,8 +457,8 @@ void TextElementRender::renderGlyph(uint32_t *target, FT_BitmapGlyph glyph,
                     1) {
                     Color c =
                         getBrushPixel(brush, targetX, targetY, rect.w, rect.h);
-                    target[index] =
-                        over(target[index], makePixel(c.r, c.g, c.b, c.a));
+                    target[index] = over(
+                        target[index], makePixel(c.r, c.g, c.b, c.a * opacity));
                 }
                 break;
             }
@@ -460,12 +469,13 @@ void TextElementRender::renderGlyph(uint32_t *target, FT_BitmapGlyph glyph,
                     target[index],
                     makePixel(
                         c.r, c.g, c.b,
-                        c.a *
+                        opacity * c.a *
                             (glyph->bitmap.buffer[y * glyph->bitmap.pitch + x] /
                              255.)));
                 break;
             }
             case FT_PIXEL_MODE_BGRA:
+                // TODO: opacity
                 target[index] = over(
                     target[index],
                     ((uint32_t *)(glyph->bitmap
@@ -509,7 +519,8 @@ bool TextElementRender::render(uint32_t *target) {
             int itemY = (curY + yOffset) - minY;
 
             auto glyph = strokeFontInfo->getGlyph(infos[si][i].codepoint);
-            renderGlyph(target, glyph, itemX, itemY, rect, span.stroke);
+            renderGlyph(target, glyph, itemX, itemY, rect, span.stroke,
+                        item.opacity);
         }
     }
 
@@ -531,7 +542,8 @@ bool TextElementRender::render(uint32_t *target) {
             int itemX = (curX + xOffset) - minX;
             int itemY = (curY + yOffset) - minY;
 
-            renderGlyph(target, glyph, itemX, itemY, rect, span.fill);
+            renderGlyph(target, glyph, itemX, itemY, rect, span.fill,
+                        item.opacity);
         }
     }
 

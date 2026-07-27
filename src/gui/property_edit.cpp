@@ -197,16 +197,6 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
                 });
         widget = input;
     } else if (variantType == VariantTypeEnum::Easing) {
-        std::vector<std::function<double(double)>> functions = {
-            linear,         easeInQuad,     easeOutQuad,    easeInOutQuad,
-            easeInCubic,    easeOutCubic,   easeInOutCubic, easeInQuart,
-            easeOutQuart,   easeInOutQuart, easeInQuint,    easeOutQuint,
-            easeInOutQuint, easeInSine,     easeOutSine,    easeInOutSine,
-            easeInExpo,     easeOutExpo,    easeInOutExpo,  easeInCirc,
-            easeOutCirc,    easeInOutCirc,  easeInBack,     easeOutBack,
-            easeInOutBack,  easeInElastic,  easeOutElastic, easeInOutElastic,
-            easeInBounce,   easeOutBounce,  easeInOutBounce};
-
         std::vector<std::string> names = {"",
 
                                           "easeInQuad",
@@ -258,8 +248,9 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             pixmap.fill(Qt::transparent);
             QPainter pixmapPainter(&pixmap);
             pixmapPainter.setPen(Qt::NoPen);
+            auto function = Easing{names[i]}.toFunction();
             for (int x = 0; x < pixmap.width(); x++) {
-                double xValue = functions[i]((double)x / pixmap.width());
+                double xValue = function((double)x / pixmap.width());
                 if (xValue > 1 || xValue < 0) {
                     pixmapPainter.setBrush(QColor(255, 100, 100));
                 } else {

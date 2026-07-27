@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lua.hpp"
+#include <QEasingCurve>
 #include <QList>
 #include <algorithm>
 #include <freetype/ftstroke.h>
@@ -44,6 +45,8 @@ struct Font {
 
 struct Easing {
     std::string easingCurve;
+
+    std::function<double(double)> toFunction();
 };
 
 struct Rect {

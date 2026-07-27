@@ -1,4 +1,5 @@
 #include "variant.hpp"
+#include "math.hpp"
 #include "render.hpp"
 #include <cstring>
 #include <math.h>
@@ -341,4 +342,55 @@ Variant Variant::getFromLua(VariantTypeEnum::Enum type, lua_State *L,
             return Variant(brush);
         }
         };*/
+}
+
+std::function<double(double)> Easing::toFunction() {
+    // Should I apologize? This is just really wrong.
+
+#define IF_EASING_CURVE(name) else if (easingCurve == #name) return name;
+
+    if (easingCurve == "linear") {
+        return linear;
+    }
+    IF_EASING_CURVE(easeInQuad)
+    IF_EASING_CURVE(easeOutQuad)
+    IF_EASING_CURVE(easeInOutQuad)
+
+    IF_EASING_CURVE(easeInCubic)
+    IF_EASING_CURVE(easeOutCubic)
+    IF_EASING_CURVE(easeInOutCubic)
+    IF_EASING_CURVE(easeInQuart)
+
+    IF_EASING_CURVE(easeOutQuart)
+    IF_EASING_CURVE(easeInOutQuart)
+    IF_EASING_CURVE(easeInQuint)
+    IF_EASING_CURVE(easeOutQuint)
+
+    IF_EASING_CURVE(easeInOutQuint)
+    IF_EASING_CURVE(easeInSine)
+    IF_EASING_CURVE(easeOutSine)
+    IF_EASING_CURVE(easeInOutSine)
+
+    IF_EASING_CURVE(easeInExpo)
+    IF_EASING_CURVE(easeOutExpo)
+    IF_EASING_CURVE(easeInOutExpo)
+    IF_EASING_CURVE(easeInCirc)
+
+    IF_EASING_CURVE(easeOutCirc)
+    IF_EASING_CURVE(easeInOutCirc)
+    IF_EASING_CURVE(easeInBack)
+    IF_EASING_CURVE(easeOutBack)
+
+    IF_EASING_CURVE(easeInOutBack)
+    IF_EASING_CURVE(easeInElastic)
+    IF_EASING_CURVE(easeOutElastic)
+    IF_EASING_CURVE(easeInOutElastic)
+
+    IF_EASING_CURVE(easeInBounce)
+    IF_EASING_CURVE(easeOutBounce)
+    IF_EASING_CURVE(easeInOutBounce)
+
+    else {
+        return linear;
+    }
 }

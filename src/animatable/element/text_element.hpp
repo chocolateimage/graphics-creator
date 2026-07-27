@@ -18,6 +18,7 @@ class TextLayoutItem {
     QPoint selectionEndPoint;
 
     int height;
+    double opacity{1};
 };
 
 class TextLayout {
@@ -41,6 +42,7 @@ class TextAnimatorSelectorRender : public AnimatableRender {
     PropertyRender<double> end{this};
     PropertyRender<double> offset{this};
     PropertyRender<int> shape{this};
+    PropertyRender<Easing> easing{this};
 
     double percent(int character, int totalCharacters, int word, int totalWords,
                    int line, int totalLines);
@@ -54,6 +56,7 @@ class TextAnimatorSelector : public Animatable, public ICollapsible {
     Property<double> end{this, "end", 100};
     Property<double> offset{this, "offset", 0};
     Property<int> shape{this, "shape", 0};
+    Property<Easing> easing{this, "easing", {""}};
 
     TextAnimator *textAnimator;
 
@@ -74,6 +77,7 @@ class TextAnimatorRender : public AnimatableRender {
 
     PropertyRender<double> x{this};
     PropertyRender<double> y{this};
+    PropertyRender<double> opacity{this};
 };
 
 class TextAnimator : public Animatable, public ICollapsible {
@@ -94,6 +98,7 @@ class TextAnimator : public Animatable, public ICollapsible {
 
     Property<double> x{this, "x", 0};
     Property<double> y{this, "y", 0};
+    Property<double> opacity{this, "opacity", 100};
 
     void _propertyUpdated(PropertyBase *property) override;
     void _propertyIsAnimatingUpdated(PropertyBase *property) override;
@@ -160,5 +165,5 @@ class TextElementRender : public ElementRender {
     Rect getRenderBox() override;
     bool render(uint32_t *target) override;
     void renderGlyph(uint32_t *target, FT_BitmapGlyph glyph, int x, int y,
-                     Rect &rect, Brush &brush);
+                     Rect &rect, Brush &brush, double opacity);
 };
