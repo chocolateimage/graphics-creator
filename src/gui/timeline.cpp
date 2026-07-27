@@ -452,8 +452,18 @@ void TimelineWidget::updateContents() {
             TextElement *textElement = dynamic_cast<TextElement *>(element);
             if (textElement) {
                 for (auto animator : textElement->textAnimators) {
-                    if (!addCollapsible(animator, &stripe, selected))
+                    if (!addCollapsible(animator, &stripe, selected, 32))
                         continue;
+
+                    for (auto selector : animator->selectors) {
+                        if (!addCollapsible(selector, &stripe, selected, 48))
+                            continue;
+
+                        for (auto selector : selector->properties) {
+                            addProperty(selector, &stripe, elementButton, 64,
+                                        true);
+                        }
+                    }
 
                     for (auto property : animator->properties) {
                         addProperty(property, &stripe, elementButton, 48, true);
@@ -465,7 +475,7 @@ void TimelineWidget::updateContents() {
                 if (effect->properties.empty())
                     continue;
 
-                if (!addCollapsible(effect, &stripe, selected))
+                if (!addCollapsible(effect, &stripe, selected, 32))
                     continue;
 
                 for (auto property : effect->properties) {
@@ -482,9 +492,10 @@ void TimelineWidget::updateContents() {
 }
 
 bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
-                                    bool selected) {
+                                    bool selected, int indent) {
     bool collapsed = collapsible->isCollapsed();
 
+    timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
     QPushButton *effectButton = new QPushButton(timelineLeftContents);
     QString background = "transparent";
     QString backgroundSelected = "rgba(128,128,128,0.1)";
@@ -494,7 +505,9 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
     }
     effectButton->setStyleSheet("QPushButton {"
                                 "   text-align: left;"
-                                "   padding-left: 32px;"
+                                "   padding-left: " +
+                                QString::number(indent) +
+                                "px;"
                                 "   background: " +
                                 background +
                                 ";"
@@ -506,7 +519,9 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
                                 backgroundSelected +
                                 ";"
                                 "   border-left: 3px solid palette(accent);"
-                                "   padding-left: 29px;"
+                                "   padding-left: " +
+                                QString::number(indent - 3) +
+                                "px;"
                                 "}");
     if (collapsed) {
         effectButton->setIcon(QIcon::fromTheme("arrow-right"));
@@ -588,9 +603,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
         connect(
             addAnimation, &QPushButton::clicked, addAnimation, [property]() {
                 TextElement *textElement = (TextElement *)property->animatable;
-                TextAnimator *newAnimator = new TextAnimator();
-                newAnimator->textElement = textElement;
-                TextAnimatorSelector *selector = new TextAnimatorSelector();
+                TextAnimator *newAnimator = new TextAnimator(textElement);
+                TextAnimatorSelector *selector =
+                    new TextAnimatorSelector(newAnimator);
                 newAnimator->selectors.append(selector);
                 textElement->textAnimators.append(newAnimator);
                 emit textElement->effectListUpdated(); // hack
@@ -863,6 +878,45 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
         // --- Properties ---
         for (auto property : element->properties) {
             paintProperty(painter, property, &stripe, startOffset, &yPos);
+        }
+
+        TextElement *textElement = dynamic_cast<TextElement *>(element);
+        if (textElement) {
+            for (auto animator : textElement->textAnimators) {
+                if (stripe) {
+                    painter.fillRect(-startOffset, yPos, width(),
+                                     PROPERTY_TRACK_HEIGHT,
+                                     palette().alternateBase());
+                }
+                stripe = !stripe;
+                yPos += PROPERTY_TRACK_HEIGHT;
+
+                if (animator->collapsed)
+                    continue;
+
+                for (auto selector : animator->selectors) {
+                    if (stripe) {
+                        painter.fillRect(-startOffset, yPos, width(),
+                                         PROPERTY_TRACK_HEIGHT,
+                                         palette().alternateBase());
+                    }
+                    stripe = !stripe;
+                    yPos += PROPERTY_TRACK_HEIGHT;
+
+                    if (selector->collapsed)
+                        continue;
+
+                    for (auto property : selector->properties) {
+                        paintProperty(painter, property, &stripe, startOffset,
+                                      &yPos);
+                    }
+                }
+
+                for (auto property : animator->properties) {
+                    paintProperty(painter, property, &stripe, startOffset,
+                                  &yPos);
+                }
+            }
         }
 
         // --- Effects ---

@@ -5,6 +5,7 @@
 #include <hb-ft.h>
 #include <hb.h>
 
+class TextAnimator;
 class TextElement;
 
 class TextLayoutItem {
@@ -30,20 +31,40 @@ class TextLayout {
 
 class TextAnimatorSelectorRender : public AnimatableRender {
   public:
+    enum Shape {
+        Up = 0,
+        Down = 1,
+        Square = 2,
+    };
+
     PropertyRender<double> start{this};
     PropertyRender<double> end{this};
     PropertyRender<double> offset{this};
+    PropertyRender<int> shape{this};
 
     double percent(int character, int totalCharacters, int word, int totalWords,
-                   int line, int totalLine);
+                   int line, int totalLines);
 };
 
-class TextAnimatorSelector : public Animatable {
+class TextAnimatorSelector : public Animatable, public ICollapsible {
   public:
+    TextAnimatorSelector(TextAnimator *textAnimator);
     AnimatableRender *createClass() override;
     Property<double> start{this, "start", 0};
     Property<double> end{this, "end", 100};
-    Property<double> offset{this, "offset", 100};
+    Property<double> offset{this, "offset", 0};
+    Property<int> shape{this, "shape", 0};
+
+    TextAnimator *textAnimator;
+
+    QString displayName() override;
+
+    bool collapsed{false};
+    bool isCollapsed() override;
+    void setCollapsed(bool newValue) override;
+
+    void _propertyUpdated(PropertyBase *property) override;
+    void _propertyIsAnimatingUpdated(PropertyBase *property) override;
 };
 
 class TextAnimatorRender : public AnimatableRender {
@@ -57,6 +78,7 @@ class TextAnimatorRender : public AnimatableRender {
 
 class TextAnimator : public Animatable, public ICollapsible {
   public:
+    TextAnimator(TextElement *textElement);
     ~TextAnimator();
     AnimatableRender *createClass() override;
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;

@@ -6,16 +6,110 @@
 
 double TextAnimatorSelectorRender::percent(int character, int totalCharacters,
                                            int word, int totalWords, int line,
-                                           int totalLine) {
-    // TODO
-    return (double)character / std::max((totalCharacters - 1), 1);
+                                           int totalLines) {
+    double start = this->start.get() / 100.;
+    double end = this->end.get() / 100.;
+    double offset = this->offset.get() / 100.;
+    start += offset;
+    end += offset;
+
+    if (start > end)
+        std::swap(start, end);
+
+    int index = character;
+    int total = std::max(totalCharacters, 1);
+
+    double thisValue = (double)index / total;
+    double finalValue = 0;
+
+    Shape shape = (Shape)(this->shape.get());
+
+    switch (shape) {
+    case Shape::Up:
+    case Shape::Down: {
+        // TODO: when start is 0, offset is 0, and you move end closer to zero,
+        // then the first letter jumps instead of being smooth...
+        if (thisValue < start) {
+            finalValue = 0;
+        } else if (thisValue > end) {
+            finalValue = 1;
+        } else {
+            if ((end - start) == 0) {
+                finalValue = 1;
+            } else {
+                finalValue = (thisValue - start) / (end - start);
+            }
+        }
+        if (shape == Shape::Down) {
+            finalValue = 1 - finalValue;
+        }
+        break;
+    }
+    case Shape::Square: {
+        // TODO: smoothing on edges
+        if (thisValue < start) {
+            finalValue = 0;
+        } else if (thisValue > end) {
+            finalValue = 0;
+        } else {
+            finalValue = 1;
+        }
+        break;
+    }
+    }
+
+    return finalValue;
+}
+
+TextAnimatorSelector::TextAnimatorSelector(TextAnimator *textAnimator)
+    : textAnimator(textAnimator) {
+    start.setMin(0);
+    start.setMax(100);
+    end.setMin(0);
+    end.setMax(100);
+    offset.setMin(-100);
+    offset.setMax(100);
+    start.suffix = "%";
+    end.suffix = "%";
+    offset.suffix = "%";
+
+    shape.enumList.push_back("Up");
+    shape.enumList.push_back("Down");
+    shape.enumList.push_back("Square");
+    shape.updateBoundsToEnumList();
 }
 
 AnimatableRender *TextAnimatorSelector::createClass() {
     return new TextAnimatorSelectorRender();
 }
 
+QString TextAnimatorSelector::displayName() { return "Selector"; }
+
+bool TextAnimatorSelector::isCollapsed() { return collapsed; }
+
+void TextAnimatorSelector::setCollapsed(bool newValue) {
+    if (collapsed == newValue)
+        return;
+
+    collapsed = newValue;
+    // TODO
+    // emit collapsedChanged(collapsed);
+}
+
+void TextAnimatorSelector::_propertyUpdated(PropertyBase *property) {
+    Animatable::_propertyUpdated(property);
+    textAnimator->_propertyUpdated(property);
+}
+
+void TextAnimatorSelector::_propertyIsAnimatingUpdated(PropertyBase *property) {
+    Animatable::_propertyIsAnimatingUpdated(property);
+    textAnimator->_propertyIsAnimatingUpdated(property);
+}
+
 TextAnimatorRender::~TextAnimatorRender() { qDeleteAll(selectors); }
+
+TextAnimator::TextAnimator(TextElement *textElement)
+    : textElement(textElement) {}
 
 AnimatableRender *TextAnimator::createClass() {
     return new TextAnimatorRender();

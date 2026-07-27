@@ -65,7 +65,8 @@ class TimelineWidget : public QWidget {
     QPixmap keyframeNo;
     QPixmap keyframeYes;
 
-    bool addCollapsible(ICollapsible *collapsible, bool *stripe, bool selected);
+    bool addCollapsible(ICollapsible *collapsible, bool *stripe, bool selected,
+                        int indent);
     void addProperty(PropertyBase *property, bool *stripe,
                      QPushButton *elementButton, int indent, bool showEdit);
 
