@@ -60,6 +60,9 @@ class TimelineWidget : public QWidget {
     QList<TimelineElementButton *> elementButtons;
     void updateContents();
     void timelineScrolled();
+    void framesChanging(bool changing);
+
+    bool freezeTimelineScroll{false};
 
   private:
     QPixmap keyframeNo;

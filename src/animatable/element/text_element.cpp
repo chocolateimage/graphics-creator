@@ -154,6 +154,33 @@ void TextAnimator::setCollapsed(bool newValue) {
     // emit collapsedChanged(collapsed);
 }
 
+bool TextAnimator::isDeletable() { return true; }
+void TextAnimator::deleteThis() {
+    textElement->textAnimators.removeOne(this);
+    emit textElement->effectListUpdated(); // hack
+    delete this;
+}
+
+QJsonObject TextAnimator::serialize() {
+    QJsonObject obj = Animatable::serialize();
+    QJsonArray selectorsArray;
+    for (auto selector : selectors) {
+        selectorsArray.append(selector->serialize());
+    }
+    obj["selectors"] = selectorsArray;
+    return obj;
+}
+
+void TextAnimator::deserialize(const QJsonObject &obj) {
+    Animatable::deserialize(obj);
+    for (auto selectorJson : obj["selectors"].toArray()) {
+        QJsonObject selectorObject = selectorJson.toObject();
+        TextAnimatorSelector *selector = new TextAnimatorSelector(this);
+        selector->deserialize(selectorObject);
+        selectors.append(selector);
+    }
+}
+
 TextAnimator::~TextAnimator() { qDeleteAll(selectors); }
 
 TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
@@ -350,6 +377,26 @@ TextElement::toRenderAnimators(const FrameInfo &frameInfo) {
         newList.append((TextAnimatorRender *)animator->toRender(frameInfo));
     }
     return newList;
+}
+
+QJsonObject TextElement::serialize() {
+    QJsonObject obj = Element::serialize();
+    QJsonArray textAnimatorsArray;
+    for (auto animator : textAnimators) {
+        textAnimatorsArray.append(animator->serialize());
+    }
+    obj["textAnimators"] = textAnimatorsArray;
+    return obj;
+}
+
+void TextElement::deserialize(const QJsonObject &obj) {
+    Element::deserialize(obj);
+    for (auto animatorJson : obj["textAnimators"].toArray()) {
+        QJsonObject animatorObject = animatorJson.toObject();
+        TextAnimator *animator = new TextAnimator(this);
+        animator->deserialize(animatorObject);
+        textAnimators.append(animator);
+    }
 }
 
 Rect TextElementRender::getRenderBox() {

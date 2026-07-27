@@ -3,6 +3,7 @@
 #include "gui.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
+#include "push_button.hpp"
 #include <KIconColors>
 #include <KIconLoader>
 #include <QActionGroup>
@@ -177,6 +178,9 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
             &TimelineWidget::updateContents);
     connect(scene, &Scene::sceneInfoChanged, this,
             &TimelineWidget::updateContents);
+    connect(scene, &Scene::framesChanging, this,
+            &TimelineWidget::framesChanging); // hack for property not updating
+                                              // in inline PropertyEdit
 
     auto mainLay = new QVBoxLayout(this);
     mainLay->setContentsMargins(0, 0, 0, 0);
@@ -262,6 +266,12 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
             &TimelineContentWidget::updateContents);
 
     updateContents();
+}
+
+void TimelineWidget::framesChanging(bool changing) {
+    if (!changing) {
+        updateContents();
+    }
 }
 
 void TimelineWidget::elementSelectionChanged(QList<Element *> elements) {
@@ -405,6 +415,7 @@ bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
 }
 
 void TimelineWidget::updateContents() {
+    freezeTimelineScroll = true;
     while (timelineLeftLayout->count() > 0) {
         auto item = timelineLeftLayout->takeAt(0);
         QWidget *widget = item->widget();
@@ -487,7 +498,7 @@ void TimelineWidget::updateContents() {
 
     timelineLeftLayout->addSpacing(64);
     timelineLeftLayout->addStretch();
-
+    freezeTimelineScroll = false;
     timelineScrolled();
 }
 
@@ -496,7 +507,7 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
     bool collapsed = collapsible->isCollapsed();
 
     timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
-    QPushButton *effectButton = new QPushButton(timelineLeftContents);
+    PushButton *effectButton = new PushButton(timelineLeftContents);
     QString background = "transparent";
     QString backgroundSelected = "rgba(128,128,128,0.1)";
     if (*stripe) {
@@ -535,6 +546,30 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
         collapsible->setCollapsed(!collapsible->isCollapsed());
         QTimer::singleShot(0, this, &TimelineWidget::updateContents);
     });
+
+    connect(effectButton, &PushButton::rightClicked, this,
+            [collapsible, effectButton]() {
+                QMenu menu;
+                QAction *collapseAction;
+                if (collapsible->isCollapsed()) {
+                    collapseAction = menu.addAction("Expand");
+                } else {
+                    collapseAction = menu.addAction("Collapse");
+                }
+                QAction *deleteAction = nullptr;
+                if (collapsible->isDeletable()) {
+                    deleteAction = menu.addAction("Delete");
+                    deleteAction->setIcon(QIcon::fromTheme("delete"));
+                }
+                QAction *action = menu.exec(QCursor::pos());
+
+                if (action == collapseAction) {
+                    effectButton->click();
+                } else if (action == deleteAction) {
+                    collapsible->deleteThis();
+                }
+            });
+
     timelineLeftLayout->addWidget(effectButton);
     *stripe = !*stripe;
 
@@ -586,12 +621,13 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     connect(toggleAnimationButton, &QPushButton::clicked, this,
             [this, property]() {
                 property->toggleAnimating({scene->currentFrame});
+                timelineContent->updateContents();
             });
     propertyLayout->addWidget(toggleAnimationButton);
 
     QLabel *label = new QLabel(propertyButton);
     label->setText(property->getDisplayName());
-    label->setFixedWidth(100);
+    label->setFixedWidth(150 - indent);
     propertyLayout->addWidget(label);
 
     if (property->flags.contains("textElementText")) {
@@ -621,6 +657,11 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
 
     propertyLayout->addStretch();
 
+    QWidget *keyframeRightSideSpacing = new QWidget(propertyButton);
+    keyframeRightSideSpacing->setFixedWidth(72);
+    keyframeRightSideSpacing->setFixedHeight(2);
+    propertyLayout->addWidget(keyframeRightSideSpacing);
+
     QPushButton *previousButton = new QPushButton(propertyButton);
     previousButton->setIcon(QIcon::fromTheme("arrow-left"));
     previousButton->setToolTip("Go to previous keyframe");
@@ -648,6 +689,7 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
         } else {
             property->addToPosition({scene->currentFrame});
         }
+        timelineContent->updateContents();
     });
     propertyLayout->addWidget(keyframeButton);
 
@@ -693,32 +735,32 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
         updateKeyframe();
     };
 
-    auto updateAnimating = [this, property, toggleAnimationButton,
-                            previousButton, keyframeButton, nextButton,
-                            updateKeyframe](PropertyBase *updatedProperty) {
-        if (property != updatedProperty) {
-            return;
-        }
+    auto updateAnimating =
+        [this, property, toggleAnimationButton, previousButton, keyframeButton,
+         nextButton, updateKeyframe,
+         keyframeRightSideSpacing](PropertyBase *updatedProperty) {
+            if (property != updatedProperty) {
+                return;
+            }
 
-        if (property->isAnimating) {
-            KIconColors colors;
-            colors.setText(palette().accent().color());
-            toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
-            toggleAnimationButton->setToolTip("Animation enabled");
-        } else {
-            toggleAnimationButton->setIcon(
-                QIcon::fromTheme("keyframe-disable"));
-            toggleAnimationButton->setToolTip("Animation disabled");
-        }
+            if (property->isAnimating) {
+                KIconColors colors;
+                colors.setText(palette().accent().color());
+                toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
+                toggleAnimationButton->setToolTip("Animation enabled");
+            } else {
+                toggleAnimationButton->setIcon(
+                    QIcon::fromTheme("keyframe-disable"));
+                toggleAnimationButton->setToolTip("Animation disabled");
+            }
 
-        previousButton->setVisible(property->isAnimating);
-        keyframeButton->setVisible(property->isAnimating);
-        nextButton->setVisible(property->isAnimating);
+            previousButton->setVisible(property->isAnimating);
+            keyframeButton->setVisible(property->isAnimating);
+            nextButton->setVisible(property->isAnimating);
+            keyframeRightSideSpacing->setVisible(!property->isAnimating);
 
-        updateKeyframe();
-
-        timelineContent->updateContents();
-    };
+            updateKeyframe();
+        };
 
     updateAnimating(property);
 
@@ -733,6 +775,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
 }
 
 void TimelineWidget::timelineScrolled() {
+    if (freezeTimelineScroll)
+        return;
+
     timelineLeftScrollArea->verticalScrollBar()->setValue(
         timelineMainScrollArea->verticalScrollBar()->value());
 
@@ -755,6 +800,7 @@ void TimelineContentWidget::frameChanged(int frame) { update(); }
 void TimelineContentWidget::updatePaint() { update(); }
 
 void TimelineContentWidget::updateContents() {
+    qInfo() << "UPDATE CONTENTS" << updatedHeight;
     this->setFixedSize(secondsToPixels(timelineWidget->scene->durationFrames /
                                        timelineWidget->scene->frameRate) +
                            TIMELINE_START_OFFSET * 2,

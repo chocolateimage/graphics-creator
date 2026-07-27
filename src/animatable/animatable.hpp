@@ -12,6 +12,8 @@ class ICollapsible {
     virtual bool isCollapsed() = 0;
     virtual void setCollapsed(bool newValue) = 0;
     virtual QString displayName() = 0;
+    virtual bool isDeletable() { return false; };
+    virtual void deleteThis() {};
 };
 
 class Animatable : public QObject {

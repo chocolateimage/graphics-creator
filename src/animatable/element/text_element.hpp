@@ -86,6 +86,8 @@ class TextAnimator : public Animatable, public ICollapsible {
     ~TextAnimator();
     AnimatableRender *createClass() override;
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
+    QJsonObject serialize() override;
+    void deserialize(const QJsonObject &obj) override;
     TextElement *textElement;
 
     QString displayName() override;
@@ -93,6 +95,8 @@ class TextAnimator : public Animatable, public ICollapsible {
     bool collapsed{false};
     bool isCollapsed() override;
     void setCollapsed(bool newValue) override;
+    bool isDeletable() override;
+    void deleteThis() override;
 
     QList<TextAnimatorSelector *> selectors;
 
@@ -120,6 +124,8 @@ class TextElement : public Element {
     QRect getBoundingBox(const FrameInfo &frameInfo) override;
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     QList<TextAnimatorRender *> toRenderAnimators(const FrameInfo &frameInfo);
+    QJsonObject serialize() override;
+    void deserialize(const QJsonObject &obj) override;
 
     TextLayout layTheTextOut(const FrameInfo &frameInfo);
 
