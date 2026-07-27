@@ -18,7 +18,7 @@ bool TwistEffectRender::render(const uint32_t *source, const Rect &sourceRect,
             float u = (float)x / sourceRect.w;
             float v = (float)y / sourceRect.h;
 
-            float a = remap(isVertical ? v : u, 0, 1, 1, -1);
+            float a = std::cos((isVertical ? v : u) * M_PI);
             if (!flip) {
                 a = std::abs(a);
             }
