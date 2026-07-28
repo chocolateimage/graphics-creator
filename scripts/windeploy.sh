@@ -38,3 +38,6 @@ windeployqt6 graphics-creator.exe
 popd
 
 cp -r ./deploybuild/data ./deploy/data
+
+# Not clean but works
+/c/Program\ Files/Inno\ Setup\ 7/ISCC.exe scripts/winsetup.iss
