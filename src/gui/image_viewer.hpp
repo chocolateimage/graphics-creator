@@ -77,7 +77,10 @@ class ImageViewer : public QWidget {
     QPoint viewportToPixel(QPointF pos);
 
     bool isMovingElements{false};
+    bool didMove{false};
     QPoint startMovePosition;
+    QList<QJsonObject> moveOlds;
+    QList<QJsonObject> moveNews;
 
     bool isDroppingImage{false};
     QString dropImagePath;
@@ -92,6 +95,10 @@ class ImageViewer : public QWidget {
     QPoint startResizePosition;
     QRect startResizeRect;
     Element *resizeElement;
+    QJsonObject resizeOldX;
+    QJsonObject resizeOldY;
+    QJsonObject resizeOldW;
+    QJsonObject resizeOldH;
 
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

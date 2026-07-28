@@ -547,6 +547,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
             element->y.set(element->y.get(frameInfo) + diff.y(), frameInfo);
         }
 
+        didMove = true;
+
         update();
 
         return;
@@ -653,10 +655,10 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
             if (hoverResizeMode != -1) {
                 startResizePosition = viewportToPixel(event->position());
                 resizeElement = hoverResizeElement;
-                // startResizeRect = {resizeElement->x.get(frameInfo),
-                //                    resizeElement->y.get(frameInfo),
-                //                    resizeElement->w.get(frameInfo),
-                //                    resizeElement->h.get(frameInfo)};
+                resizeOldX = resizeElement->x.serialize();
+                resizeOldY = resizeElement->y.serialize();
+                resizeOldW = resizeElement->w.serialize();
+                resizeOldH = resizeElement->h.serialize();
                 startResizeRect = resizeElement->getBoundingBox(frameInfo);
                 activeResizeMode = hoverResizeMode;
                 return;
@@ -685,6 +687,9 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 
             if (clickedElement) {
                 isMovingElements = true;
+                didMove = false;
+                moveOlds.clear();
+                moveNews.clear();
                 if (event->modifiers().testFlag(Qt::ControlModifier) ||
                     event->modifiers().testFlag(Qt::ShiftModifier)) {
                     QList<Element *> newSelected = scene->selectedElements;
@@ -698,6 +703,10 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                     if (!scene->selectedElements.contains(clickedElement)) {
                         scene->selectElements({clickedElement});
                     }
+                }
+                for (auto element : scene->selectedElements) {
+                    moveOlds.append(element->x.serialize());
+                    moveOlds.append(element->y.serialize());
                 }
             } else {
                 scene->selectElements({});
@@ -714,6 +723,99 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
         }
     }
 }
+
+class MoveElementsCommand : public QUndoCommand {
+  public:
+    MoveElementsCommand(Scene *scene, QList<Element *> elements,
+                        QList<QJsonObject> olds, QList<QJsonObject> news)
+        : scene(scene), elements(elements), olds(olds), news(news) {
+        if (elements.length() == 1) {
+            setText("Move " + elements.first()->objectName());
+        } else {
+            setText("Move " + QString::number(elements.length()) +
+                    " element(s)");
+        }
+    }
+    ~MoveElementsCommand() {}
+
+    Scene *scene;
+    QList<Element *> elements;
+    QList<QJsonObject> olds;
+    QList<QJsonObject> news;
+    bool didDo{false};
+
+    void undo() override {
+        for (int i = 0; i < elements.length(); i++) {
+            elements[i]->x.deserialize(olds[i * 2]);
+            elements[i]->y.deserialize(olds[i * 2 + 1]);
+        }
+        scene->selectElements(elements);
+        for (auto element : elements) {
+            element->_propertyUpdated(&element->x);
+        }
+    }
+    void redo() override {
+        if (!didDo) {
+            didDo = true;
+            return;
+        }
+        for (int i = 0; i < elements.length(); i++) {
+            elements[i]->x.deserialize(news[i * 2]);
+            elements[i]->y.deserialize(news[i * 2 + 1]);
+        }
+        scene->selectElements(elements);
+        for (auto element : elements) {
+            element->_propertyUpdated(&element->x);
+        }
+    }
+};
+
+class MoveResizeElementCommand : public QUndoCommand {
+  public:
+    MoveResizeElementCommand(Scene *scene, Element *element, QJsonObject oldX,
+                             QJsonObject oldY, QJsonObject oldW,
+                             QJsonObject oldH, QJsonObject newX,
+                             QJsonObject newY, QJsonObject newW,
+                             QJsonObject newH)
+        : scene(scene), element(element), oldX(oldX), oldY(oldY), oldW(oldW),
+          oldH(oldH), newX(newX), newY(newY), newW(newW), newH(newH) {
+        setText("Resize " + element->objectName());
+    }
+    ~MoveResizeElementCommand() {}
+
+    Scene *scene;
+    Element *element;
+    QJsonObject oldX;
+    QJsonObject oldY;
+    QJsonObject oldW;
+    QJsonObject oldH;
+    QJsonObject newX;
+    QJsonObject newY;
+    QJsonObject newW;
+    QJsonObject newH;
+    bool didDo{false};
+
+    void undo() override {
+        element->x.deserialize(oldX);
+        element->y.deserialize(oldY);
+        element->w.deserialize(oldW);
+        element->h.deserialize(oldH);
+        scene->selectElements(scene->selectedElements); // hack
+        element->_propertyUpdated(&element->x);
+    }
+    void redo() override {
+        if (!didDo) {
+            didDo = true;
+            return;
+        }
+        element->x.deserialize(newX);
+        element->y.deserialize(newY);
+        element->w.deserialize(newW);
+        element->h.deserialize(newH);
+        scene->selectElements(scene->selectedElements); // hack
+        element->_propertyUpdated(&element->x);
+    }
+};
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
     if (isPicking && pickType == PickType::Rect) {
@@ -746,9 +848,26 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
             scene->selectElements(scene->selectedElements);
         }
         if (isMovingElements) {
+            if (didMove) {
+                for (auto element : scene->selectedElements) {
+                    moveNews.append(element->x.serialize());
+                    moveNews.append(element->y.serialize());
+                }
+                MoveElementsCommand *command = new MoveElementsCommand(
+                    scene, scene->selectedElements, moveOlds, moveNews);
+                mainWindow->undoStack->push(command);
+                moveOlds.clear();
+                moveNews.clear();
+            }
             isMovingElements = false;
         }
         if (activeResizeMode != -1) {
+            MoveResizeElementCommand *command = new MoveResizeElementCommand(
+                scene, resizeElement, resizeOldX, resizeOldY, resizeOldW,
+                resizeOldH, resizeElement->x.serialize(),
+                resizeElement->y.serialize(), resizeElement->w.serialize(),
+                resizeElement->h.serialize());
+            mainWindow->undoStack->push(command);
             activeResizeMode = -1;
             updateCursor();
         }
