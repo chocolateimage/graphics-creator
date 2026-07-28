@@ -159,5 +159,6 @@ class NewMainWindow : public QMainWindow {
 
   protected:
     void closeEvent(QCloseEvent *event) override;
+    bool event(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 };

@@ -530,6 +530,20 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     rerender(false);
 }
 
+bool NewMainWindow::event(QEvent *event) {
+    if (event->type() == QEvent::PaletteChange) {
+        // workaround for docking library not updating palette when only colors
+        // have changed
+        dockManager->setColorSchemeMode(
+            ads::CDockManager::ColorSchemeMode::Dark);
+        dockManager->setColorSchemeMode(
+            ads::CDockManager::ColorSchemeMode::Light);
+        dockManager->setColorSchemeMode(
+            ads::CDockManager::ColorSchemeMode::FollowPalette);
+    }
+    return QMainWindow::event(event);
+}
+
 void NewMainWindow::showWelcome(bool show) {
     editMenu->setDisabled(show);
     videoMenu->setDisabled(show);
