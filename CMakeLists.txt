@@ -45,6 +45,8 @@ set(graphicscreator_SRCS
     src/gui/text_element_editor.cpp
     src/gui/render_window.cpp
     src/gui/push_button.cpp
+    src/gui/welcome_screen.cpp
+    src/gui/flowlayout.cpp
     src/animatable/animatable.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp

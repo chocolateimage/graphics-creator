@@ -152,17 +152,18 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
         QMenu menu;
         QSize previewSize{300, 168};
         QSize fullSize = image.size();
-        QAction *previewAction = menu.addAction(
-            "Preview size (" + QString::number(previewSize.width()) + "x" +
-            QString::number(previewSize.height()) + ")");
+        // QAction *previewAction = menu.addAction(
+        //     "Preview size (" + QString::number(previewSize.width()) + "x" +
+        //     QString::number(previewSize.height()) + ")");
         QAction *fullAction =
             menu.addAction("Full size (" + QString::number(fullSize.width()) +
                            "x" + QString::number(fullSize.height()) + ")");
 
         QAction *selectedAction = menu.exec(QCursor::pos());
-        if (selectedAction == previewAction) {
+        /*if (selectedAction == previewAction) {
             saveFrameAsFile(previewSize);
-        } else if (selectedAction == fullAction) {
+            } else*/
+        if (selectedAction == fullAction) {
             saveFrameAsFile(fullSize);
         }
     });

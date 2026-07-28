@@ -9,6 +9,7 @@
 #include "render_window.hpp"
 #include "timeline.hpp"
 #include "variant.hpp"
+#include "welcome_screen.hpp"
 #include <DockAreaWidget.h>
 #include <KIconTheme>
 #include <KMessageBox>
@@ -261,7 +262,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     ads::CDockManager::setAutoHideConfigFlags(
         ads::CDockManager::DefaultAutoHideConfig);
 
-    QStatusBar *statusBar = new QStatusBar(this);
+    statusBar = new QStatusBar(this);
     statusText = new QLabel(statusBar);
     statusBar->addPermanentWidget(statusText);
     setStatusBar(statusBar);
@@ -270,17 +271,22 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     QMenu *fileMenu = menuBar->addMenu("File");
 
+    QAction *newAction = fileMenu->addAction("New");
+    newAction->setIcon(QIcon::fromTheme("document-new"));
+    newAction->setShortcut(QKeySequence::New);
+    connect(newAction, &QAction::triggered, this, &NewMainWindow::newSlot);
+
     QAction *openAction = fileMenu->addAction("Open…");
     openAction->setIcon(QIcon::fromTheme("document-open-data"));
     openAction->setShortcut(QKeySequence::Open);
     connect(openAction, &QAction::triggered, this, &NewMainWindow::openSlot);
 
-    QAction *saveAction = fileMenu->addAction("Save");
+    saveAction = fileMenu->addAction("Save");
     saveAction->setIcon(QIcon::fromTheme("document-save"));
     saveAction->setShortcut(QKeySequence::Save);
     connect(saveAction, &QAction::triggered, this, &NewMainWindow::saveSlot);
 
-    QAction *saveAsAction = fileMenu->addAction("Save as…");
+    saveAsAction = fileMenu->addAction("Save as…");
     saveAsAction->setIcon(QIcon::fromTheme("document-save"));
     saveAsAction->setShortcut(QKeySequence::SaveAs);
     connect(saveAsAction, &QAction::triggered, this,
@@ -293,7 +299,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     quitAction->setIcon(QIcon::fromTheme("application-exit"));
     connect(quitAction, &QAction::triggered, this, &NewMainWindow::close);
 
-    QMenu *editMenu = menuBar->addMenu("Edit");
+    editMenu = menuBar->addMenu("Edit");
     QAction *undoAction = undoStack->createUndoAction(this);
     undoAction->setShortcut(QKeySequence::Undo);
     editMenu->addAction(undoAction);
@@ -318,7 +324,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(deleteAction, &QAction::triggered, this,
             &NewMainWindow::deleteTriggered);
 
-    QMenu *videoMenu = menuBar->addMenu("Video");
+    videoMenu = menuBar->addMenu("Video");
 
     QAction *goToStartAction = videoMenu->addAction("Go to start");
     goToStartAction->setIcon(QIcon::fromTheme("media-skip-backward"));
@@ -344,7 +350,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(videoSettingsAction, &QAction::triggered, this,
             &NewMainWindow::openVideoSettings);
 
-    QMenu *viewMenu = menuBar->addMenu("View");
+    viewMenu = menuBar->addMenu("View");
     viewMenu->setToolTipsVisible(true);
     setMenuBar(menuBar);
 
@@ -418,7 +424,17 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(renderAction, &QAction::triggered, this,
             &NewMainWindow::openRenderWindow);
 
-    dockManager = new ads::CDockManager(this);
+    mainStackWidget = new QStackedWidget(this);
+    setCentralWidget(mainStackWidget);
+
+    WelcomeScreenWidget *welcomeScreen =
+        new WelcomeScreenWidget(mainStackWidget);
+    connect(welcomeScreen, &WelcomeScreenWidget::newProjectClicked, this,
+            &NewMainWindow::newSlot);
+    mainStackWidget->addWidget(welcomeScreen);
+
+    dockManager = new ads::CDockManager(mainStackWidget);
+    mainStackWidget->addWidget(dockManager);
 
     ads::CDockWidget *sceneDockWidget = dockManager->createDockWidget("Scene");
     sceneDockWidget->setIcon(QIcon::fromTheme("video-television-symbolic"));
@@ -498,11 +514,33 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(QApplication::clipboard(), &QClipboard::dataChanged, this,
             &NewMainWindow::clipboardContentsChanged);
 
+    showWelcome(true);
+
     clipboardContentsChanged();
     elementSelectionChanged({});
     playbackStateChanged(false);
-    setOpenFilePath("");
+
     rerender(false);
+}
+
+void NewMainWindow::showWelcome(bool show) {
+    editMenu->setDisabled(show);
+    videoMenu->setDisabled(show);
+    viewMenu->setDisabled(show);
+    saveAction->setDisabled(show);
+    saveAsAction->setDisabled(show);
+    toolBar->setHidden(show);
+    toolBar->setDisabled(show);
+    statusBar->setHidden(show);
+    if (show) {
+        mainStackWidget->setCurrentIndex(0);
+        dockManager->hideManagerAndFloatingWidgets();
+        setWindowTitle("");
+    } else {
+        mainStackWidget->setCurrentIndex(1);
+        dockManager->show();
+        setOpenFilePath("");
+    }
 }
 
 bool NewMainWindow::eventFilter(QObject *obj, QEvent *event) {
@@ -634,6 +672,7 @@ void NewMainWindow::loadFile(const QString &filePath) {
         return;
     }
 
+    showWelcome(false);
     setOpenFilePath(newPath);
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
@@ -709,6 +748,59 @@ QJsonDocument NewMainWindow::saveInto() {
     return document;
 }
 
+void NewMainWindow::newSlot() {
+    if (!askSaveConfirmation())
+        return;
+
+    QSettings settings;
+    Scene *tempScene = new Scene();
+    tempScene->width = settings.value("scene/width", 1280).toInt();
+    tempScene->height = settings.value("scene/height", 720).toInt();
+    tempScene->frameRate = settings.value("scene/frameRate", 30).toDouble();
+    tempScene->durationFrames =
+        settings.value("scene/durationFrames", 150).toInt();
+    VideoSettingsDialog *dialog = new VideoSettingsDialog(tempScene, this);
+    if (!dialog->exec()) {
+        delete tempScene;
+        return;
+    }
+
+    settings.setValue("scene/width", tempScene->width);
+    settings.setValue("scene/height", tempScene->height);
+    settings.setValue("scene/frameRate", tempScene->frameRate);
+    settings.setValue("scene/durationFrames", tempScene->durationFrames);
+
+    newProject(tempScene->width, tempScene->height, tempScene->frameRate,
+               tempScene->durationFrames);
+    delete tempScene;
+    showWelcome(false);
+
+    scene->setFramesChanging(true);
+    scene->setFrame(0);
+    scene->setFramesChanging(false);
+    setWindowModified(false);
+
+    undoStack->clear();
+    invalidateAndRerender();
+}
+
+void NewMainWindow::newProject(int width, int height, double frameRate,
+                               int durationFrames) {
+    scene->selectElements({});
+    scene->stopTimer();
+
+    scene->width = width;
+    scene->height = height;
+    scene->frameRate = frameRate;
+    scene->durationFrames = durationFrames;
+
+    for (auto element : scene->elements) {
+        delete element;
+    }
+    scene->elements.clear();
+    timeline->updateContents();
+}
+
 bool NewMainWindow::loadFrom(const QJsonDocument &document) {
     if (!document.isObject()) {
         return false;
@@ -720,21 +812,11 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
         return false;
     }
 
-    scene->selectElements({});
-    scene->stopTimer();
-
     QJsonObject sceneObject = rootObject["scene"].toObject();
-    scene->width = sceneObject["width"].toInt();
-    scene->height = sceneObject["height"].toInt();
-    scene->durationFrames = sceneObject["durationFrames"].toInt();
-    scene->frameRate = sceneObject["frameRate"].toDouble();
+    newProject(sceneObject["width"].toInt(), sceneObject["height"].toInt(),
+               sceneObject["frameRate"].toDouble(),
+               sceneObject["durationFrames"].toInt());
     int newFrame = sceneObject["currentFrame"].toInt();
-
-    for (auto element : scene->elements) {
-        delete element;
-    }
-    scene->elements.clear();
-    timeline->updateContents();
 
     for (auto elementValue : sceneObject["elements"].toArray()) {
         QJsonObject elementObj = elementValue.toObject();

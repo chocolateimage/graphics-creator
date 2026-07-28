@@ -66,12 +66,20 @@ class NewMainWindow : public QMainWindow {
     ~NewMainWindow();
 
     QToolBar *toolBar;
+    QMenu *editMenu;
+    QMenu *videoMenu;
+    QMenu *viewMenu;
     QAction *controlSelect;
     QAction *controlRectangle;
     QAction *controlEllipse;
     QAction *controlPolygon;
     QAction *controlText;
     QAction *controlLua;
+
+    QStatusBar *statusBar;
+
+    QAction *saveAction;
+    QAction *saveAsAction;
 
     QAction *playbackAction;
     QAction *copyAction;
@@ -115,6 +123,10 @@ class NewMainWindow : public QMainWindow {
     void nextFrameSlot();
     void invalidateFrame(int frame);
     void saveLayout();
+    void showWelcome(bool show);
+    void newProject(int width, int height, double frameRate,
+                    int durationFrames);
+    void newSlot();
 
     QJsonDocument saveInto();
     void loadFile(const QString &filePath);
@@ -130,6 +142,7 @@ class NewMainWindow : public QMainWindow {
 
     uint64_t globalId{0};
 
+    QStackedWidget *mainStackWidget;
     ads::CDockManager *dockManager;
     ads::CDockWidget *propertiesDockWidget;
     QUndoStack *undoStack;
