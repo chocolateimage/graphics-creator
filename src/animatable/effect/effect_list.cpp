@@ -26,7 +26,7 @@
 #include "twist_effect.hpp"
 #include "wave_effect.hpp"
 
-const std::vector<EffectInfo> effectList = {
+std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Blur", "Box Blur", "boxBlur", BlurEffect),
 
     DEFINE_EFFECT("Color", "Opacity", "opacity", OpacityEffect),

@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "animatable/effect/effect_list.hpp"
 #include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/image_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
@@ -237,6 +238,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         }
         return realtime;
     };
+
+    std::sort(effectList.begin(), effectList.end(),
+              [](const EffectInfo &a, const EffectInfo &b) {
+                  return a.sortString() < b.sortString();
+              });
 
     lastRenderDelayTimer.setSingleShot(true);
     lastRenderDelayTimer.setInterval(100);

@@ -9,10 +9,14 @@
     }
 
 struct EffectInfo {
-    const QString category;
-    const QString displayName;
-    const QString name;
-    const std::function<Effect *()> create;
+    QString category;
+    QString displayName;
+    QString name;
+    std::function<Effect *()> create;
+
+    QString sortString() const {
+        return (category + ":" + displayName).toLower();
+    }
 };
 
-extern const std::vector<EffectInfo> effectList;
+extern std::vector<EffectInfo> effectList;
