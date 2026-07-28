@@ -133,6 +133,12 @@ class TimelineContentWidget : public QWidget {
     bool hasMoved{false};
     bool handleMouseRelease{false};
     QList<int> startKeyframePositions;
+    QList<int> startElementMove;
+    QList<int> startElementSizes;
+    double startMousePosition;
+    bool isResizingElements{false};
+    bool isResizingOut{false};
+    QList<QRectF> elementRects;
 
     void paintProperty(QPainter &painter, PropertyBase *property, bool *stripe,
                        int startOffset, double *yPos);

@@ -180,7 +180,14 @@ FontInfo *FontManager::getFont(const Font &font, int fontSize, bool antialiased,
     int pixelHeight = fontSize;
 
     FT_Face ftFace;
-    FT_New_Face(ftLibrary, font.path.c_str(), font.index, &ftFace);
+    FT_Error error =
+        FT_New_Face(ftLibrary, font.path.c_str(), font.index, &ftFace);
+    if (error != 0) {
+        qWarning() << "Font could not be loaded!" << font.path << "index"
+                   << font.index;
+        auto font = Variant::defaultFont;
+        FT_New_Face(ftLibrary, font.path.c_str(), font.index, &ftFace);
+    }
     FT_Set_Pixel_Sizes(ftFace, 0, pixelHeight);
 
     hb_font_t *hbFont = hb_ft_font_create(ftFace, nullptr);
@@ -328,6 +335,11 @@ void FrameTask::render(RenderThread &renderThread) {
     for (auto element : renderElements) {
         if (!element->visible)
             continue;
+
+        if (frame < element->startFrame ||
+            frame >= element->startFrame + element->durationFrames) {
+            continue;
+        }
 
         RenderedElement *renderedElement;
 

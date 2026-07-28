@@ -29,6 +29,8 @@ class Element : public Animatable {
     Property<int> y{this, "y", 0};
     Property<int> w{this, "w", 100};
     Property<int> h{this, "h", 100};
+    int startFrame{0};
+    int durationFrames{INT32_MIN};
     bool collapsed{true};
     // Text editing
     bool editMode{false};
@@ -70,6 +72,8 @@ class ElementRender : public AnimatableRender {
     PropertyRender<int> w{this};
     PropertyRender<int> h{this};
     std::vector<EffectRender *> effects;
+    int startFrame;
+    int durationFrames;
 
     RenderThread *renderThread{nullptr};
 

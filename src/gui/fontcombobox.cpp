@@ -109,8 +109,8 @@ void FontComboBox::openFile(QString filePath) {
             face->style_name == nullptr ? "?" : face->style_name;
         FT_Done_Face(face);
 
-        setFontValue(
-            {filePath.toStdString(), targetFace, familyName + " " + styleName});
+        setFontValue({filePath.toStdString(), targetFace,
+                      familyName + " " + styleName, ""});
     });
 }
 
@@ -150,6 +150,7 @@ void FontComboBox::showPopup() {
             FcChar8 *rawFamily;
             FcChar8 *rawFileName;
             FcChar8 *rawStyle;
+            FcChar8 *rawPattern = FcNameUnparse(font);
             int fontIndex;
             int weight;
             int slant;
@@ -162,6 +163,7 @@ void FontComboBox::showPopup() {
             std::string family((char *)rawFamily);
             std::string fileName((char *)rawFileName);
             std::string style((char *)rawStyle);
+            std::string pattern((char *)rawPattern);
 
             auto it = fontGroups.find(family);
             std::shared_ptr<FontPopupGroup> group;
@@ -179,6 +181,7 @@ void FontComboBox::showPopup() {
             fontStyle.slant = slant;
             fontStyle.path = fileName;
             fontStyle.displayName = style;
+            fontStyle.pattern = pattern;
             group->styles.push_back(fontStyle);
         }
 
@@ -261,6 +264,7 @@ void FontComboBox::selectStyle(std::shared_ptr<FontPopupGroup> group,
     font.path = style.path;
     font.index = style.index;
     font.displayName = group->family + " " + style.displayName;
+    font.pattern = style.pattern;
     setFontValue(font);
     if (popupWindow) {
         popupWindow->close();

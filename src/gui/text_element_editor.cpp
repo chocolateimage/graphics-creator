@@ -3,6 +3,7 @@
 #include "gui.hpp"
 #include <QApplication>
 #include <QClipboard>
+#include <QMessageBox>
 #include <QPainter>
 #include <QString>
 #include <QTextBoundaryFinder>
@@ -477,9 +478,12 @@ void TextElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
             FcPatternGetString(font, FC_FAMILY, 0, &rawFamily);
             FcPatternGetString(font, FC_STYLE, 0, &rawStyle);
 
+            FcChar8 *patternString = FcNameUnparse(font);
+
             span.font = {std::string((char *)rawFileName), fontIndex,
                          std::string((char *)rawFamily) + " " +
-                             std::string((char *)rawStyle)};
+                             std::string((char *)rawStyle),
+                         std::string((char *)patternString)};
 
             FcPatternDestroy(font);
 

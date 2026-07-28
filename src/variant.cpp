@@ -1,7 +1,9 @@
 #include "variant.hpp"
 #include "math.hpp"
 #include "render.hpp"
+#include <QDebug>
 #include <cstring>
+#include <fontconfig/fontconfig.h>
 #include <math.h>
 
 Font Variant::defaultFont = {};
@@ -95,6 +97,7 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
     case VariantTypeEnum::ElementSelection:
         return Variant(ElementSelection{});
     }
+    Q_UNREACHABLE();
 }
 
 bool Variant::isValidType(const std::string &type) {
@@ -393,4 +396,27 @@ std::function<double(double)> Easing::toFunction() {
     else {
         return linear;
     }
+}
+
+Font Font::fromPattern(const std::string &str) {
+    FcPattern *pattern = FcNameParse((FcChar8 *)str.c_str());
+    FcResult result;
+    FcPattern *font = FcFontMatch(nullptr, pattern, &result);
+    FcChar8 *rawFamily;
+    FcChar8 *rawFileName;
+    FcChar8 *rawStyle;
+    int fontIndex;
+    FcPatternGetString(font, FC_FILE, 0, &rawFileName);
+    FcPatternGetString(font, FC_FAMILY, 0, &rawFamily);
+    FcPatternGetString(font, FC_STYLE, 0, &rawStyle);
+    FcPatternGetInteger(font, FC_INDEX, 0, &fontIndex);
+    std::string family((char *)rawFamily);
+    std::string fileName((char *)rawFileName);
+    std::string style((char *)rawStyle);
+    return Font{
+        .path = fileName,
+        .index = fontIndex,
+        .displayName = family + " " + style,
+        .pattern = str,
+    };
 }

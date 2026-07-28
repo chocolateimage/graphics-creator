@@ -10,6 +10,8 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     ElementRender *render = (ElementRender *)Animatable::toRender(frameInfo);
     render->id = id;
     render->visible = visible;
+    render->startFrame = startFrame;
+    render->durationFrames = durationFrames;
     for (auto effect : effects) {
         EffectRender *effectRender =
             (EffectRender *)effect->toRender(frameInfo);
@@ -82,6 +84,8 @@ QJsonObject Element::serialize() {
     obj["elementType"] = typeName();
     obj["collapsed"] = collapsed;
     obj["visible"] = visible;
+    obj["startFrame"] = startFrame;
+    obj["durationFrames"] = durationFrames;
     QJsonArray effectsArray;
     for (auto effect : effects) {
         effectsArray.append(effect->serialize());
@@ -97,6 +101,10 @@ void Element::deserialize(const QJsonObject &obj) {
     }
     collapsed = obj["collapsed"].toBool();
     visible = obj["visible"].toBool(true);
+    if (obj.contains("startFrame") && obj.contains("durationFrames")) {
+        startFrame = obj["startFrame"].toInt(0);
+        durationFrames = obj["durationFrames"].toInt(1);
+    }
     for (auto effectJson : obj["effects"].toArray()) {
         QJsonObject effectObject = effectJson.toObject();
         QString effectType = effectObject["effectType"].toString();

@@ -18,6 +18,7 @@ struct FontPopupStyle {
     int slant;
     std::string path;
     std::string displayName;
+    std::string pattern;
 };
 
 class FontPopupGroup {

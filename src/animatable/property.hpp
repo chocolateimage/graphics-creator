@@ -40,17 +40,25 @@ template <typename T> inline QJsonValue serializeAnyValue(const T &value) {
 
 template <> inline QJsonValue serializeAnyValue(const Color &value) {
     QJsonObject obj;
-    obj["r"] = value.r;
-    obj["g"] = value.g;
-    obj["b"] = value.b;
-    obj["a"] = value.a;
+    if (value.r != 255)
+        obj["r"] = value.r;
+    if (value.g != 255)
+        obj["g"] = value.g;
+    if (value.b != 255)
+        obj["b"] = value.b;
+    if (value.a != 255)
+        obj["a"] = value.a;
     return obj;
 }
 
 template <> inline QJsonValue serializeAnyValue(const Brush &value) {
     QJsonObject obj;
-    obj["type"] = value.brushType;
-    obj["angle"] = value.angle;
+    if (value.brushType != Brush::Type::SingleColor) {
+        obj["type"] = value.brushType;
+    }
+    if (value.angle != 0) {
+        obj["angle"] = value.angle;
+    }
     obj["color1"] = serializeAnyValue(value.color1);
     obj["color2"] = serializeAnyValue(value.color2);
     return obj;
@@ -78,9 +86,13 @@ template <> inline QJsonValue serializeAnyValue(const std::string &value) {
 
 template <> inline QJsonValue serializeAnyValue(const Font &value) {
     QJsonObject obj;
-    obj["displayName"] = serializeAnyValue(value.displayName);
-    obj["index"] = value.index;
-    obj["path"] = serializeAnyValue(value.path);
+    if (value.pattern.empty()) {
+        obj["displayName"] = serializeAnyValue(value.displayName);
+        obj["index"] = value.index;
+        obj["path"] = serializeAnyValue(value.path);
+    } else {
+        obj["p"] = serializeAnyValue(value.pattern);
+    }
     return obj;
 }
 
@@ -97,7 +109,9 @@ template <> inline QJsonValue serializeAnyValue(const TextSpans &value) {
         QJsonObject spanObj;
         spanObj["t"] = span.text;
         spanObj["st"] = serializeAnyValue(span.stroke);
-        spanObj["sw"] = span.strokeWidth;
+        if (span.strokeWidth != 0) {
+            spanObj["sw"] = span.strokeWidth;
+        }
         spanObj["sl"] = (int)span.strokeLineJoin;
         spanObj["f"] = serializeAnyValue(span.fill);
         spanObj["fo"] = serializeAnyValue(span.font);
@@ -155,18 +169,18 @@ template <> inline Vector2DFloat deserializeAnyValue(const QJsonValue &value) {
 
 template <> inline Color deserializeAnyValue(const QJsonValue &value) {
     QJsonObject obj = value.toObject();
-    return Color{.r = obj["r"].toInt(),
-                 .g = obj["g"].toInt(),
-                 .b = obj["b"].toInt(),
-                 .a = obj["a"].toInt()};
+    return Color{.r = obj["r"].toInt(255),
+                 .g = obj["g"].toInt(255),
+                 .b = obj["b"].toInt(255),
+                 .a = obj["a"].toInt(255)};
 }
 
 template <> inline Brush deserializeAnyValue(const QJsonValue &value) {
     QJsonObject obj = value.toObject();
-    return Brush{.brushType = (Brush::Type)obj["type"].toInt(),
+    return Brush{.brushType = (Brush::Type)obj["type"].toInt(0),
                  .color1 = deserializeAnyValue<Color>(obj["color1"]),
                  .color2 = deserializeAnyValue<Color>(obj["color2"]),
-                 .angle = obj["angle"].toDouble()};
+                 .angle = obj["angle"].toDouble(0)};
 }
 
 template <> inline Easing deserializeAnyValue(const QJsonValue &value) {
@@ -176,9 +190,15 @@ template <> inline Easing deserializeAnyValue(const QJsonValue &value) {
 
 template <> inline Font deserializeAnyValue(const QJsonValue &value) {
     QJsonObject obj = value.toObject();
-    return Font{.path = obj["path"].toString().toStdString(),
-                .index = obj["index"].toInt(),
-                .displayName = obj["displayName"].toString().toStdString()};
+    if (obj.contains("p")) {
+        std::string path = obj["p"].toString().toStdString();
+        return Font::fromPattern(path);
+    } else {
+        return Font{.path = obj["path"].toString().toStdString(),
+                    .index = obj["index"].toInt(),
+                    .displayName = obj["displayName"].toString().toStdString(),
+                    .pattern = ""};
+    }
 }
 
 template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
@@ -188,7 +208,7 @@ template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
         TextSpan span{};
         span.text = spanObj["t"].toString();
         span.stroke = deserializeAnyValue<Brush>(spanObj["st"]);
-        span.strokeWidth = spanObj["sw"].toInt();
+        span.strokeWidth = spanObj["sw"].toInt(0);
         span.strokeLineJoin = (FT_Stroker_LineJoin)spanObj["sl"].toInt();
         span.fill = deserializeAnyValue<Brush>(spanObj["f"]);
         span.font = deserializeAnyValue<Font>(spanObj["fo"]);
@@ -523,18 +543,25 @@ template <typename T> class Property : public PropertyBase {
         for (auto keyframeBase : keyframes) {
             Keyframe<T> *keyframe = (Keyframe<T> *)keyframeBase;
             QJsonObject keyframeObject;
-            keyframeObject["easing"] = keyframe->easing.type();
+            int easingType = keyframe->easing.type();
+            if (easingType != 0) {
+                keyframeObject["easing"] = easingType;
+            }
             keyframeObject["value"] = keyframe->serializeValue();
-            keyframeObject["frame"] = keyframe->frame;
+            if (keyframe->frame != 0) {
+                keyframeObject["frame"] = keyframe->frame;
+            }
             keyframesArray.append(keyframeObject);
         }
         obj["keyframes"] = keyframesArray;
-        obj["isAnimating"] = isAnimating;
+        if (isAnimating) {
+            obj["isAnimating"] = isAnimating;
+        }
         return obj;
     }
 
     virtual void deserialize(const QJsonObject &obj) {
-        isAnimating = obj["isAnimating"].toBool();
+        isAnimating = obj["isAnimating"].toBool(false);
         for (auto keyframe : keyframes) {
             delete keyframe;
         }
@@ -542,10 +569,10 @@ template <typename T> class Property : public PropertyBase {
         for (auto keyframeJson : obj["keyframes"].toArray()) {
             QJsonObject keyframeObj = keyframeJson.toObject();
             Keyframe<T> *keyframe =
-                new Keyframe<T>(this, keyframeObj["frame"].toInt(),
+                new Keyframe<T>(this, keyframeObj["frame"].toInt(0),
                                 deserializeAnyValue<T>(keyframeObj["value"]));
             keyframe->easing = QEasingCurve(
-                (QEasingCurve::Type)(keyframeObj["easing"].toInt()));
+                (QEasingCurve::Type)(keyframeObj["easing"].toInt(0)));
             keyframes.push_back(keyframe);
         }
     }

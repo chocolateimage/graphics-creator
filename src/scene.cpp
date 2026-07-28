@@ -16,6 +16,9 @@ void Scene::addElement(Element *element) {
 }
 
 void Scene::insertElement(Element *element, int index) {
+    if (element->durationFrames == INT32_MIN) {
+        element->durationFrames = durationFrames - element->startFrame;
+    }
     elements.insert(index, element);
     emit elementAdded(element, index);
     connect(element, &Element::propertyUpdated, this,

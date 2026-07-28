@@ -953,7 +953,8 @@ void NewMainWindow::loadDefaultFont() {
 
     Variant::defaultFont = {std::string((char *)rawFileName), fontIndex,
                             std::string((char *)rawFamily) + " " +
-                                std::string((char *)rawStyle)};
+                                std::string((char *)rawStyle),
+                            std::string((char *)fontToMatch)};
 
     FcPatternDestroy(font);
 

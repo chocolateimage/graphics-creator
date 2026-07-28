@@ -41,6 +41,9 @@ struct Font {
     std::string path;
     int index;
     std::string displayName;
+    std::string pattern;
+
+    static Font fromPattern(const std::string &str);
 };
 
 struct Easing {

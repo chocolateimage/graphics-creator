@@ -295,6 +295,8 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
         FontInfo *fontInfo = fontManager->getFont(
             span.font, std::max(1, span.fontSize), span.antialiased, {});
+        if (!fontInfo)
+            continue;
 
         hb_shape(fontInfo->hb, hbBuffer, nullptr, 0);
 
@@ -456,6 +458,8 @@ void TextElementRender::prepare() {
 
         FontInfo *fontInfo = renderThread->fontManager->getFont(
             span.font, std::max(1, span.fontSize), span.antialiased, {});
+        if (!fontInfo)
+            continue;
         fontInfos.push_back(fontInfo);
 
         span.strokeWidth += item.strokeWidth;
@@ -464,7 +468,9 @@ void TextElementRender::prepare() {
             FontInfo *strokeFontInfo = renderThread->fontManager->getFont(
                 span.font, std::max(1, span.fontSize), span.antialiased,
                 span.strokeInfo());
-            strokeFontInfos.push_back(strokeFontInfo);
+            if (strokeFontInfo) {
+                strokeFontInfos.push_back(strokeFontInfo);
+            }
         } else {
             strokeFontInfos.push_back(nullptr);
         }

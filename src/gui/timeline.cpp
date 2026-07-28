@@ -909,11 +909,37 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     // --- Elements ---
     bool stripe = false;
     keyframeData.clear();
+    elementRects.clear();
+
     for (auto element : timelineWidget->scene->elements) {
+        bool selected =
+            timelineWidget->scene->selectedElements.contains(element);
         if (stripe) {
             painter.fillRect(-startOffset, yPos, width(), OBJECT_TRACK_HEIGHT,
                              palette().alternateBase());
         }
+        painter.setPen(Qt::NoPen);
+
+        if (selected) {
+            QLinearGradient durationGradient(0, yPos, 0,
+                                             OBJECT_TRACK_HEIGHT + yPos);
+            durationGradient.setColorAt(0,
+                                        palette().accent().color().darker(110));
+            durationGradient.setColorAt(1,
+                                        palette().accent().color().darker(130));
+            QBrush durationBrush(durationGradient);
+            painter.setBrush(durationGradient);
+        } else {
+            painter.setBrush(palette().accent().color().darker(200));
+        }
+        QRectF rect{secondsToPixels(element->startFrame /
+                                    timelineWidget->scene->frameRate),
+                    yPos,
+                    secondsToPixels(element->durationFrames /
+                                    timelineWidget->scene->frameRate),
+                    OBJECT_TRACK_HEIGHT};
+        elementRects.append(rect);
+        painter.drawRect(rect);
         stripe = !stripe;
         yPos += OBJECT_TRACK_HEIGHT;
 
@@ -1076,6 +1102,8 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
     isMovingKeyframes = false;
     handleMouseRelease = true;
     hasMoved = false;
+    isResizingElements = false;
+    isResizingOut = false;
     double headerPos = this->headerPos();
     if (event->buttons() & Qt::LeftButton) {
         if (event->pos().y() < TIMELINE_HEADER_HEIGHT + headerPos) {
@@ -1089,6 +1117,46 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
         }
 
         mouseClickStart = event->pos();
+
+        QPointF shiftedPos =
+            event->position() - QPointF{TIMELINE_START_OFFSET, 0};
+        for (int i = 0; i < elementRects.length(); i++) {
+            const auto &elementRect = elementRects[i];
+            if (QRectF(elementRect.x() - 12, elementRect.y(), 24,
+                       elementRect.height())
+                    .contains(shiftedPos)) {
+                isResizingElements = true;
+                isResizingOut = false;
+            }
+            if (QRectF(elementRect.x() + elementRect.width() - 12,
+                       elementRect.y(), 24, elementRect.height())
+                    .contains(shiftedPos)) {
+                isResizingElements = true;
+                isResizingOut = true;
+            }
+
+            if (elementRect.contains(shiftedPos) || isResizingElements) {
+                Element *element = timelineWidget->scene->elements[i];
+                if (!timelineWidget->scene->selectedElements.contains(
+                        element)) {
+                    timelineWidget->scene->selectElements({element});
+                }
+                startMousePosition = event->position().x();
+                startElementMove.clear();
+                for (auto selected : timelineWidget->scene->selectedElements) {
+                    startElementMove.append(selected->startFrame);
+                }
+                if (isResizingElements) {
+                    startElementSizes.clear();
+                    for (auto selected :
+                         timelineWidget->scene->selectedElements) {
+                        startElementSizes.append(selected->durationFrames);
+                    }
+                }
+                return;
+            }
+        }
+
         selectStart = event->pos() - QPoint(1, 1);
         selectEnd = selectStart;
 
@@ -1259,12 +1327,58 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
 }
 
 void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
+    setCursor(Qt::CursorShape::ArrowCursor);
+    QPointF shiftedPos = event->position() - QPointF{TIMELINE_START_OFFSET, 0};
+    for (const auto &elementRect : elementRects) {
+        if (QRectF(elementRect.x() - 12, elementRect.y(), 24,
+                   elementRect.height())
+                .contains(shiftedPos) ||
+            QRectF(elementRect.x() + elementRect.width() - 12, elementRect.y(),
+                   24, elementRect.height())
+                .contains(shiftedPos)) {
+            setCursor(Qt::CursorShape::SizeHorCursor);
+        }
+    }
     if (event->buttons() & Qt::LeftButton) {
         if (mouseHeader) {
             timelineWidget->scene->setFrame(std::round(
                 (event->pos().x() - TIMELINE_START_OFFSET) / secondsToPixels() *
                 timelineWidget->scene->frameRate));
             event->accept();
+            return;
+        }
+
+        if (!startElementMove.isEmpty()) {
+            double offset = event->position().x() - startMousePosition;
+            int framesMoved =
+                std::round(offset / secondsToPixels(
+                                        1. / timelineWidget->scene->frameRate));
+            bool isResizing = !startElementSizes.isEmpty();
+            for (int i = 0;
+                 i < timelineWidget->scene->selectedElements.length(); i++) {
+                Element *element = timelineWidget->scene->selectedElements[i];
+                if (isResizing && isResizingOut) {
+                    element->durationFrames =
+                        std::clamp(startElementSizes[i] + framesMoved, 1,
+                                   timelineWidget->scene->durationFrames -
+                                       element->startFrame);
+                } else if (isResizing && !isResizingOut) {
+                    element->durationFrames =
+                        std::clamp(startElementSizes[i] - framesMoved, 1,
+                                   startElementMove[i] + startElementSizes[i]);
+                    element->startFrame = startElementSizes[i] -
+                                          element->durationFrames +
+                                          startElementMove[i];
+                } else {
+                    element->startFrame =
+                        std::clamp(startElementMove[i] + framesMoved, 0,
+                                   timelineWidget->scene->durationFrames -
+                                       element->durationFrames);
+                }
+            }
+            timelineWidget->mainWindow
+                ->invalidateAndRerender(); // TODO: should use signals
+            update();
             return;
         }
 
@@ -1314,6 +1428,13 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
 void TimelineContentWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (mouseHeader) {
         timelineWidget->scene->setFramesChanging(false);
+    }
+    if (!startElementMove.isEmpty()) {
+        startElementMove.clear();
+    }
+    if (isResizingElements) {
+        startElementSizes.clear();
+        isResizingElements = false;
     }
     if ((selecting || isMovingKeyframes) && handleMouseRelease) {
         if ((mouseClickStart - event->pos()).isNull()) {
