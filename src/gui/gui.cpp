@@ -778,10 +778,10 @@ void NewMainWindow::newSlot() {
     scene->setFramesChanging(true);
     scene->setFrame(0);
     scene->setFramesChanging(false);
-    setWindowModified(false);
 
     undoStack->clear();
     invalidateAndRerender();
+    setWindowModified(false);
 }
 
 void NewMainWindow::newProject(int width, int height, double frameRate,
