@@ -2,11 +2,16 @@
 #include <QPushButton>
 #include <QWidget>
 
+constexpr int PREVIEW_IMAGE_ORIGINAL_WIDTH = 160;
+constexpr int PREVIEW_IMAGE_WIDTH = PREVIEW_IMAGE_ORIGINAL_WIDTH * 2;
+constexpr int PREVIEW_IMAGE_ORIGINAL_HEIGHT = 90;
+constexpr int PREVIEW_IMAGE_HEIGHT = PREVIEW_IMAGE_ORIGINAL_HEIGHT * 2;
+
 class WelcomeScreenProjectWidget : public QPushButton {
     Q_OBJECT
   public:
-    explicit WelcomeScreenProjectWidget(const QString &title,
-                                        QWidget *parent = nullptr);
+    explicit WelcomeScreenProjectWidget(const QString &title, bool isNew,
+                                        QImage img, QWidget *parent = nullptr);
 };
 
 class WelcomeScreenWidget : public QWidget {
@@ -16,4 +21,5 @@ class WelcomeScreenWidget : public QWidget {
 
   signals:
     void newProjectClicked();
+    void openClicked(const QString &path);
 };

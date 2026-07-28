@@ -18,6 +18,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QCommandLineParser>
+#include <QCryptographicHash>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFileDialog>
@@ -28,6 +29,7 @@
 #include <QMenuBar>
 #include <QMimeData>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
 
@@ -431,6 +433,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         new WelcomeScreenWidget(mainStackWidget);
     connect(welcomeScreen, &WelcomeScreenWidget::newProjectClicked, this,
             &NewMainWindow::newSlot);
+    connect(welcomeScreen, &WelcomeScreenWidget::openClicked, this,
+            &NewMainWindow::loadFile);
     mainStackWidget->addWidget(welcomeScreen);
 
     dockManager = new ads::CDockManager(mainStackWidget);
@@ -713,6 +717,20 @@ bool NewMainWindow::save() {
     file.write(doc.toJson(QJsonDocument::Compact));
     file.close();
     setWindowModified(false);
+
+    QDir appData(
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+    if (appData.mkpath("previews")) {
+        QImage scaled = scenePreviewWidget->image.scaled(
+            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
+            Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+        QCryptographicHash hash(QCryptographicHash::Sha256);
+        hash.addData(openFilePath.toUtf8());
+        QString filePath = appData.absoluteFilePath(
+            "previews/" + hash.result().toHex() + ".png");
+        scaled.save(filePath);
+    }
+
     return true;
 }
 
@@ -722,6 +740,14 @@ void NewMainWindow::setOpenFilePath(const QString &newPath) {
         setWindowTitle("Untitled Project [*]");
     } else {
         setWindowTitle(openFilePath + " [*]");
+        QSettings settings;
+        QStringList recents = settings.value("recent/list").toStringList();
+        recents.removeAll(newPath);
+        recents.append(newPath);
+        while (recents.size() > 10) {
+            recents.removeFirst();
+        }
+        settings.setValue("recent/list", recents);
     }
 }
 
