@@ -53,7 +53,6 @@ class ImageViewer : public QWidget {
     NewMainWindow *mainWindow{nullptr};
 
   protected:
-    void saveFrameAsFile(QSize size);
     TransparentCornerFrame *cornerFrame;
     QToolButton *windowButton;
     bool darkCheckerboard{true};

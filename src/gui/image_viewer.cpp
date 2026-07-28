@@ -2,6 +2,7 @@
 #include "animatable/element/image_element.hpp"
 #include "gui.hpp"
 #include <QApplication>
+#include <QClipboard>
 #include <QFileDialog>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
@@ -150,21 +151,20 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
     saveFrameButton->setToolTip("Save frame…");
     connect(saveFrameButton, &QToolButton::clicked, this, [this]() {
         QMenu menu;
-        QSize previewSize{300, 168};
-        QSize fullSize = image.size();
-        // QAction *previewAction = menu.addAction(
-        //     "Preview size (" + QString::number(previewSize.width()) + "x" +
-        //     QString::number(previewSize.height()) + ")");
-        QAction *fullAction =
-            menu.addAction("Full size (" + QString::number(fullSize.width()) +
-                           "x" + QString::number(fullSize.height()) + ")");
-
+        QAction *fileAction = menu.addAction("To file…");
+        QAction *clipboardAction = menu.addAction("To clipboard");
         QAction *selectedAction = menu.exec(QCursor::pos());
-        /*if (selectedAction == previewAction) {
-            saveFrameAsFile(previewSize);
-            } else*/
-        if (selectedAction == fullAction) {
-            saveFrameAsFile(fullSize);
+        if (selectedAction == fileAction) {
+            QString path = QFileDialog::getSaveFileName(
+                this, "Save frame", QString(),
+                "PNG image (*.png);;All files (*.*)");
+            if (path.isEmpty())
+                return;
+
+            image.save(path);
+        } else if (selectedAction == clipboardAction) {
+            QClipboard *clipboad = QApplication::clipboard();
+            clipboad->setImage(image);
         }
     });
     frameLay->addWidget(saveFrameButton);
@@ -214,16 +214,6 @@ QPoint ImageViewer::getActualPickPosition() {
         }
     }
     return pickPosition;
-}
-
-void ImageViewer::saveFrameAsFile(QSize size) {
-    QString path = QFileDialog::getSaveFileName(
-        this, "Save frame", QString(), "PNG image (*.png);;All files (*.*)");
-    if (path.isEmpty())
-        return;
-
-    image.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
-        .save(path);
 }
 
 void ImageViewer::enterEvent(QEnterEvent *event) { cornerFrame->show(); }
