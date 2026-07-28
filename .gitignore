@@ -3,6 +3,7 @@ build/
 deploy/
 deploybuild/
 repo/
+Output/
 
 __cmake_systeminformation/
 CMakeLists.txt.user

@@ -32,6 +32,9 @@
 #include <QStandardPaths>
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 
 const QString ELEMENT_COPY_MIME_TYPE =
     "application/x-graphicscreator-element-copy";
@@ -1168,6 +1171,9 @@ NewMainWindow::~NewMainWindow() {
 }
 
 int main(int argc, char **argv) {
+#ifdef Q_OS_WIN
+    CreateMutexA(nullptr, false, "GraphicsCreatorOpen");
+#endif
     KIconTheme::initTheme();
     QApplication application(argc, argv);
     qInfo() << "pid:" << application.applicationPid();
