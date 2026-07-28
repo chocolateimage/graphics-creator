@@ -147,7 +147,7 @@ EffectsWindow::EffectsWindow(Scene *scene) : scene(scene) {
     mainLayout->setSpacing(0);
 
     QFrame *topFrame = new QFrame(mainWidget);
-    topFrame->setBackgroundRole(QPalette::Mid);
+    topFrame->setBackgroundRole(QPalette::Window);
     topFrame->setAutoFillBackground(true);
     QHBoxLayout *topLayout = new QHBoxLayout(topFrame);
     topLayout->setContentsMargins(8, 0, 8, 0);
