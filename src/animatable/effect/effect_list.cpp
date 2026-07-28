@@ -11,6 +11,7 @@
 #include "hsv_effect.hpp"
 #include "in_out_effect.hpp"
 #include "invert_effect.hpp"
+#include "levels_effect.hpp"
 #include "long_shadow_effect.hpp"
 #include "matte_effect.hpp"
 #include "noise_effect.hpp"
@@ -35,6 +36,7 @@ const std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Color", "HSV", "hsv", HsvEffect),
     DEFINE_EFFECT("Color", "Fill", "fill", FillEffect),
     DEFINE_EFFECT("Color", "Color Link", "colorLink", ColorLinkEffect),
+    DEFINE_EFFECT("Color", "Levels", "levels", LevelsEffect),
 
     DEFINE_EFFECT("Tools", "Offset", "offset", OffsetEffect),
     DEFINE_EFFECT("Tools", "Scale", "scale", ScaleEffect),

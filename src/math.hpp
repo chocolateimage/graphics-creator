@@ -23,7 +23,11 @@ inline constexpr int pixelIndex(int x, int y, int stride) {
     return y * stride + x;
 }
 
-static inline float mix(float t, float min, float max) {
+inline constexpr float mix(float t, float min, float max) {
+    return (t * (max - min)) + min;
+}
+
+inline constexpr double mix(double t, double min, double max) {
     return (t * (max - min)) + min;
 }
 
@@ -40,7 +44,7 @@ static double distance(double x1, double y1, double x2, double y2) {
     return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
-static double linearstep(double from, double to, double x) {
+inline constexpr double linearstep(double from, double to, double x) {
     return saturate((x - from) / (to - from));
 }
 
