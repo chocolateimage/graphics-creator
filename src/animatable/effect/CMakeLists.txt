@@ -29,5 +29,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/tile_effect.cpp
   src/animatable/effect/levels_effect.cpp
   src/animatable/effect/expand_render_box_effect.cpp
+  src/animatable/effect/rotation_effect.cpp
   PARENT_SCOPE
 )

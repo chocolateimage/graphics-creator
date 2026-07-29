@@ -20,6 +20,7 @@
 #include "opacity_effect.hpp"
 #include "pixelate_effect.hpp"
 #include "place_original_effect.hpp"
+#include "rotation_effect.hpp"
 #include "scale_effect.hpp"
 #include "threshold_effect.hpp"
 #include "tile_effect.hpp"
@@ -49,6 +50,7 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Tools", "Matte", "matte", MatteEffect),
     DEFINE_EFFECT("Tools", "Expand Render Box", "expandRenderBox",
                   ExpandRenderBoxEffect),
+    DEFINE_EFFECT("Tools", "Rotation", "rotation", RotationEffect),
 
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),
