@@ -215,13 +215,24 @@ void TextElementEditor::relayout() {
 void TextElementEditor::paint(QPainter &painter) {
     QWidget *parentWidget = ((QWidget *)parent());
     float scale = painter.transform().m11();
-    TextSpans spans = textElement->text.get({scene->currentFrame});
+    FrameInfo frameInfo = {scene->currentFrame};
+    TextSpans spans = textElement->text.get(frameInfo);
 
     if (layout.items.length() != spans.spans.length()) {
         qWarning()
             << "what is going on. layout.items.length != spans.spans.length";
         return;
     }
+
+    int offsetX = 0;
+    int alignment = textElement->alignment.get(frameInfo);
+    if (alignment == 1) {
+        offsetX = layout.width / -2;
+    } else if (alignment == 2) {
+        offsetX = -layout.width;
+    }
+
+    painter.translate(-offsetX, 0);
 
     if (spans.spans.isEmpty()) {
         painter.translate(0, tempSpan.fontSize);
@@ -235,6 +246,8 @@ void TextElementEditor::paint(QPainter &painter) {
             auto &item = layout.items[selectionStart - 1];
             cursorPoint = item.endPoint;
             height = item.height;
+        } else {
+            cursorPoint = QPoint{offsetX, 0};
         }
         if (selectionLength == 0) {
             height = tempSpan.fontSize;

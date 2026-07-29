@@ -123,7 +123,8 @@ class TextAnimator : public Animatable, public ICollapsible {
 
 TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
                       int width,
-                      const QList<TextAnimatorRender *> &textAnimators);
+                      const QList<TextAnimatorRender *> &textAnimators,
+                      int alignment);
 
 class TextElement : public Element {
   public:
@@ -143,6 +144,7 @@ class TextElement : public Element {
     TextLayout layTheTextOut(const FrameInfo &frameInfo);
 
     Property<TextSpans> text{this, "text", {}};
+    Property<int> alignment{this, "alignment", 0};
 
     QList<TextAnimator *> textAnimators;
 
@@ -155,11 +157,7 @@ class TextElementRender : public ElementRender {
     virtual ~TextElementRender();
 
     PropertyRender<TextSpans> text{this};
-    PropertyRender<Brush> testFill{this};
-    PropertyRender<Font> test1{this};
-    PropertyRender<int> test1Size{this};
-    PropertyRender<Font> test2{this};
-    PropertyRender<int> test2Size{this};
+    PropertyRender<int> alignment{this};
 
     int spanCount{0};
     std::vector<hb_buffer_t *> hbBuffers;

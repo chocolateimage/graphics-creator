@@ -210,7 +210,8 @@ TextAnimator::~TextAnimator() { qDeleteAll(selectors); }
 
 TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
                       int width,
-                      const QList<TextAnimatorRender *> &textAnimators) {
+                      const QList<TextAnimatorRender *> &textAnimators,
+                      int alignment) {
     TextLayout layout;
 
     int maxLineHeight = 0;
@@ -247,6 +248,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
     int line = 0;
     int character = 0;
     int word = 0;
+    QList<int> lineWidths;
     for (auto &span : spans.spans) {
         TextLayoutItem item;
         int offsetX = 0;
@@ -278,6 +280,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             word++;
 
         if (span.newLine) {
+            lineWidths.append(curX);
             item.selectionEndPoint = {curX + (int)(span.fontSize * .3), curY};
             curX = 0;
             curY += layout.lineHeights[line + 1];
@@ -334,6 +337,25 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
         layout.items.append(item);
         character++;
     }
+    lineWidths.append(curX);
+
+    if (alignment != 0) {
+        int toDivide = (alignment == 1 ? 2 : 1);
+        for (auto &item : layout.items) {
+            int offsetX = lineWidths[item.line] / toDivide;
+            item.startPoint -= QPoint{offsetX, 0};
+            if (item.endPoint.y() == item.startPoint.y()) {
+                item.endPoint -= QPoint{offsetX, 0};
+            } else {
+                item.endPoint -=
+                    QPoint{lineWidths[std::min(item.line + 1,
+                                               (int)lineWidths.length() - 1)] /
+                               toDivide,
+                           0};
+            }
+            item.selectionEndPoint -= QPoint{offsetX, 0};
+        }
+    }
 
     layout.width = maxX - minX;
     layout.height = 0;
@@ -349,6 +371,11 @@ TextElement::TextElement() : Element() {
     fontManager = new FontManager();
 
     text.flags.append("textElementText");
+
+    alignment.enumList.push_back("Left");
+    alignment.enumList.push_back("Center");
+    alignment.enumList.push_back("Right");
+    alignment.updateBoundsToEnumList();
 
     TextSpans &spans = ((Keyframe<TextSpans> *)(text.keyframes[0]))->value;
     std::string defaultText = "Enter text";
@@ -376,8 +403,8 @@ TextSpan TextElement::createDefaultTextSpan() {
 TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
     TextSpans spans = text.get(frameInfo);
     auto animators = toRenderAnimators(frameInfo);
-    TextLayout lay =
-        layoutText(fontManager, spans, w.get(frameInfo), animators);
+    TextLayout lay = layoutText(fontManager, spans, w.get(frameInfo), animators,
+                                alignment.get(frameInfo));
     qDeleteAll(animators);
     return lay;
 }
@@ -392,8 +419,17 @@ QRect TextElement::getBoundingBox(const FrameInfo &frameInfo) {
     TextSpans spans = text.get(frameInfo);
 
     fontManager->garbageCollect();
-    return {x.get(frameInfo), y.get(frameInfo) - layout.lineHeights[0],
-            layout.width, layout.height};
+    int offsetX = 0;
+    int alignment = this->alignment.get(frameInfo);
+    if (alignment == 1) {
+        offsetX = layout.width / -2;
+    } else if (alignment == 2) {
+        offsetX = -layout.width;
+    }
+
+    return {x.get(frameInfo) + offsetX,
+            y.get(frameInfo) - layout.lineHeights[0], layout.width,
+            layout.height};
 }
 
 AnimatableRender *TextElement::createClass() { return new TextElementRender(); }
@@ -446,7 +482,8 @@ Rect TextElementRender::getRenderBox() {
 }
 
 void TextElementRender::prepare() {
-    layout = layoutText(renderThread->fontManager, text, w, textAnimators);
+    layout = layoutText(renderThread->fontManager, text, w, textAnimators,
+                        alignment.get());
 
     for (auto span : text.get().spans) {
         TextLayoutItem &item = layout.items[spanCount];
