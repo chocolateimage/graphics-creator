@@ -17,6 +17,7 @@ class EffectWidget : public QWidget {
                           QWidget *parent);
     QPushButton *effectButton;
     QPushButton *collapseButton;
+    QPushButton *enabledButton;
     QWidget *propertiesWidget;
     Scene *scene;
     Element *element;
@@ -27,6 +28,7 @@ class EffectWidget : public QWidget {
     void deleteClick();
     void collapseClick();
     void collapsedChanged();
+    void enabledClick();
 
   protected:
     bool eventFilter(QObject *obj, QEvent *event) override;

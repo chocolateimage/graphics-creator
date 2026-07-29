@@ -6,6 +6,7 @@ QJsonObject Effect::serialize() {
     QJsonObject obj = Animatable::serialize();
     obj["effectType"] = effectName();
     obj["collapsed"] = collapsed;
+    obj["enabled"] = enabled;
     return obj;
 }
 
@@ -32,6 +33,7 @@ QString Effect::displayName() {
 void Effect::deserialize(const QJsonObject &obj) {
     Animatable::deserialize(obj);
     collapsed = obj["collapsed"].toBool();
+    enabled = obj["enabled"].toBool(true);
 }
 
 Rect EffectRender::getRenderBox(const Rect &lastBox) { return lastBox; }

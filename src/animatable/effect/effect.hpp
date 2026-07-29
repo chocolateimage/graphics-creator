@@ -28,6 +28,7 @@ class Effect : public Animatable, public ICollapsible {
     virtual ~Effect() {}
 
     bool collapsed{false};
+    bool enabled{true};
 
     bool isCollapsed() override;
     void setCollapsed(bool newValue) override;

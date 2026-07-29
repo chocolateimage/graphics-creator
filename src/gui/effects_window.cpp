@@ -52,6 +52,15 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
             &EffectWidget::collapseClick);
     effectButtonLayout->addWidget(collapseButton);
 
+    enabledButton = new QPushButton(effectButton);
+    enabledButton->setFlat(true);
+    enabledButton->setIcon(effect->enabled
+                               ? QIcon::fromTheme("view-visible")
+                               : QIcon::fromTheme("view-visible-off"));
+    connect(enabledButton, &QPushButton::clicked, this,
+            &EffectWidget::enabledClick);
+    effectButtonLayout->addWidget(enabledButton);
+
     QLabel *lbl = new QLabel(displayName, effectButton);
     effectButtonLayout->addWidget(lbl);
     effectButtonLayout->addStretch();
@@ -96,6 +105,11 @@ void EffectWidget::collapsedChanged() {
     collapseButton->setIcon(effect->collapsed ? QIcon::fromTheme("arrow-right")
                                               : QIcon::fromTheme("arrow-down"));
     propertiesWidget->setVisible(!effect->collapsed);
+}
+
+void EffectWidget::enabledClick() {
+    effect->enabled = !effect->enabled;
+    emit element->effectListUpdated();
 }
 
 bool EffectWidget::eventFilter(QObject *obj, QEvent *event) {

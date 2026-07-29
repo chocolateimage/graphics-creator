@@ -14,6 +14,9 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     render->startFrame = startFrame;
     render->durationFrames = durationFrames;
     for (auto effect : effects) {
+        if (!effect->enabled)
+            continue;
+
         EffectRender *effectRender =
             (EffectRender *)effect->toRender(frameInfo);
         effectRender->element = render;
