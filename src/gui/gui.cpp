@@ -140,10 +140,24 @@ void VideoSettingsDialog::updateDurationFrames() {
 }
 
 void VideoSettingsDialog::save() {
+    QList<Element *> lastElements;
+    for (auto element : scene->elements) {
+        if (element->startFrame + element->durationFrames ==
+            scene->durationFrames) {
+            lastElements.append(element);
+        }
+    }
     scene->frameRate = frameRate->value();
     scene->width = width->value();
     scene->height = height->value();
     scene->durationFrames = (int)(duration->value() * frameRate->value());
+    for (auto element : lastElements) {
+        if (element->startFrame >= scene->durationFrames) {
+            element->startFrame = scene->durationFrames - 1;
+        }
+        element->durationFrames =
+            std::max(1, scene->durationFrames - element->startFrame);
+    }
     emit scene->sceneInfoChanged();
 }
 
