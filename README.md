@@ -14,7 +14,7 @@ Supports Windows and Linux.
 | ![long-shadow](https://party.playlook.de/public/graphics-creator/long-shadow.png) **Long Shadows** | ![wave](https://party.playlook.de/public/graphics-creator/wave.gif) **Wave**                        |
 | ![animated](https://party.playlook.de/public/graphics-creator/animated.gif) **Text Animators**     | ![easings](https://party.playlook.de/public/graphics-creator/easings.gif) **Easings**               |
 
-(Font shown above is Boulder Regular at 128 pixel size)
+(Font shown above is Boulder and Fira Sans)
 
 ## Installing
 
