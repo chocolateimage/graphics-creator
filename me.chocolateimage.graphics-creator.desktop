@@ -9,3 +9,5 @@ Categories=Graphics;
 Icon=me.chocolateimage.graphics-creator
 Exec=graphics-creator
 Terminal=false
+
+MimeType=application/vnd.graphics-creator.project;

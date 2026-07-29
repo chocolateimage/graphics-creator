@@ -30,7 +30,6 @@ bool ColorLinkEffectRender::render(const uint32_t *source,
     totalGreen /= totalAmount;
     totalBlue /= totalAmount;
 
-    Rect rect = renderBox;
     for (int y = 0; y < sourceRect.h; y++) {
         for (int x = 0; x < sourceRect.w; x++) {
             int index = pixelIndex(x, y, sourceRect.w);

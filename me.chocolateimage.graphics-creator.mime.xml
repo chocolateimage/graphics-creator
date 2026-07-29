@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+    <mime-type type="application/vnd.graphics-creator.project">
+        <comment>Graphics Creator Project</comment>
+        <glob pattern="*.gcp" />
+        <icon name="me.chocolateimage.graphics-creator" />
+    </mime-type>
+</mime-info>

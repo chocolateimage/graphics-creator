@@ -26,4 +26,5 @@ Color getBrushPixel(const Brush &brush, int x, int y, int w, int h) {
         return {r, g, b, a};
     }
     }
+    Q_UNREACHABLE();
 }

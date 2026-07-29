@@ -52,4 +52,7 @@ modules:
         path: me.chocolateimage.graphics-creator.metainfo.xml
 
       - type: file
+        path: me.chocolateimage.graphics-creator.mime.xml
+
+      - type: file
         path: me.chocolateimage.graphics-creator.desktop

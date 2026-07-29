@@ -16,7 +16,6 @@ LevelsEffect::LevelsEffect() {
 
 bool LevelsEffectRender::render(const uint32_t *source, const Rect &sourceRect,
                                 uint32_t *target) {
-    Rect rect = renderBox;
     double g2 = 1.f / gamma.get();
     double fromBlack = this->fromBlack;
     double toBlack = this->toBlack;
