@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lua.hpp"
 #include <QEasingCurve>
 #include <QList>
 #include <algorithm>
@@ -161,12 +160,12 @@ class Variant {
 
     template <typename T> T get() const { return std::get<T>(m_variant); }
 
-    void pushLua(lua_State *L) const;
+    // void pushLua(lua_State *L) const;
 
     static VariantTypeEnum::Enum typeFromString(const std::string &type);
     static Variant getDefault(VariantTypeEnum::Enum type);
-    static Variant getFromLua(VariantTypeEnum::Enum type, lua_State *L,
-                              int index);
+    // static Variant getFromLua(VariantTypeEnum::Enum type, lua_State *L,
+    //                           int index);
     static bool isValidType(const std::string &type);
 
     static Font defaultFont;
