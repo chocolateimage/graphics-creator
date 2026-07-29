@@ -41,7 +41,7 @@
 #include <windows.h>
 #endif
 
-const QString VERSION = "0.1.2";
+const QString VERSION = "0.2.0";
 
 const QString ELEMENT_COPY_MIME_TYPE =
     "application/x-graphicscreator-element-copy";
