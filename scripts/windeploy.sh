@@ -15,6 +15,7 @@ rm -rf deploy
 mkdir -p deploybuild
 
 pushd deploybuild
+rm -rf data
 cmake .. -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -GNinja -DCMAKE_BUILD_TYPE=Release
 ninja
 popd
