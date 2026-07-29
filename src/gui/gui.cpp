@@ -776,7 +776,7 @@ void NewMainWindow::setOpenFilePath(const QString &newPath) {
     if (openFilePath.isEmpty()) {
         setWindowTitle("Untitled Project [*]");
     } else {
-        setWindowTitle(openFilePath + " [*]");
+        setWindowTitle(QFileInfo(openFilePath).completeBaseName() + " [*]");
         QSettings settings;
         QStringList recents = settings.value("recent/list").toStringList();
         recents.removeAll(newPath);
