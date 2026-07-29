@@ -2,7 +2,7 @@
 
 Create titles and other visual effects with keyframes.
 
-Supports Windows and Linux.
+Supports [Windows and Linux](#installing).
 
 ![Title Animation GIF](https://party.playlook.de/public/graphics-creator/graphics-creator-animation.gif)
 
@@ -18,7 +18,9 @@ Supports Windows and Linux.
 
 ## Installing
 
-Go to the [releases page](https://github.com/chocolateimage/graphics-creator/releases/latest) and download the latest Windows setup or .flatpak file.
+Go to the [releases page](https://github.com/chocolateimage/graphics-creator/releases/latest) and download the latest Windows setup or Linux .flatpak file.
+
+If you enjoy the program, please leave a star on this repo!
 
 ## Ideas/Bugs
 
