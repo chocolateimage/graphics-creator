@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QMutex>
+#include <QNetworkAccessManager>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QStatusBar>
@@ -127,6 +128,12 @@ class NewMainWindow : public QMainWindow {
     void newProject(int width, int height, double frameRate,
                     int durationFrames);
     void newSlot();
+    void checkForUpdates();
+    void notLatestVersion(QJsonObject obj);
+
+    QNetworkAccessManager *networkAccessManager;
+
+    QString dataPath;
 
     QJsonDocument saveInto();
     void loadFile(const QString &filePath);
@@ -159,6 +166,7 @@ class NewMainWindow : public QMainWindow {
     QTimer lastRenderDelayTimer;
 
   protected:
+    void showEvent(QShowEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     bool event(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;

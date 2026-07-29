@@ -10,6 +10,7 @@
 #include "render_window.hpp"
 #include "timeline.hpp"
 #include "variant.hpp"
+#include "welcome_popup.hpp"
 #include "welcome_screen.hpp"
 #include <DockAreaWidget.h>
 #include <KIconTheme>
@@ -20,6 +21,7 @@
 #include <QClipboard>
 #include <QCommandLineParser>
 #include <QCryptographicHash>
+#include <QDesktopServices>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QFileDialog>
@@ -29,6 +31,8 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeData>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QToolBar>
@@ -36,6 +40,8 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
+
+const QString VERSION = "0.1.2";
 
 const QString ELEMENT_COPY_MIME_TYPE =
     "application/x-graphicscreator-element-copy";
@@ -233,7 +239,30 @@ class RemoveElementsCommand : public QUndoCommand {
 
 NewMainWindow::NewMainWindow() : QMainWindow() {
     undoStack = new QUndoStack(this);
-    undoStack->setUndoLimit(20);
+    undoStack->setUndoLimit(50);
+
+    QStringList dataPaths = {
+        QApplication::applicationDirPath() + "/data",
+        QApplication::applicationDirPath() + "/../share/graphics-creator/data",
+    };
+
+    for (auto path : dataPaths) {
+        if (QDir(path).exists()) {
+            dataPath = QDir(path).absolutePath();
+            break;
+        }
+    }
+
+    if (dataPath.isEmpty()) {
+        qCritical() << "No data path found. Tried:" << dataPaths;
+        KMessageBox::error(
+            nullptr, "No data folder found.\n\nPlease try reinstalling the "
+                     "program. If this "
+                     "problem persists after reinstalling, report an issue.");
+        exit(1);
+    }
+
+    networkAccessManager = new QNetworkAccessManager(this);
     scene = new Scene();
     scene->width = 1280;
     scene->height = 720;
@@ -548,6 +577,83 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
 
     rerender(false);
+}
+
+void NewMainWindow::showEvent(QShowEvent *event) {
+    QMainWindow::showEvent(event);
+
+    QSettings settings;
+
+    if (!settings.value("welcome/shown").toBool()) {
+        WelcomePopup *welcomePopup = new WelcomePopup(this);
+        welcomePopup->exec();
+    }
+
+    if (settings.value("updates/enabled").toBool()) {
+        bool shouldCheck = true;
+        if (settings.contains("updates/lastTimeChecked")) {
+            qulonglong lastTime =
+                settings.value("updates/lastTimeChecked").toULongLong();
+            int secondsPassed =
+                (QDateTime::currentDateTime().toSecsSinceEpoch() - lastTime);
+            shouldCheck = secondsPassed >= 24 * 60 * 60;
+        }
+        if (shouldCheck) {
+            settings.setValue("updates/lastTimeChecked",
+                              QDateTime::currentDateTime().toSecsSinceEpoch());
+            checkForUpdates();
+        }
+    }
+}
+
+void NewMainWindow::checkForUpdates() {
+    qInfo() << "Checking for updates";
+    QNetworkRequest request;
+    request.setUrl(QUrl("https://api.github.com/repos/chocolateimage/"
+                        "graphics-creator/releases/latest"));
+    request.setRawHeader("User-Agent",
+                         "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) "
+                         "Gecko/20100101 Firefox/153.0");
+
+    QNetworkReply *reply = networkAccessManager->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        int statusCode =
+            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode >= 400) {
+            qInfo() << "Error checking for updates. Status code is"
+                    << statusCode;
+            reply->deleteLater();
+            return;
+        }
+        auto read = reply->readAll();
+        QJsonDocument doc = QJsonDocument::fromJson(read);
+        if (doc.isObject()) {
+            QJsonObject obj = doc.object();
+            QString latestVersion = obj["name"].toString();
+            if (latestVersion != "v" + VERSION) {
+                qInfo() << "Not latest version. Latest:" << latestVersion
+                        << "Current:" << VERSION;
+                notLatestVersion(obj);
+            } else {
+                qInfo() << "On latest version";
+            }
+        }
+        reply->deleteLater();
+    });
+}
+
+void NewMainWindow::notLatestVersion(QJsonObject obj) {
+    if (KMessageBox::questionTwoActions(
+            this,
+            "<b>Update available</b><br><br>Current version: v" + VERSION +
+                "<br>Latest version: " + obj["name"].toString() +
+                "<br><br>Would you like to update?",
+            "Update available", KGuiItem("Update"),
+            KGuiItem("Remind me later")) != KMessageBox::PrimaryAction) {
+        return;
+    }
+
+    QDesktopServices::openUrl(QUrl(obj["html_url"].toString()));
 }
 
 bool NewMainWindow::event(QEvent *event) {
@@ -1230,6 +1336,7 @@ int main(int argc, char **argv) {
     application.setApplicationName(QStringLiteral("graphics-creator"));
     application.setDesktopFileName("me.chocolateimage.graphics-creator");
     application.setApplicationDisplayName(QStringLiteral("Graphics Creator"));
+    application.setApplicationVersion(VERSION);
     KStyleManager::initStyle();
 
     QCommandLineParser parser;
