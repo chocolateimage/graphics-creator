@@ -22,7 +22,7 @@ Color getBrushPixel(const Brush &brush, int x, int y, int w, int h) {
         auto [r, g, b, a] = mixColor(
             brush.color1.r, brush.color1.g, brush.color1.b, brush.color1.a,
             brush.color2.r, brush.color2.g, brush.color2.b, brush.color2.a,
-            distance((double)x / w, (double)y / h, 0.5, 0.5) * 2);
+            saturate(distance((double)x / w, (double)y / h, 0.5, 0.5) * 2));
         return {r, g, b, a};
     }
     }
