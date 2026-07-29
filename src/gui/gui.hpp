@@ -139,6 +139,7 @@ class NewMainWindow : public QMainWindow {
 
     std::unordered_map<int, SavedFrame> savedFrames;
     QSet<int> renderingFrames;
+    QList<FrameTask *> inProgressTasks;
 
     uint64_t globalId{0};
 

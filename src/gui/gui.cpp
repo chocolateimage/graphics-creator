@@ -838,6 +838,8 @@ void NewMainWindow::newSlot() {
     delete tempScene;
     showWelcome(false);
 
+    inProgressTasks.clear();
+    renderingFrames.clear();
     scene->setFramesChanging(true);
     scene->setFrame(0);
     scene->setFramesChanging(false);
@@ -890,6 +892,8 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
         scene->addElement(element);
     }
 
+    inProgressTasks.clear();
+    renderingFrames.clear();
     scene->setFramesChanging(true);
     scene->setFrame(newFrame);
     scene->setFramesChanging(false);
@@ -1004,6 +1008,12 @@ void NewMainWindow::createThread() {
 }
 
 void NewMainWindow::taskCompleted(FrameTask *task) {
+    if (!inProgressTasks.contains(task)) {
+        delete[] task->values;
+        delete task;
+        return;
+    }
+    inProgressTasks.removeOne(task);
     auto it = savedFrames.find(task->frame);
     SavedFrame savedFrame{
         .values = task->values,
@@ -1156,6 +1166,8 @@ bool NewMainWindow::createTask(int frame) {
     task->frame = frame;
     task->seconds = frame / scene->frameRate;
     task->id = ++globalId;
+
+    inProgressTasks.append(task);
 
     for (auto element : scene->elements) {
         ElementRender *render = (ElementRender *)element->toRender({frame});
