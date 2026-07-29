@@ -1,15 +1,23 @@
 # Graphics Creator
 
-> [!WARNING]
-> this tool is **work in progress**. IT'S NOT READY!!!
->
-> The `main` branch is currently under rework. Checkout commit [f294dd1](https://github.com/chocolateimage/graphics-creator/commit/f294dd16829bfe034bc605fa0258139be510fc1b) for the version shown in the KDE Discuss post.
+Create titles and other visual effects with keyframes.
 
-_Name is undecided._
+Supports Windows and Linux.
 
-Create titles and other visual effects with Lua.
+![Title Animation GIF](https://party.playlook.de/public/graphics-creator/graphics-creator-animation.gif)
 
-Supports Linux and Windows.
+## Features
+
+|                                                                                                    |                                                                                                     |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| ![stroke](https://party.playlook.de/public/graphics-creator/stroke.png) **Stroke**                 | ![mixing](https://party.playlook.de/public/graphics-creator/mixing.png) **Mixing colors and fonts** |
+| ![long-shadow](https://party.playlook.de/public/graphics-creator/long-shadow.png) **Long Shadows** | ![wave](https://party.playlook.de/public/graphics-creator/wave.gif) **Wave**                        |
+
+(Font shown above is Boulder Regular at 128 pixel size)
+
+## Installing
+
+Go to the [releases page](https://github.com/chocolateimage/graphics-creator/releases/latest) and download the latest Windows setup or .flatpak file.
 
 ## Ideas/Bugs
 
