@@ -79,6 +79,7 @@ class ImageViewer : public QWidget {
     bool isMovingElements{false};
     bool didMove{false};
     QPoint startMovePosition;
+    QList<QPoint> startElementPositions;
     QList<QJsonObject> moveOlds;
     QList<QJsonObject> moveNews;
 

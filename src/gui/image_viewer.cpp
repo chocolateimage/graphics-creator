@@ -538,13 +538,23 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     }
 
     if (isMovingElements) {
-        QPoint newPos = pixelPos;
-        QPoint diff = newPos - startMovePosition;
-        startMovePosition = newPos;
+        QPoint diff = pixelPos - startMovePosition;
+        if (QApplication::queryKeyboardModifiers().testFlag(
+                Qt::ShiftModifier)) {
+            if (std::abs(diff.x()) > std::abs(diff.y())) {
+                diff = {diff.x(), 0};
+            } else {
+                diff = {0, diff.y()};
+            }
+        }
 
+        int index = 0;
         for (auto element : scene->selectedElements) {
-            element->x.set(element->x.get(frameInfo) + diff.x(), frameInfo);
-            element->y.set(element->y.get(frameInfo) + diff.y(), frameInfo);
+            element->x.set(startElementPositions[index].x() + diff.x(),
+                           frameInfo);
+            element->y.set(startElementPositions[index].y() + diff.y(),
+                           frameInfo);
+            index++;
         }
 
         didMove = true;
@@ -687,6 +697,7 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 
             if (clickedElement) {
                 isMovingElements = true;
+                startElementPositions.clear();
                 didMove = false;
                 moveOlds.clear();
                 moveNews.clear();
@@ -705,6 +716,8 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                     }
                 }
                 for (auto element : scene->selectedElements) {
+                    startElementPositions.append(QPoint{
+                        element->x.get(frameInfo), element->y.get(frameInfo)});
                     moveOlds.append(element->x.serialize());
                     moveOlds.append(element->y.serialize());
                 }
