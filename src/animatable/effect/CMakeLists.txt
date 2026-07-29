@@ -28,5 +28,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/noise_effect.cpp
   src/animatable/effect/tile_effect.cpp
   src/animatable/effect/levels_effect.cpp
+  src/animatable/effect/expand_render_box_effect.cpp
   PARENT_SCOPE
 )

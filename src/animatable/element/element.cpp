@@ -1,5 +1,6 @@
 #include "element.hpp"
 #include "animatable/effect/effect_list.hpp"
+#include <KMessageBox>
 #include <QDebug>
 
 Rect ElementRender::getRenderBox() {
@@ -120,6 +121,8 @@ void Element::deserialize(const QJsonObject &obj) {
         if (effect) {
             effect->deserialize(effectObject);
             addEffect(effect);
+        } else {
+            KMessageBox::error(nullptr, "Invalid effect " + effectType);
         }
     }
 }

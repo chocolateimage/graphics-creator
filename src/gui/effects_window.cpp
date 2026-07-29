@@ -2,6 +2,7 @@
 #include "animatable/effect/effect_list.hpp"
 #include "line.hpp"
 #include "property_edit.hpp"
+#include <KMessageBox>
 #include <QApplication>
 #include <QDrag>
 #include <QFormLayout>
@@ -280,6 +281,12 @@ void EffectsWindow::addEffectTriggered(QAction *action) {
     for (const auto &effectInfo : effectList) {
         if (effectInfo.name == effectType) {
             effect = effectInfo.create();
+            if (effect->effectName() != effectType) {
+                KMessageBox::error(this, "Effect name (" +
+                                             effect->effectName() +
+                                             ") does not match effect list (" +
+                                             effectType + ")");
+            }
             break;
         }
     }

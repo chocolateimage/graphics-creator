@@ -900,6 +900,7 @@ Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
 
     if (!element) {
         qWarning() << "Invalid element type" << elementType;
+        KMessageBox::error(this, "Invalid element type " + elementType);
         return element;
     }
 

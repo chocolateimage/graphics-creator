@@ -5,6 +5,7 @@
 #include "crop_effect.hpp"
 #include "crt_effect.hpp"
 #include "drop_shadow_effect.hpp"
+#include "expand_render_box_effect.hpp"
 #include "fill_effect.hpp"
 #include "flip_effect.hpp"
 #include "grid_effect.hpp"
@@ -46,6 +47,8 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Tools", "Crop", "crop", CropEffect),
     DEFINE_EFFECT("Tools", "In/Out", "inOut", InOutEffect),
     DEFINE_EFFECT("Tools", "Matte", "matte", MatteEffect),
+    DEFINE_EFFECT("Tools", "Expand Render Box", "expandRenderBox",
+                  ExpandRenderBoxEffect),
 
     DEFINE_EFFECT("Style", "Wave", "wave", WaveEffect),
     DEFINE_EFFECT("Style", "MattiasCRT", "mattiasCrt", CrtEffect),
