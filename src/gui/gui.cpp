@@ -482,11 +482,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     setCentralWidget(mainStackWidget);
 
     WelcomeScreenWidget *welcomeScreen =
-        new WelcomeScreenWidget(mainStackWidget);
+        new WelcomeScreenWidget(this, mainStackWidget);
     connect(welcomeScreen, &WelcomeScreenWidget::newProjectClicked, this,
             &NewMainWindow::newSlot);
     connect(welcomeScreen, &WelcomeScreenWidget::openClicked, this,
-            &NewMainWindow::loadFile);
+            &NewMainWindow::welcomeOpenClicked);
     mainStackWidget->addWidget(welcomeScreen);
 
     dockManager = new ads::CDockManager(mainStackWidget);
@@ -577,6 +577,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
 
     rerender(false);
+}
+
+void NewMainWindow::welcomeOpenClicked(const QString &path, bool asTemplate) {
+    loadFile(path);
+    if (asTemplate) {
+        setOpenFilePath("");
+        setWindowModified(true);
+    }
 }
 
 void NewMainWindow::showEvent(QShowEvent *event) {

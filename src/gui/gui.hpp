@@ -129,6 +129,7 @@ class NewMainWindow : public QMainWindow {
     void newSlot();
     void checkForUpdates();
     void notLatestVersion(QJsonObject obj);
+    void welcomeOpenClicked(const QString &path, bool asTemplate);
 
     QNetworkAccessManager *networkAccessManager;
 

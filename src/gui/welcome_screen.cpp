@@ -1,5 +1,6 @@
 #include "welcome_screen.hpp"
 #include "flowlayout.hpp"
+#include "gui.hpp"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
@@ -62,7 +63,9 @@ WelcomeScreenProjectWidget::WelcomeScreenProjectWidget(const QString &title,
     lay->addWidget(label);
 }
 
-WelcomeScreenWidget::WelcomeScreenWidget(QWidget *parent) : QWidget(parent) {
+WelcomeScreenWidget::WelcomeScreenWidget(NewMainWindow *mainWindow,
+                                         QWidget *parent)
+    : QWidget(parent) {
     QVBoxLayout *mainLay = new QVBoxLayout(this);
     mainLay->setContentsMargins(0, 0, 0, 0);
     QScrollArea *area = new QScrollArea();
@@ -86,6 +89,31 @@ WelcomeScreenWidget::WelcomeScreenWidget(QWidget *parent) : QWidget(parent) {
     connect(newBtn, &WelcomeScreenProjectWidget::clicked, this,
             &WelcomeScreenWidget::newProjectClicked);
     flowLayout->addWidget(newBtn);
+
+    QFile templatesFile(mainWindow->dataPath +
+                        "/project-templates/templates.json");
+    if (templatesFile.open(QIODevice::ReadOnly)) {
+        QByteArray templatesData = templatesFile.readAll();
+        QJsonDocument templatesDoc = QJsonDocument::fromJson(templatesData);
+        templatesFile.close();
+
+        for (const auto &templateJson : templatesDoc.array()) {
+            auto templateObj = templateJson.toObject();
+            QString fileName = mainWindow->dataPath + "/project-templates/" +
+                               templateObj["file"].toString();
+
+            QImage img = QImage(fileName + ".png");
+
+            WelcomeScreenProjectWidget *btn = new WelcomeScreenProjectWidget(
+                templateObj["name"].toString(), false, img, this);
+            connect(btn, &WelcomeScreenProjectWidget::clicked, this,
+                    [this, fileName]() {
+                        emit openClicked(fileName + ".gcp", true);
+                    });
+            flowLayout->addWidget(btn);
+        }
+    }
+
     lay->addLayout(flowLayout);
     lay->addSpacing(16);
 
@@ -125,7 +153,7 @@ WelcomeScreenWidget::WelcomeScreenWidget(QWidget *parent) : QWidget(parent) {
             WelcomeScreenProjectWidget *btn = new WelcomeScreenProjectWidget(
                 fileInfo.completeBaseName(), false, img, this);
             connect(btn, &WelcomeScreenProjectWidget::clicked, this,
-                    [this, path]() { emit openClicked(path); });
+                    [this, path]() { emit openClicked(path, false); });
             flowLayout->addWidget(btn);
         }
         lay->addLayout(flowLayout);
