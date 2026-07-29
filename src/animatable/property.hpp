@@ -105,17 +105,43 @@ template <> inline QJsonValue serializeAnyValue(const Easing &value) {
 template <> inline QJsonValue serializeAnyValue(const TextSpans &value) {
     QJsonObject obj;
     QJsonArray spansArray;
+    QList<QString> patternList;
+    int index = 0;
     for (const auto &span : value.spans) {
+        const auto &lastSpan = value.spans[std::max(0, index - 1)];
+        bool mustDefine = index == 0;
+
         QJsonObject spanObj;
-        spanObj["t"] = span.text;
-        spanObj["st"] = serializeAnyValue(span.stroke);
+        if (mustDefine || lastSpan.text != span.text) {
+            spanObj["t"] = span.text;
+        }
+        if (mustDefine || lastSpan.stroke != span.stroke) {
+            spanObj["st"] = serializeAnyValue(span.stroke);
+        }
         if (span.strokeWidth != 0) {
             spanObj["sw"] = span.strokeWidth;
         }
-        spanObj["sl"] = (int)span.strokeLineJoin;
-        spanObj["f"] = serializeAnyValue(span.fill);
-        spanObj["fo"] = serializeAnyValue(span.font);
-        spanObj["s"] = span.fontSize;
+        if (mustDefine || lastSpan.strokeLineJoin != span.strokeLineJoin) {
+            spanObj["sl"] = (int)span.strokeLineJoin;
+        }
+        if (mustDefine || lastSpan.fill != span.fill) {
+            spanObj["f"] = serializeAnyValue(span.fill);
+        }
+        if (span.font.pattern.empty()) {
+            spanObj["fo"] = serializeAnyValue(span.font);
+        } else {
+            QString pattern = QString::fromStdString(span.font.pattern);
+            if (!patternList.contains(pattern)) {
+                patternList.append(pattern);
+            }
+            int patternIndex = patternList.indexOf(pattern);
+            if (patternIndex != 0) {
+                spanObj["fo"] = patternIndex;
+            }
+        }
+        if (mustDefine || lastSpan.fontSize != span.fontSize) {
+            spanObj["s"] = span.fontSize;
+        }
         if (!span.antialiased) {
             spanObj["aa"] = span.antialiased;
         }
@@ -123,8 +149,18 @@ template <> inline QJsonValue serializeAnyValue(const TextSpans &value) {
             spanObj["nl"] = span.newLine;
         }
         spansArray.append(spanObj);
+        index++;
     }
     obj["spans"] = spansArray;
+    if (!patternList.isEmpty()) {
+        QJsonArray patternArray;
+        for (const auto &pattern : patternList) {
+            QJsonObject fontObj;
+            fontObj["p"] = pattern;
+            patternArray.append(fontObj);
+        }
+        obj["p"] = patternArray;
+    }
     return obj;
 }
 
@@ -203,19 +239,51 @@ template <> inline Font deserializeAnyValue(const QJsonValue &value) {
 
 template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
     TextSpans spans{};
+    QList<Font> fonts;
+    for (const auto &fontValue : value["p"].toArray()) {
+        fonts.append(deserializeAnyValue<Font>(fontValue));
+    }
+
+    int index = 0;
     for (const auto &spanValue : value["spans"].toArray()) {
         QJsonObject spanObj = spanValue.toObject();
         TextSpan span{};
-        span.text = spanObj["t"].toString();
-        span.stroke = deserializeAnyValue<Brush>(spanObj["st"]);
+        TextSpan *lastSpan = index > 0 ? &spans.spans[index - 1] : &span;
+        if (spanObj.contains("t")) {
+            span.text = spanObj["t"].toString();
+        } else {
+            span.text = lastSpan->text;
+        }
+        if (spanObj.contains("st")) {
+            span.stroke = deserializeAnyValue<Brush>(spanObj["st"]);
+        } else {
+            span.stroke = lastSpan->stroke;
+        }
         span.strokeWidth = spanObj["sw"].toInt(0);
-        span.strokeLineJoin = (FT_Stroker_LineJoin)spanObj["sl"].toInt();
-        span.fill = deserializeAnyValue<Brush>(spanObj["f"]);
-        span.font = deserializeAnyValue<Font>(spanObj["fo"]);
-        span.fontSize = spanObj["s"].toInt();
+        if (spanObj.contains("sl")) {
+            span.strokeLineJoin = (FT_Stroker_LineJoin)spanObj["sl"].toInt();
+        } else {
+            span.strokeLineJoin = lastSpan->strokeLineJoin;
+        }
+        if (spanObj.contains("f")) {
+            span.fill = deserializeAnyValue<Brush>(spanObj["f"]);
+        } else {
+            span.fill = lastSpan->fill;
+        }
+        if (spanObj["fo"].isObject()) {
+            span.font = deserializeAnyValue<Font>(spanObj["fo"]);
+        } else {
+            span.font = fonts[spanObj["fo"].toInt(0)];
+        }
+        if (spanObj.contains("s")) {
+            span.fontSize = spanObj["s"].toInt();
+        } else {
+            span.fontSize = lastSpan->fontSize;
+        }
         span.antialiased = spanObj["aa"].toBool(true);
         span.newLine = spanObj["nl"].toBool(false);
         spans.spans.append(span);
+        index++;
     }
     return spans;
 }

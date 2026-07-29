@@ -27,6 +27,11 @@ class Color {
         return {(int)(r * clamped), (int)(g * clamped), (int)(b * clamped),
                 (int)(a * clamped)};
     }
+
+    bool operator==(const Color &other) const {
+        return r == other.r && g == other.g && b == other.b && a == other.a;
+    }
+    bool operator!=(const Color &other) const { return !operator==(other); }
 };
 
 struct Vector2DInt {
@@ -75,6 +80,12 @@ struct Brush {
     Color color1;
     Color color2;
     double angle{0};
+
+    bool operator==(const Brush &other) const {
+        return brushType == other.brushType && color1 == other.color1 &&
+               color2 == other.color2 && angle == other.angle;
+    }
+    bool operator!=(const Brush &other) const { return !operator==(other); }
 };
 
 class TextSpan {
