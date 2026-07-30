@@ -68,6 +68,7 @@ class ImageViewer : public QWidget {
     QPoint startPickPosition;
     QPoint pickPosition;
     QPoint getActualPickPosition();
+    QRect getPickRect();
     void updateCursor();
     Scene *scene;
 

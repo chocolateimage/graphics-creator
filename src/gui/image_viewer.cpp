@@ -14,6 +14,7 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QToolButton>
+#include <QToolTip>
 
 constexpr int RESIZE_HANDLE_SIZE = 8;
 
@@ -214,6 +215,26 @@ QPoint ImageViewer::getActualPickPosition() {
         }
     }
     return pickPosition;
+}
+
+QRect ImageViewer::getPickRect() {
+    QRect rect;
+    QPoint pickPosition = getActualPickPosition();
+    if (startPickPosition.x() > pickPosition.x()) {
+        rect.setX(pickPosition.x());
+        rect.setWidth(startPickPosition.x() - pickPosition.x() + 1);
+    } else {
+        rect.setX(startPickPosition.x());
+        rect.setWidth(pickPosition.x() - startPickPosition.x() + 1);
+    }
+    if (startPickPosition.y() > pickPosition.y()) {
+        rect.setY(pickPosition.y());
+        rect.setHeight(startPickPosition.y() - pickPosition.y() + 1);
+    } else {
+        rect.setY(startPickPosition.y());
+        rect.setHeight(pickPosition.y() - startPickPosition.y() + 1);
+    }
+    return rect;
 }
 
 void ImageViewer::enterEvent(QEnterEvent *event) { cornerFrame->show(); }
@@ -511,6 +532,13 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         pickPosition = pixelPos;
 
         update();
+
+        if (startPickPosition.x() != -1 || startPickPosition.y() != -1) {
+            QRect pickRect = getPickRect();
+            QToolTip::showText(QCursor::pos(),
+                               QString::number(pickRect.width()) + "x" +
+                                   QString::number(pickRect.height()));
+        }
     }
 
     FrameInfo frameInfo{scene->currentFrame};
@@ -833,24 +861,9 @@ class MoveResizeElementCommand : public QUndoCommand {
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
     if (isPicking && pickType == PickType::Rect) {
         if (event->button() == Qt::LeftButton) {
-            QRect rect;
-            QPoint pickPosition = getActualPickPosition();
-            if (startPickPosition.x() > pickPosition.x()) {
-                rect.setX(pickPosition.x());
-                rect.setWidth(startPickPosition.x() - pickPosition.x() + 1);
-            } else {
-                rect.setX(startPickPosition.x());
-                rect.setWidth(pickPosition.x() - startPickPosition.x() + 1);
-            }
-            if (startPickPosition.y() > pickPosition.y()) {
-                rect.setY(pickPosition.y());
-                rect.setHeight(startPickPosition.y() - pickPosition.y() + 1);
-            } else {
-                rect.setY(startPickPosition.y());
-                rect.setHeight(pickPosition.y() - startPickPosition.y() + 1);
-            }
             stopPicking();
-            emit rectPicked(pickId, rect);
+            QToolTip::hideText();
+            emit rectPicked(pickId, getPickRect());
             return;
         }
     }
