@@ -160,6 +160,200 @@ void TimelineElementButton::mouseMoveEvent(QMouseEvent *event) {
     Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
 }
 
+TimelinePropertyButton::TimelinePropertyButton(
+    PropertyBase *property, Scene *scene, TimelineWidget *timelineWidget,
+    bool stripe, QPushButton *elementButton, int indent, bool showEdit)
+    : timelineWidget(timelineWidget), property(property), scene(scene) {
+    this->setObjectName("property");
+    QString background = "transparent";
+    QString backgroundSelected = "rgba(128,128,128,0.1)";
+    if (stripe) {
+        background = "palette(alternate-base)";
+        backgroundSelected = "rgba(128,128,128,0.13)";
+    }
+    this->setStyleSheet("#property {"
+                        "   text-align: left;"
+                        "   background: " +
+                        background +
+                        ";"
+                        "   border-radius: 0px;"
+                        "}"
+                        "#property[flat=\"false\"] {"
+                        "   background: " +
+                        backgroundSelected +
+                        ";"
+                        "   border-left: 3px solid palette(accent);"
+                        "}");
+    this->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+    this->setFlat(elementButton->isFlat());
+    connect(this, &QPushButton::clicked, elementButton, &QPushButton::click);
+
+    QHBoxLayout *propertyLayout = new QHBoxLayout(this);
+    propertyLayout->setContentsMargins(indent, 0, 0, 0);
+    propertyLayout->setSpacing(0);
+
+    toggleAnimationButton = new QPushButton(this);
+
+    toggleAnimationButton->setFlat(true);
+    toggleAnimationButton->setFixedWidth(32);
+    connect(toggleAnimationButton, &QPushButton::clicked, this,
+            [scene, timelineWidget, property]() {
+                property->toggleAnimating({scene->currentFrame});
+                timelineWidget->timelineContent->updateContents();
+            });
+    propertyLayout->addWidget(toggleAnimationButton);
+
+    QLabel *label = new QLabel(this);
+    label->setText(property->getDisplayName());
+    label->setFixedWidth(150 - indent);
+    propertyLayout->addWidget(label);
+
+    if (property->flags.contains("textElementText")) {
+        QPushButton *addAnimation = new QPushButton();
+        addAnimation->setFixedWidth(100);
+        addAnimation->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+        addAnimation->setText("Animation");
+        addAnimation->setIcon(QIcon::fromTheme("list-add"));
+        connect(addAnimation, &QPushButton::clicked, this,
+                &TimelinePropertyButton::addAnimationClicked);
+        propertyLayout->addWidget(addAnimation);
+    }
+
+    if (showEdit) {
+        PropertyEdit *edit = new PropertyEdit(property, scene, this);
+        edit->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+        propertyLayout->addWidget(edit);
+    }
+
+    propertyLayout->addStretch();
+
+    keyframeRightSideSpacing = new QWidget(this);
+    keyframeRightSideSpacing->setFixedWidth(72);
+    keyframeRightSideSpacing->setFixedHeight(2);
+    propertyLayout->addWidget(keyframeRightSideSpacing);
+
+    previousButton = new QPushButton(this);
+    previousButton->setIcon(QIcon::fromTheme("arrow-left"));
+    previousButton->setToolTip("Go to previous keyframe");
+    previousButton->setFlat(true);
+    previousButton->setFixedWidth(24);
+    connect(previousButton, &QPushButton::clicked, this,
+            &TimelinePropertyButton::previousKeyframeClicked);
+    propertyLayout->addWidget(previousButton);
+
+    keyframeButton = new QPushButton(this);
+    keyframeButton->setToolTip("Toggle keyframe");
+    keyframeButton->setFlat(true);
+    keyframeButton->setFixedWidth(24);
+    connect(keyframeButton, &QPushButton::clicked, this,
+            &TimelinePropertyButton::keyframeClicked);
+    propertyLayout->addWidget(keyframeButton);
+
+    nextButton = new QPushButton(this);
+    nextButton->setIcon(QIcon::fromTheme("arrow-right"));
+    nextButton->setToolTip("Go to next keyframe");
+    nextButton->setFlat(true);
+    nextButton->setFixedWidth(24);
+    connect(nextButton, &QPushButton::clicked, this,
+            &TimelinePropertyButton::nextKeyframeClicked);
+    propertyLayout->addWidget(nextButton);
+
+    updateAnimating(property);
+
+    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated, this,
+            &TimelinePropertyButton::updateAnimating);
+    connect(property->animatable, &Animatable::propertyUpdated, this,
+            &TimelinePropertyButton::propertyUpdated);
+    connect(scene, &Scene::frameChanged, this,
+            &TimelinePropertyButton::updateKeyframe);
+}
+
+void TimelinePropertyButton::addAnimationClicked() {
+    TextElement *textElement = (TextElement *)property->animatable;
+    TextAnimator *newAnimator = new TextAnimator(textElement);
+    TextAnimatorSelector *selector = new TextAnimatorSelector(newAnimator);
+    newAnimator->selectors.append(selector);
+    textElement->textAnimators.append(newAnimator);
+    emit textElement->effectListUpdated(); // hack
+}
+
+void TimelinePropertyButton::previousKeyframeClicked() {
+    for (int index = property->keyframes.size() - 1; index >= 0; index--) {
+        if (property->keyframes[index]->frame < scene->currentFrame) {
+            scene->setFramesChanging(true);
+            scene->setFrame(property->keyframes[index]->frame);
+            scene->setFramesChanging(false);
+            break;
+        }
+    }
+}
+
+void TimelinePropertyButton::keyframeClicked() {
+    if (property->has(scene->currentFrame)) {
+        property->remove(scene->currentFrame);
+    } else {
+        property->addToPosition({scene->currentFrame});
+    }
+    timelineWidget->timelineContent->updateContents();
+}
+
+void TimelinePropertyButton::nextKeyframeClicked() {
+    for (auto keyframe : property->keyframes) {
+        if (keyframe->frame > scene->currentFrame) {
+            scene->setFramesChanging(true);
+            scene->setFrame(keyframe->frame);
+            scene->setFramesChanging(false);
+            break;
+        }
+    }
+}
+
+void TimelinePropertyButton::updateKeyframe() {
+    if (signalsBlocked())
+        return;
+    if (!property->isAnimating)
+        return;
+
+    if (property->has(scene->currentFrame)) {
+        keyframeButton->setIcon(timelineWidget->keyframeYes);
+    } else {
+        keyframeButton->setIcon(timelineWidget->keyframeNo);
+    }
+
+    previousButton->setEnabled(property->hasBefore(scene->currentFrame));
+    nextButton->setEnabled(property->hasAfter(scene->currentFrame));
+}
+
+void TimelinePropertyButton::propertyUpdated(PropertyBase *updatedProperty) {
+    if (property != updatedProperty) {
+        return;
+    }
+    updateKeyframe();
+}
+
+void TimelinePropertyButton::updateAnimating(PropertyBase *updatedProperty) {
+    if (property != updatedProperty) {
+        return;
+    }
+
+    if (property->isAnimating) {
+        KIconColors colors;
+        colors.setText(palette().accent().color());
+        toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
+        toggleAnimationButton->setToolTip("Animation enabled");
+    } else {
+        toggleAnimationButton->setIcon(QIcon::fromTheme("keyframe-disable"));
+        toggleAnimationButton->setToolTip("Animation disabled");
+    }
+
+    previousButton->setVisible(property->isAnimating);
+    keyframeButton->setVisible(property->isAnimating);
+    nextButton->setVisible(property->isAnimating);
+    keyframeRightSideSpacing->setVisible(!property->isAnimating);
+
+    updateKeyframe();
+}
+
 TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
                                QWidget *parent)
     : QWidget(parent), mainWindow(mainWindow), keyframeNo(24, 24),
@@ -582,193 +776,10 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     if (!property->isAnimatable()) {
         return;
     }
-
     timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
-    QPushButton *propertyButton = new QPushButton(timelineLeftContents);
-    propertyButton->setObjectName("property");
-    QString background = "transparent";
-    QString backgroundSelected = "rgba(128,128,128,0.1)";
-    if (*stripe) {
-        background = "palette(alternate-base)";
-        backgroundSelected = "rgba(128,128,128,0.13)";
-    }
-    propertyButton->setStyleSheet("#property {"
-                                  "   text-align: left;"
-                                  "   background: " +
-                                  background +
-                                  ";"
-                                  "   border-radius: 0px;"
-                                  "}"
-                                  "#property[flat=\"false\"] {"
-                                  "   background: " +
-                                  backgroundSelected +
-                                  ";"
-                                  "   border-left: 3px solid palette(accent);"
-                                  "}");
-    propertyButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
-    propertyButton->setFlat(elementButton->isFlat());
-    connect(propertyButton, &QPushButton::clicked, elementButton,
-            &QPushButton::click);
 
-    QHBoxLayout *propertyLayout = new QHBoxLayout(propertyButton);
-    propertyLayout->setContentsMargins(indent, 0, 0, 0);
-    propertyLayout->setSpacing(0);
-
-    QPushButton *toggleAnimationButton = new QPushButton(propertyButton);
-
-    toggleAnimationButton->setFlat(true);
-    toggleAnimationButton->setFixedWidth(32);
-    connect(toggleAnimationButton, &QPushButton::clicked, this,
-            [this, property]() {
-                property->toggleAnimating({scene->currentFrame});
-                timelineContent->updateContents();
-            });
-    propertyLayout->addWidget(toggleAnimationButton);
-
-    QLabel *label = new QLabel(propertyButton);
-    label->setText(property->getDisplayName());
-    label->setFixedWidth(150 - indent);
-    propertyLayout->addWidget(label);
-
-    if (property->flags.contains("textElementText")) {
-        QPushButton *addAnimation = new QPushButton();
-        addAnimation->setFixedWidth(100);
-        addAnimation->setFixedHeight(PROPERTY_TRACK_HEIGHT);
-        addAnimation->setText("Animation");
-        addAnimation->setIcon(QIcon::fromTheme("list-add"));
-        connect(
-            addAnimation, &QPushButton::clicked, addAnimation, [property]() {
-                TextElement *textElement = (TextElement *)property->animatable;
-                TextAnimator *newAnimator = new TextAnimator(textElement);
-                TextAnimatorSelector *selector =
-                    new TextAnimatorSelector(newAnimator);
-                newAnimator->selectors.append(selector);
-                textElement->textAnimators.append(newAnimator);
-                emit textElement->effectListUpdated(); // hack
-            });
-        propertyLayout->addWidget(addAnimation);
-    }
-
-    if (showEdit) {
-        PropertyEdit *edit = new PropertyEdit(property, scene, this);
-        edit->setFixedHeight(PROPERTY_TRACK_HEIGHT);
-        propertyLayout->addWidget(edit);
-    }
-
-    propertyLayout->addStretch();
-
-    QWidget *keyframeRightSideSpacing = new QWidget(propertyButton);
-    keyframeRightSideSpacing->setFixedWidth(72);
-    keyframeRightSideSpacing->setFixedHeight(2);
-    propertyLayout->addWidget(keyframeRightSideSpacing);
-
-    QPushButton *previousButton = new QPushButton(propertyButton);
-    previousButton->setIcon(QIcon::fromTheme("arrow-left"));
-    previousButton->setToolTip("Go to previous keyframe");
-    previousButton->setFlat(true);
-    previousButton->setFixedWidth(24);
-    connect(previousButton, &QPushButton::clicked, this, [this, property]() {
-        for (int index = property->keyframes.size() - 1; index >= 0; index--) {
-            if (property->keyframes[index]->frame < scene->currentFrame) {
-                scene->setFramesChanging(true);
-                scene->setFrame(property->keyframes[index]->frame);
-                scene->setFramesChanging(false);
-                break;
-            }
-        }
-    });
-    propertyLayout->addWidget(previousButton);
-
-    QPushButton *keyframeButton = new QPushButton(propertyButton);
-    keyframeButton->setToolTip("Toggle keyframe");
-    keyframeButton->setFlat(true);
-    keyframeButton->setFixedWidth(24);
-    connect(keyframeButton, &QPushButton::clicked, this, [this, property]() {
-        if (property->has(scene->currentFrame)) {
-            property->remove(scene->currentFrame);
-        } else {
-            property->addToPosition({scene->currentFrame});
-        }
-        timelineContent->updateContents();
-    });
-    propertyLayout->addWidget(keyframeButton);
-
-    QPushButton *nextButton = new QPushButton(propertyButton);
-    nextButton->setIcon(QIcon::fromTheme("arrow-right"));
-    nextButton->setToolTip("Go to next keyframe");
-    nextButton->setFlat(true);
-    nextButton->setFixedWidth(24);
-    connect(nextButton, &QPushButton::clicked, this, [this, property]() {
-        for (auto keyframe : property->keyframes) {
-            if (keyframe->frame > scene->currentFrame) {
-                scene->setFramesChanging(true);
-                scene->setFrame(keyframe->frame);
-                scene->setFramesChanging(false);
-                break;
-            }
-        }
-    });
-    propertyLayout->addWidget(nextButton);
-
-    auto updateKeyframe = [this, property, keyframeButton, previousButton,
-                           nextButton, elementButton]() {
-        if (elementButton->signalsBlocked())
-            return;
-        if (!property->isAnimating)
-            return;
-
-        if (property->has(scene->currentFrame)) {
-            keyframeButton->setIcon(keyframeYes);
-        } else {
-            keyframeButton->setIcon(keyframeNo);
-        }
-
-        previousButton->setEnabled(property->hasBefore(scene->currentFrame));
-        nextButton->setEnabled(property->hasAfter(scene->currentFrame));
-    };
-
-    auto propertyUpdated = [property,
-                            updateKeyframe](PropertyBase *updatedProperty) {
-        if (property != updatedProperty) {
-            return;
-        }
-        updateKeyframe();
-    };
-
-    auto updateAnimating =
-        [this, property, toggleAnimationButton, previousButton, keyframeButton,
-         nextButton, updateKeyframe,
-         keyframeRightSideSpacing](PropertyBase *updatedProperty) {
-            if (property != updatedProperty) {
-                return;
-            }
-
-            if (property->isAnimating) {
-                KIconColors colors;
-                colors.setText(palette().accent().color());
-                toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
-                toggleAnimationButton->setToolTip("Animation enabled");
-            } else {
-                toggleAnimationButton->setIcon(
-                    QIcon::fromTheme("keyframe-disable"));
-                toggleAnimationButton->setToolTip("Animation disabled");
-            }
-
-            previousButton->setVisible(property->isAnimating);
-            keyframeButton->setVisible(property->isAnimating);
-            nextButton->setVisible(property->isAnimating);
-            keyframeRightSideSpacing->setVisible(!property->isAnimating);
-
-            updateKeyframe();
-        };
-
-    updateAnimating(property);
-
-    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated,
-            elementButton, updateAnimating);
-    connect(property->animatable, &Animatable::propertyUpdated, elementButton,
-            propertyUpdated);
-    connect(scene, &Scene::frameChanged, elementButton, updateKeyframe);
+    TimelinePropertyButton *propertyButton = new TimelinePropertyButton(
+        property, scene, this, *stripe, elementButton, indent, showEdit);
 
     timelineLeftLayout->addWidget(propertyButton);
     *stripe = !*stripe;

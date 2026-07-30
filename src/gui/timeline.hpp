@@ -41,6 +41,35 @@ class TimelineElementButton : public QPushButton {
     QPushButton *visibilityButton;
 };
 
+class TimelinePropertyButton : public QPushButton {
+  public:
+    explicit TimelinePropertyButton(PropertyBase *property, Scene *scene,
+                                    TimelineWidget *timelineWidget, bool stripe,
+                                    QPushButton *elementButton, int indent,
+                                    bool showEdit);
+
+  private slots:
+    void addAnimationClicked();
+    void previousKeyframeClicked();
+    void keyframeClicked();
+    void nextKeyframeClicked();
+
+    void updateKeyframe();
+    void propertyUpdated(PropertyBase *updatedProperty);
+    void updateAnimating(PropertyBase *updatedProperty);
+
+  private:
+    TimelineWidget *timelineWidget;
+    PropertyBase *property;
+    Scene *scene;
+
+    QPushButton *toggleAnimationButton;
+    QWidget *keyframeRightSideSpacing;
+    QPushButton *previousButton;
+    QPushButton *keyframeButton;
+    QPushButton *nextButton;
+};
+
 class TimelineWidget : public QWidget {
   public:
     explicit TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
@@ -64,10 +93,10 @@ class TimelineWidget : public QWidget {
 
     bool freezeTimelineScroll{false};
 
-  private:
     QPixmap keyframeNo;
     QPixmap keyframeYes;
 
+  private:
     bool addCollapsible(ICollapsible *collapsible, bool *stripe, bool selected,
                         int indent);
     void addProperty(PropertyBase *property, bool *stripe,
