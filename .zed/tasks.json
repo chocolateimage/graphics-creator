@@ -1,6 +1,6 @@
 [
   {
     "label": "Build and launch",
-    "command": "cd build && ninja && ./graphics-creator",
+    "command": "cd build && ninja && ./graphics-creator --new 1280:720:150:30",
   },
 ]

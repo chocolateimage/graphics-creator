@@ -946,9 +946,14 @@ void NewMainWindow::newSlot() {
     settings.setValue("scene/frameRate", tempScene->frameRate);
     settings.setValue("scene/durationFrames", tempScene->durationFrames);
 
-    newProject(tempScene->width, tempScene->height, tempScene->frameRate,
-               tempScene->durationFrames);
+    newProjectNew(tempScene->width, tempScene->height, tempScene->frameRate,
+                  tempScene->durationFrames);
     delete tempScene;
+}
+
+void NewMainWindow::newProjectNew(int width, int height, double frameRate,
+                                  int durationFrames) {
+    newProject(width, height, frameRate, durationFrames);
     showWelcome(false);
 
     inProgressTasks.clear();
@@ -1351,13 +1356,32 @@ int main(int argc, char **argv) {
     parser.addHelpOption();
     parser.addPositionalArgument("filepath", "Project to open", "[filepath]");
 
+    QCommandLineOption newProjectOption(
+        "new",
+        "Create a new project without showing the welcome screen. Format: "
+        "width:height:durationFrames:fps. Example: 1920:1080:300:60",
+        "info");
+    parser.addOption(newProjectOption);
+
     parser.process(application);
 
     const QStringList args = parser.positionalArguments();
+    QString newProject = parser.value(newProjectOption);
 
     NewMainWindow widget;
     if (!args.isEmpty()) {
         widget.loadFile(args[0]);
+    } else if (!newProject.isEmpty()) {
+        QStringList splitted = newProject.split(":");
+        if (splitted.length() != 4) {
+            qCritical() << "Invalid format for --new";
+            return 1;
+        }
+        int width = splitted[0].toInt();
+        int height = splitted[1].toInt();
+        int durationFrames = splitted[2].toInt();
+        int fps = splitted[3].toInt();
+        widget.newProjectNew(width, height, fps, durationFrames);
     }
 
     widget.show();

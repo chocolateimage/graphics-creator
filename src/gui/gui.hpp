@@ -123,6 +123,8 @@ class NewMainWindow : public QMainWindow {
     void invalidateFrame(int frame);
     void saveLayout();
     void showWelcome(bool show);
+    void newProjectNew(int width, int height, double frameRate,
+                       int durationFrames);
     void newProject(int width, int height, double frameRate,
                     int durationFrames);
     void newSlot();
