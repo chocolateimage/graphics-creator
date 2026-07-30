@@ -30,6 +30,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
                             QSizePolicy::Policy::Minimum);
         widget = line;
     } else if (variantType == VariantTypeEnum::String) {
+        // TODO: undo
         auto input = new QPlainTextEdit(this);
         input->setProperty("_breeze_force_frame", true);
 
@@ -52,6 +53,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         }
 
         if (hasSlider) {
+            // TODO: undo
             auto input = new QSlider(this);
             input->setOrientation(Qt::Horizontal);
             input->setMinimum(min);
@@ -68,7 +70,11 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             input->setCurrentIndex(variant.get<int>());
 
             connect(input, &QComboBox::currentIndexChanged, this,
-                    [this](int value) { set(value); });
+                    [this](int value) {
+                        beginEditing();
+                        set(value);
+                        finishEditing();
+                    });
             widget = input;
         } else {
             auto input = new DraggableSpinBox(this);
@@ -76,8 +82,13 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             input->setMaximum(max);
             input->setSuffix(QString::fromStdString(propertyTyped->suffix));
             input->setValue(variant.get<int>());
+            connect(input, &DraggableSpinBox::editingFinished, this,
+                    [this]() { finishEditing(); });
             connect(input, &DraggableSpinBox::valueChanged, this,
-                    [this](int value) { set(value); });
+                    [this](int value) {
+                        beginEditing();
+                        set(value);
+                    });
             widget = input;
         }
     } else if (variantType == VariantTypeEnum::Double) {
@@ -95,8 +106,13 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         input->setMaximum(max);
         input->setSuffix(QString::fromStdString(propertyTyped->suffix));
         input->setValue(variant.get<double>());
+        connect(input, &DraggableDoubleSpinBox::editingFinished, this,
+                [this]() { finishEditing(); });
         connect(input, &DraggableDoubleSpinBox::valueChanged, this,
-                [this](double value) { set(value); });
+                [this](double value) {
+                    beginEditing();
+                    set(value);
+                });
         widget = input;
     } else if (variantType == VariantTypeEnum::Vector2DInt) {
         widget = new QWidget(this);
@@ -125,12 +141,18 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
 
         connect(inputX, &DraggableSpinBox::valueChanged, this,
                 [this, inputY](int value) {
+                    beginEditing();
                     set((Vector2DInt){value, inputY->value()});
                 });
         connect(inputY, &DraggableSpinBox::valueChanged, this,
                 [this, inputX](int value) {
+                    beginEditing();
                     set((Vector2DInt){inputX->value(), value});
                 });
+        connect(inputX, &DraggableSpinBox::editingFinished, this,
+                [this]() { finishEditing(); });
+        connect(inputY, &DraggableSpinBox::editingFinished, this,
+                [this](double value) { finishEditing(); });
         // connect(pickButton, &QToolButton::clicked, this, [this,
         // optionLabel]() {
         //     previewWidget->beginPicking(QString::fromStdString(optionId),
@@ -159,12 +181,18 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
 
         connect(inputX, &DraggableDoubleSpinBox::valueChanged, this,
                 [this, inputY](double value) {
+                    beginEditing();
                     set((Vector2DFloat){(float)value, (float)inputY->value()});
                 });
         connect(inputY, &DraggableDoubleSpinBox::valueChanged, this,
                 [this, inputX](double value) {
+                    beginEditing();
                     set((Vector2DFloat){(float)inputX->value(), (float)value});
                 });
+        connect(inputX, &DraggableDoubleSpinBox::editingFinished, this,
+                [this]() { finishEditing(); });
+        connect(inputY, &DraggableDoubleSpinBox::editingFinished, this,
+                [this](double value) { finishEditing(); });
     } else if (variantType == VariantTypeEnum::Color) {
         auto colorButton = new KColorButton(this);
         colorButton->setAlphaChannelEnabled(true);
@@ -172,8 +200,10 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         colorButton->setColor(QColor(value.r, value.g, value.b, value.a));
         connect(colorButton, &KColorButton::changed, this,
                 [this](const QColor &newColor) {
+                    beginEditing();
                     set((Color){newColor.red(), newColor.green(),
                                 newColor.blue(), newColor.alpha()});
+                    finishEditing();
                 });
         widget = colorButton;
     } else if (variantType == VariantTypeEnum::Font) {
@@ -185,7 +215,11 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             fontWidget->setFontValue(value);
         }
         connect(fontWidget, &FontComboBox::currentTextChanged, this,
-                [this, fontWidget]() { set(fontWidget->fontValue()); });
+                [this, fontWidget]() {
+                    beginEditing();
+                    set(fontWidget->fontValue());
+                    finishEditing();
+                });
 
         widget = fontWidget;
     } else if (variantType == VariantTypeEnum::Bool) {
@@ -193,7 +227,9 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         input->setChecked(variant.get<bool>());
         connect(input, &QCheckBox::checkStateChanged, this,
                 [this](Qt::CheckState checkState) {
+                    beginEditing();
                     set(checkState == Qt::CheckState::Checked);
+                    finishEditing();
                 });
         widget = input;
     } else if (variantType == VariantTypeEnum::Easing) {
@@ -271,14 +307,22 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             std::find(names.begin(), names.end(), value.easingCurve) -
             names.begin());
         connect(input, &QComboBox::currentIndexChanged, this,
-                [this, names](int index) { set(Easing{names[index]}); });
+                [this, names](int index) {
+                    beginEditing();
+                    set(Easing{names[index]});
+                    finishEditing();
+                });
         widget = input;
     } else if (variantType == VariantTypeEnum::Brush) {
         auto input = new BrushInput(this);
         Brush value = variant.get<Brush>();
         input->setValue(value);
-        connect(input, &BrushInput::valueChanged, this,
-                [this](Brush newValue) { set(newValue); });
+        connect(input, &BrushInput::valueChanged, this, [this](Brush newValue) {
+            beginEditing();
+            set(newValue);
+        });
+        connect(input, &BrushInput::editingFinished, this,
+                [this]() { finishEditing(); });
         widget = input;
     } else if (variantType == VariantTypeEnum::TextSpans) {
         auto button = new QPushButton(this);
@@ -317,11 +361,13 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         layout->addWidget(inputType);
 
         auto inputUpdated = [this, inputElement, inputType]() {
+            beginEditing();
             ElementSelection elementSelection;
             elementSelection.elementId = inputElement->currentData().toString();
             elementSelection.frameType =
                 (ElementSelection::FrameType)inputType->currentIndex();
             set(elementSelection);
+            finishEditing();
         };
 
         connect(inputElement, &QComboBox::currentIndexChanged, this,
@@ -337,4 +383,53 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
 template <typename T> void PropertyEdit::set(T newValue) {
     auto property = (Property<T> *)this->property;
     property->set(newValue, {scene->currentFrame});
+}
+
+class PropertyEditCommand : public QUndoCommand {
+  public:
+    PropertyEditCommand(Scene *scene, PropertyBase *property,
+                        QJsonObject oldObj, QJsonObject newObj)
+        : scene(scene), property(property), oldObj(oldObj), newObj(newObj) {
+        setText("Change " + property->getDisplayName());
+    }
+    ~PropertyEditCommand() {}
+
+    Scene *scene;
+    PropertyBase *property;
+    QJsonObject oldObj;
+    QJsonObject newObj;
+    bool didDo{false};
+
+    void undo() override {
+        property->deserialize(oldObj);
+        property->animatable->_propertyUpdated(property);
+        scene->selectElements(scene->selectedElements); // hack
+    }
+    void redo() override {
+        if (!didDo) {
+            didDo = true;
+            return;
+        }
+        property->deserialize(newObj);
+        property->animatable->_propertyUpdated(property);
+        scene->selectElements(scene->selectedElements); // hack
+    }
+};
+
+void PropertyEdit::beginEditing() {
+    if (isEditing) {
+        return;
+    }
+    isEditing = true;
+    savedState = property->serialize();
+}
+
+void PropertyEdit::finishEditing() {
+    if (!isEditing) {
+        return;
+    }
+    isEditing = false;
+    PropertyEditCommand *command = new PropertyEditCommand(
+        scene, property, std::move(savedState), property->serialize());
+    scene->undoStack->push(command);
 }

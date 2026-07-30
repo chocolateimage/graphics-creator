@@ -4,6 +4,7 @@
 #include <QElapsedTimer>
 #include <QList>
 #include <QObject>
+#include <QUndoStack>
 
 class Scene : public QObject {
     Q_OBJECT
@@ -16,6 +17,7 @@ class Scene : public QObject {
     int durationFrames;
     QList<Element *> elements;
     QList<Element *> selectedElements;
+    QUndoStack *undoStack;
     int currentFrame{0};
     bool isPlaying();
     void startTimer();

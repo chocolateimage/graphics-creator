@@ -17,7 +17,6 @@
 #include <QStatusBar>
 #include <QThread>
 #include <QToolButton>
-#include <QUndoStack>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -153,7 +152,6 @@ class NewMainWindow : public QMainWindow {
     QStackedWidget *mainStackWidget;
     ads::CDockManager *dockManager;
     ads::CDockWidget *propertiesDockWidget;
-    QUndoStack *undoStack;
 
     QList<FramePreviewThread *> previewThreads;
     QList<FrameTask *> openTasks;

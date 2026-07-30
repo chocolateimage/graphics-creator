@@ -13,10 +13,12 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
     color1 = new KColorButton(this);
     color1->setAlphaChannelEnabled(true);
     lay->addWidget(color1);
-    connect(color1, &KColorButton::changed, this, &BrushInput::_valueChanged);
+    connect(color1, &KColorButton::changed, this,
+            &BrushInput::_valueChangedFinished);
     color2 = new KColorButton(this);
     color2->setAlphaChannelEnabled(true);
-    connect(color2, &KColorButton::changed, this, &BrushInput::_valueChanged);
+    connect(color2, &KColorButton::changed, this,
+            &BrushInput::_valueChangedFinished);
     lay->addWidget(color2);
 
     angleInput = new DraggableSpinBox(this);
@@ -25,6 +27,8 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
     angleInput->setMaximum(360);
     connect(angleInput, &QSpinBox::valueChanged, this,
             &BrushInput::_valueChanged);
+    connect(angleInput, &QSpinBox::editingFinished, this,
+            &BrushInput::editingFinished);
     lay->addWidget(angleInput);
 
     typeMenu = new QMenu(this);
@@ -66,7 +70,7 @@ void BrushInput::showMenu() {
     typeMenu->exec(
         changeButton->mapToGlobal(changeButton->rect().bottomLeft()));
     updateType();
-    _valueChanged();
+    _valueChangedFinished();
     changeButton->clearFocus();
 }
 
@@ -98,6 +102,10 @@ void BrushInput::setValue(Brush value) {
 }
 
 void BrushInput::_valueChanged() { emit valueChanged(value()); }
+void BrushInput::_valueChangedFinished() {
+    emit valueChanged(value());
+    emit editingFinished();
+}
 
 Brush BrushInput::value() {
     Brush brush;

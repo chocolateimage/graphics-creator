@@ -238,9 +238,6 @@ class RemoveElementsCommand : public QUndoCommand {
 };
 
 NewMainWindow::NewMainWindow() : QMainWindow() {
-    undoStack = new QUndoStack(this);
-    undoStack->setUndoLimit(50);
-
     QStringList dataPaths = {
         QApplication::applicationDirPath() + "/data",
         QApplication::applicationDirPath() + "/../share/graphics-creator/data",
@@ -264,6 +261,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     networkAccessManager = new QNetworkAccessManager(this);
     scene = new Scene();
+    scene->undoStack = new QUndoStack(this);
+    scene->undoStack->setUndoLimit(50);
     scene->width = 1280;
     scene->height = 720;
     scene->frameRate = 30;
@@ -354,10 +353,10 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(quitAction, &QAction::triggered, this, &NewMainWindow::close);
 
     editMenu = menuBar->addMenu("Edit");
-    QAction *undoAction = undoStack->createUndoAction(this);
+    QAction *undoAction = scene->undoStack->createUndoAction(this);
     undoAction->setShortcut(QKeySequence::Undo);
     editMenu->addAction(undoAction);
-    QAction *redoAction = undoStack->createRedoAction(this);
+    QAction *redoAction = scene->undoStack->createRedoAction(this);
     redoAction->setShortcuts(QKeySequence::Redo);
     editMenu->addAction(redoAction);
 
@@ -958,7 +957,7 @@ void NewMainWindow::newSlot() {
     scene->setFrame(0);
     scene->setFramesChanging(false);
 
-    undoStack->clear();
+    scene->undoStack->clear();
     invalidateAndRerender();
     setWindowModified(false);
 }
@@ -1014,7 +1013,7 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
     scene->setFramesChanging(false);
     setWindowModified(false);
 
-    undoStack->clear();
+    scene->undoStack->clear();
     return true;
 }
 
@@ -1104,7 +1103,8 @@ void NewMainWindow::deleteTriggered() {
     if (timeline->timelineContent->deleteSelected())
         return;
 
-    undoStack->push(new RemoveElementsCommand(scene, scene->selectedElements));
+    scene->undoStack->push(
+        new RemoveElementsCommand(scene, scene->selectedElements));
 }
 
 void NewMainWindow::createThread() {
@@ -1163,7 +1163,7 @@ void NewMainWindow::controlsUpdated() {
 }
 
 void NewMainWindow::addElementUndoable(Element *element) {
-    undoStack->push(new AddElementCommand(scene, element));
+    scene->undoStack->push(new AddElementCommand(scene, element));
 }
 
 void NewMainWindow::sceneRectPicked(QString id, QRect rect) {

@@ -13,4 +13,9 @@ class PropertyEdit : public QWidget {
 
   private:
     template <typename T> void set(T newValue);
+
+    bool isEditing{false};
+    void beginEditing();
+    void finishEditing();
+    QJsonObject savedState;
 };

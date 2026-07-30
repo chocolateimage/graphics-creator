@@ -881,7 +881,7 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
                 }
                 MoveElementsCommand *command = new MoveElementsCommand(
                     scene, scene->selectedElements, moveOlds, moveNews);
-                mainWindow->undoStack->push(command);
+                scene->undoStack->push(command);
                 moveOlds.clear();
                 moveNews.clear();
             }
@@ -893,7 +893,7 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
                 resizeOldH, resizeElement->x.serialize(),
                 resizeElement->y.serialize(), resizeElement->w.serialize(),
                 resizeElement->h.serialize());
-            mainWindow->undoStack->push(command);
+            scene->undoStack->push(command);
             activeResizeMode = -1;
             updateCursor();
         }

@@ -18,9 +18,11 @@ class BrushInput : public QWidget {
 
   private slots:
     void _valueChanged();
+    void _valueChangedFinished();
 
   signals:
     void valueChanged(Brush value);
+    void editingFinished();
 
   private:
     void updateType();

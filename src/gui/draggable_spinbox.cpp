@@ -49,6 +49,7 @@ bool DraggableSpinBox::eventFilter(QObject *obj, QEvent *event) {
                 isDragging = false;
                 QCursor::setPos(holdCompleteStartPos);
                 QApplication::restoreOverrideCursor();
+                clearFocus();
             }
             isHolding = false;
         }
@@ -101,6 +102,7 @@ bool DraggableDoubleSpinBox::eventFilter(QObject *obj, QEvent *event) {
                 isDragging = false;
                 QCursor::setPos(holdCompleteStartPos);
                 QApplication::restoreOverrideCursor();
+                clearFocus();
             }
             isHolding = false;
         }
