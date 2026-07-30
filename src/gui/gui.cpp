@@ -8,7 +8,7 @@
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
-#include "timeline.hpp"
+#include "timeline/timeline_content.hpp"
 #include "variant.hpp"
 #include "welcome_popup.hpp"
 #include "welcome_screen.hpp"

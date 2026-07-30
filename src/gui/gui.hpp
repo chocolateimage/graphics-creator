@@ -1,7 +1,7 @@
 #pragma once
 #include "image_viewer.hpp"
 #include "scene.hpp"
-#include "timeline.hpp"
+#include "timeline/timeline.hpp"
 #include <DockManager.h>
 #include <QChronoTimer>
 #include <QComboBox>

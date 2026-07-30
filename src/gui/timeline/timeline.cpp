@@ -1,0 +1,455 @@
+#include "timeline.hpp"
+#include "animatable/element/text_element.hpp"
+#include "element_button.hpp"
+#include "gui/line.hpp"
+#include "gui/push_button.hpp"
+#include "property_button.hpp"
+#include "timeline_content.hpp"
+#include <QApplication>
+#include <QDragEnterEvent>
+#include <QMenu>
+#include <QMimeData>
+#include <QPainter>
+#include <QScrollBar>
+#include <QSplitter>
+
+TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
+                               QWidget *parent)
+    : QWidget(parent), mainWindow(mainWindow), keyframeNo(24, 24),
+      keyframeYes(24, 24) {
+    this->scene = scene;
+    setAcceptDrops(true);
+
+    createPixmaps();
+
+    connect(scene, &Scene::elementAdded, this, &TimelineWidget::updateContents);
+    connect(scene, &Scene::elementRemoved, this,
+            &TimelineWidget::updateContents);
+    connect(scene, &Scene::elementSelectionChanged, this,
+            &TimelineWidget::elementSelectionChanged);
+    connect(scene, &Scene::elementOrderChanged, this,
+            &TimelineWidget::updateContents);
+    connect(scene, &Scene::sceneInfoChanged, this,
+            &TimelineWidget::updateContents);
+    connect(scene, &Scene::framesChanging, this,
+            &TimelineWidget::framesChanging); // hack for property not updating
+                                              // in inline PropertyEdit
+
+    auto mainLay = new QVBoxLayout(this);
+    mainLay->setContentsMargins(0, 0, 0, 0);
+    mainLay->setSpacing(0);
+
+    auto toolbar = new QFrame(this);
+    toolbar->setFrameShape(QFrame::Shape::StyledPanel);
+    toolbar->setFrameShadow(QFrame::Shadow::Plain);
+    QPalette palette = toolbar->palette();
+    palette.setColor(QPalette::ColorRole::Base, Qt::red);
+    toolbar->setPalette(palette);
+    auto toolbarLay = new QHBoxLayout(toolbar);
+    toolbarLay->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    toolbarLay->setContentsMargins(12, 0, 12, 0);
+    toolbarLay->setSpacing(0);
+
+    QPushButton *goToStartButton = new QPushButton(toolbar);
+    goToStartButton->setToolTip("Go to start");
+    goToStartButton->setFlat(true);
+    goToStartButton->setIcon(QIcon::fromTheme("media-skip-backward"));
+    connect(goToStartButton, &QPushButton::clicked, this,
+            &TimelineWidget::goToStart);
+    toolbarLay->addWidget(goToStartButton);
+
+    playButton = new QPushButton(toolbar);
+    playButton->setFlat(true);
+    playbackStateChanged(false);
+    connect(scene, &Scene::playbackStateChanged, this,
+            &TimelineWidget::playbackStateChanged);
+    connect(playButton, &QPushButton::clicked, this,
+            &TimelineWidget::togglePlay);
+    toolbarLay->addWidget(playButton);
+
+    toolbarLay->addStretch();
+
+    zoomSlider = new QSlider(toolbar);
+    zoomSlider->setOrientation(Qt::Horizontal);
+    zoomSlider->setRange(1, 250);
+    zoomSlider->setValue(30);
+    zoomSlider->setMaximumWidth(150);
+    toolbarLay->addWidget(zoomSlider);
+
+    mainLay->addWidget(toolbar);
+
+    mainLay->addWidget(new HorizontalLine(this));
+
+    auto lay = new QVBoxLayout();
+    mainLay->addLayout(lay, 1);
+    lay->setContentsMargins(0, 0, 0, 0);
+
+    QSplitter *splitter = new QSplitter(this);
+
+    timelineLeftScrollArea = new QScrollArea(splitter);
+    timelineLeftScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    timelineLeftScrollArea->setHorizontalScrollBarPolicy(
+        Qt::ScrollBarAlwaysOff);
+    timelineLeftScrollArea->verticalScrollBar()->setEnabled(false);
+    timelineLeftContents = new QWidget(timelineLeftScrollArea);
+    timelineLeftContents->setMinimumHeight(100000);
+    timelineLeftLayout = new QVBoxLayout(timelineLeftContents);
+    timelineLeftLayout->setContentsMargins(0, 0, 0, 0);
+    timelineLeftLayout->setSpacing(0);
+    timelineLeftScrollArea->setWidget(timelineLeftContents);
+    timelineLeftScrollArea->setWidgetResizable(true);
+    splitter->addWidget(timelineLeftScrollArea);
+
+    timelineMainScrollArea = new QScrollArea(splitter);
+    timelineMainScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    timelineMainScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    connect(timelineMainScrollArea->verticalScrollBar(),
+            &QScrollBar::valueChanged, this, &TimelineWidget::timelineScrolled);
+    timelineContent = new TimelineContentWidget(this, this);
+    timelineMainScrollArea->setWidget(timelineContent);
+    splitter->addWidget(timelineMainScrollArea);
+
+    splitter->setSizes({300, 900});
+
+    lay->addWidget(splitter);
+
+    timelineLeftContents->installEventFilter(this);
+
+    connect(zoomSlider, &QSlider::valueChanged, timelineContent,
+            &TimelineContentWidget::updateContents);
+
+    updateContents();
+}
+
+void TimelineWidget::framesChanging(bool changing) {
+    if (!changing) {
+        updateContents();
+    }
+}
+
+void TimelineWidget::elementSelectionChanged(QList<Element *> elements) {
+    timelineContent->selectedKeyframes.clear();
+    updateContents();
+}
+
+void TimelineWidget::dragEnterEvent(QDragEnterEvent *event) {
+    if (event->mimeData()->hasFormat(ELEMENT_DRAG_MIME_TYPE)) {
+        event->accept();
+    }
+}
+
+void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
+    if (event->mimeData()->hasFormat(ELEMENT_DRAG_MIME_TYPE)) {
+        if (!elementMoveBar) {
+            elementMoveBar = new QFrame(timelineLeftContents);
+            elementMoveBar->setFrameShape(QFrame::Shape::StyledPanel);
+            elementMoveBar->setFrameShadow(QFrame::Shadow::Raised);
+            elementMoveBar->setFixedWidth(timelineLeftContents->width());
+            elementMoveBar->setFixedHeight(2);
+            elementMoveBar->setAutoFillBackground(true);
+            elementMoveBar->setBackgroundRole(QPalette::ColorRole::Accent);
+            timelineLeftLayout->addWidget(elementMoveBar);
+        }
+
+        QList<int> yPositions;
+
+        yPositions.append(elementButtons[0]->y());
+
+        for (auto element : elementButtons) {
+            yPositions.append(element->y() + OBJECT_TRACK_HEIGHT);
+        }
+
+        QPointF pos =
+            timelineLeftContents->mapFromGlobal(mapToGlobal(event->position()));
+        int yPos = pos.y();
+        int targetElementIndex = 0;
+        int lastClosest = INT32_MAX;
+        for (int i = 0; i < yPositions.size(); i++) {
+            int diff = std::abs(yPositions[i] - yPos);
+            if (diff < lastClosest) {
+                targetElementIndex = i;
+                lastClosest = diff;
+            }
+        }
+        elementMoveTarget = targetElementIndex;
+        elementMoveBar->move(0, yPositions[targetElementIndex]);
+    }
+}
+
+void TimelineWidget::dragLeaveEvent(QDragLeaveEvent *event) {
+    if (elementMoveBar) {
+        elementMoveBar->deleteLater();
+        elementMoveBar = nullptr;
+    }
+}
+
+void TimelineWidget::dropEvent(QDropEvent *event) {
+    if (elementMoveBar) {
+        uint64_t address =
+            QString::fromUtf8(event->mimeData()->data(ELEMENT_DRAG_MIME_TYPE))
+                .toULongLong();
+        Element *gotElement = (Element *)address;
+        scene->reorderElement(gotElement, elementMoveTarget);
+
+        elementMoveBar->deleteLater();
+        elementMoveBar = nullptr;
+    }
+}
+
+void TimelineWidget::createPixmaps() {
+    QPolygon polygon;
+    int size = 8;
+    int offset = 4;
+    polygon << QPoint(size, 0);
+    polygon << QPoint(size * 2, size);
+    polygon << QPoint(size, size * 2);
+    polygon << QPoint(0, size);
+    keyframeNo.fill(Qt::transparent);
+    {
+        QPainter painter(&keyframeNo);
+        painter.translate(offset, offset);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(palette().text());
+        painter.drawPolygon(polygon);
+    }
+    keyframeYes.fill(Qt::transparent);
+    {
+        QPainter painter(&keyframeYes);
+        painter.translate(offset, offset);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(palette().accent());
+        painter.drawPolygon(polygon);
+    }
+}
+
+void TimelineWidget::goToStart() {
+    if (scene->isPlaying()) {
+        scene->stopTimer();
+    }
+    scene->setFramesChanging(true);
+    scene->setFrame(0);
+    scene->setFramesChanging(false);
+}
+
+void TimelineWidget::togglePlay() {
+    if (scene->isPlaying()) {
+        scene->stopTimer();
+    } else {
+        scene->startTimer();
+    }
+}
+
+void TimelineWidget::playbackStateChanged(bool playing) {
+    if (playing) {
+        playButton->setIcon(QIcon::fromTheme("media-playback-pause"));
+        playButton->setToolTip("Pause");
+    } else {
+        playButton->setToolTip("Play");
+        playButton->setIcon(QIcon::fromTheme("media-playback-start"));
+    }
+}
+
+bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == timelineLeftContents) {
+        if (event->type() == QEvent::Wheel) {
+            QWheelEvent *oldEvent = (QWheelEvent *)event;
+            QWheelEvent *newEvent = new QWheelEvent(
+                oldEvent->position(), oldEvent->globalPosition(),
+                oldEvent->pixelDelta(), oldEvent->angleDelta(),
+                oldEvent->buttons(), oldEvent->modifiers(), oldEvent->phase(),
+                oldEvent->inverted(), oldEvent->source(),
+                oldEvent->pointingDevice());
+            QApplication::sendEvent(timelineMainScrollArea->verticalScrollBar(),
+                                    newEvent);
+        }
+        return true;
+    }
+    return QObject::eventFilter(obj, event);
+}
+
+void TimelineWidget::updateContents() {
+    freezeTimelineScroll = true;
+    while (timelineLeftLayout->count() > 0) {
+        auto item = timelineLeftLayout->takeAt(0);
+        QWidget *widget = item->widget();
+        if (widget != nullptr) {
+            widget->hide();
+            widget->setParent(nullptr);
+            widget->blockSignals(true);
+            widget->deleteLater();
+        }
+        delete item;
+    }
+
+    timelineLeftLayout->addSpacing(TIMELINE_HEADER_HEIGHT);
+
+    elementButtons.clear();
+    timelineContent->updatedHeight = TIMELINE_HEADER_HEIGHT;
+    bool stripe = false;
+    for (auto element : scene->elements) {
+        disconnect(element, &Element::effectListUpdated, this,
+                   &TimelineWidget::updateContents);
+        connect(element, &Element::effectListUpdated, this,
+                &TimelineWidget::updateContents);
+        disconnect(element, &Element::propertyUpdated, timelineContent,
+                   &TimelineContentWidget::updatePaint);
+        connect(element, &Element::propertyUpdated, timelineContent,
+                &TimelineContentWidget::updatePaint);
+        disconnect(element, &Element::effectPropertyUpdated, timelineContent,
+                   &TimelineContentWidget::updatePaint);
+        connect(element, &Element::effectPropertyUpdated, timelineContent,
+                &TimelineContentWidget::updatePaint);
+        bool selected = scene->selectedElements.contains(element);
+        TimelineElementButton *elementButton =
+            new TimelineElementButton(element, this);
+        elementButtons.append(elementButton);
+        timelineLeftLayout->addWidget(elementButton);
+        timelineContent->updatedHeight += OBJECT_TRACK_HEIGHT;
+
+        stripe = !stripe;
+
+        if (!element->collapsed) {
+            for (auto property : element->properties) {
+                addProperty(property, &stripe, elementButton, 24, false);
+            }
+
+            TextElement *textElement = dynamic_cast<TextElement *>(element);
+            if (textElement) {
+                for (auto animator : textElement->textAnimators) {
+                    if (!addCollapsible(animator, &stripe, selected, 32))
+                        continue;
+
+                    for (auto selector : animator->selectors) {
+                        if (!addCollapsible(selector, &stripe, selected, 48))
+                            continue;
+
+                        for (auto selector : selector->properties) {
+                            addProperty(selector, &stripe, elementButton, 64,
+                                        true);
+                        }
+                    }
+
+                    for (auto property : animator->properties) {
+                        addProperty(property, &stripe, elementButton, 48, true);
+                    }
+                }
+            }
+
+            for (auto effect : element->effects) {
+                if (effect->properties.empty())
+                    continue;
+
+                if (!addCollapsible(effect, &stripe, selected, 32))
+                    continue;
+
+                for (auto property : effect->properties) {
+                    addProperty(property, &stripe, elementButton, 48, false);
+                }
+            }
+        }
+    }
+
+    timelineLeftLayout->addSpacing(64);
+    timelineLeftLayout->addStretch();
+    freezeTimelineScroll = false;
+    timelineScrolled();
+}
+
+bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
+                                    bool selected, int indent) {
+    bool collapsed = collapsible->isCollapsed();
+
+    timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
+    PushButton *effectButton = new PushButton(timelineLeftContents);
+    QString background = "transparent";
+    QString backgroundSelected = "rgba(128,128,128,0.1)";
+    if (*stripe) {
+        background = "palette(alternate-base)";
+        backgroundSelected = "rgba(128,128,128,0.13)";
+    }
+    effectButton->setStyleSheet("QPushButton {"
+                                "   text-align: left;"
+                                "   padding-left: " +
+                                QString::number(indent) +
+                                "px;"
+                                "   background: " +
+                                background +
+                                ";"
+                                "   border-radius: 0px;"
+                                "   font-weight: 600;"
+                                "}"
+                                "QPushButton[flat=\"false\"] {"
+                                "   background: " +
+                                backgroundSelected +
+                                ";"
+                                "   border-left: 3px solid palette(accent);"
+                                "   padding-left: " +
+                                QString::number(indent - 3) +
+                                "px;"
+                                "}");
+    if (collapsed) {
+        effectButton->setIcon(QIcon::fromTheme("arrow-right"));
+    } else {
+        effectButton->setIcon(QIcon::fromTheme("arrow-down"));
+    }
+    effectButton->setText(collapsible->displayName());
+    effectButton->setFixedHeight(PROPERTY_TRACK_HEIGHT);
+    effectButton->setFlat(!selected);
+    connect(effectButton, &QPushButton::clicked, this, [this, collapsible]() {
+        collapsible->setCollapsed(!collapsible->isCollapsed());
+        QTimer::singleShot(0, this, &TimelineWidget::updateContents);
+    });
+
+    connect(effectButton, &PushButton::rightClicked, this,
+            [collapsible, effectButton]() {
+                QMenu menu;
+                QAction *collapseAction;
+                if (collapsible->isCollapsed()) {
+                    collapseAction = menu.addAction("Expand");
+                } else {
+                    collapseAction = menu.addAction("Collapse");
+                }
+                QAction *deleteAction = nullptr;
+                if (collapsible->isDeletable()) {
+                    deleteAction = menu.addAction("Delete");
+                    deleteAction->setIcon(QIcon::fromTheme("delete"));
+                }
+                QAction *action = menu.exec(QCursor::pos());
+
+                if (action == collapseAction) {
+                    effectButton->click();
+                } else if (action == deleteAction) {
+                    collapsible->deleteThis();
+                }
+            });
+
+    timelineLeftLayout->addWidget(effectButton);
+    *stripe = !*stripe;
+
+    return !collapsed;
+}
+
+void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
+                                 QPushButton *elementButton, int indent,
+                                 bool showEdit) {
+    if (!property->isAnimatable()) {
+        return;
+    }
+    timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
+
+    TimelinePropertyButton *propertyButton = new TimelinePropertyButton(
+        property, scene, this, *stripe, elementButton, indent, showEdit);
+
+    timelineLeftLayout->addWidget(propertyButton);
+    *stripe = !*stripe;
+}
+
+void TimelineWidget::timelineScrolled() {
+    if (freezeTimelineScroll)
+        return;
+
+    timelineLeftScrollArea->verticalScrollBar()->setValue(
+        timelineMainScrollArea->verticalScrollBar()->value());
+
+    timelineContent->updateContents();
+}

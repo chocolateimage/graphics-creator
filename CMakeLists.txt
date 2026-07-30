@@ -38,7 +38,6 @@ set(graphicscreator_SRCS
     src/gui/draggable_spinbox.cpp
     src/gui/video_file_button.cpp
     src/gui/brush_input.cpp
-    src/gui/timeline.cpp
     src/gui/property_window.cpp
     src/gui/property_edit.cpp
     src/gui/effects_window.cpp
@@ -48,6 +47,10 @@ set(graphicscreator_SRCS
     src/gui/welcome_screen.cpp
     src/gui/flowlayout.cpp
     src/gui/welcome_popup.cpp
+    src/gui/timeline/timeline.cpp
+    src/gui/timeline/timeline_content.cpp
+    src/gui/timeline/property_button.cpp
+    src/gui/timeline/element_button.cpp
     src/animatable/animatable.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp
