@@ -244,6 +244,7 @@ void GuiRenderThread::doErrored(QString error) {
         return;
     isCancelling = true;
     hasErrored = true;
+    errorMsg = error;
     emit errored(error);
 }
 
@@ -394,12 +395,12 @@ void RenderWindow::resetRenderFilePathInput() {
 }
 
 void RenderWindow::renderVideoError(QString error) {
-    show();
-    activateWindow();
     qCritical() << error;
     KMessageBox::error(
         this, "An error occured while rendering the video.\n\n" + error,
         "Render error");
+    show();
+    activateWindow();
 }
 
 void RenderWindow::renderButtonClicked() {
@@ -416,7 +417,10 @@ void RenderWindow::renderButtonClicked() {
             return;
         }
     }
+    render(fileInfo, encoder);
+}
 
+void RenderWindow::render(QFileInfo fileInfo, QString encoder) {
     renderedFileButton->hide();
     renderButton->setDisabled(true);
     renderProgressLabel->setText("Preparing...");
@@ -424,7 +428,7 @@ void RenderWindow::renderButtonClicked() {
     renderProgressLabel->show();
     renderProgressBar->show();
 
-    GuiRenderThread *thread = new GuiRenderThread(this);
+    thread = new GuiRenderThread(this);
     Scene *scene = mainWindow->scene;
 
     for (int frame = 0; frame < scene->durationFrames; frame++) {
@@ -451,13 +455,12 @@ void RenderWindow::renderButtonClicked() {
     thread->fileInfo = fileInfo;
     thread->encoder = encoder;
 
-    thread->start();
-
     connect(thread, &GuiRenderThread::errored, this,
             &RenderWindow::renderVideoError);
 
-    connect(thread, &GuiRenderThread::finished, thread, [this, thread]() {
+    connect(thread, &GuiRenderThread::finished, thread, [this]() {
         thread->deleteLater();
+        thread = nullptr;
         renderButton->setDisabled(false);
         renderProgressLabel->hide();
         renderProgressBar->hide();
@@ -481,4 +484,6 @@ void RenderWindow::renderButtonClicked() {
                 renderedFileButton->show();
                 renderedFileButton->setFile(fileInfo.filePath());
             });
+
+    thread->start();
 }

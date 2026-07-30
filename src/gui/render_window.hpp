@@ -41,6 +41,7 @@ class GuiRenderThread : public QThread {
     int64_t lastFrameIndex{0};
     std::atomic<bool> isCancelling{false};
     std::atomic<bool> hasErrored{false};
+    QString errorMsg;
 
     std::vector<FrameTask *> tasks{};
 
@@ -102,8 +103,11 @@ class RenderWindow : public QWidget {
     QProgressBar *renderProgressBar;
     VideoFileButton *renderedFileButton;
 
+    GuiRenderThread *thread{nullptr};
+
     void resetRenderFilePathInput();
     void renderButtonClicked();
+    void render(QFileInfo fileInfo, QString encoder);
 
   public slots:
     void renderVideoError(QString error);

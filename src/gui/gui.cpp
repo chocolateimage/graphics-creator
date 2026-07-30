@@ -1363,10 +1363,32 @@ int main(int argc, char **argv) {
         "info");
     parser.addOption(newProjectOption);
 
+    QCommandLineOption renderOption("render",
+                                    "Render project into file. Will not "
+                                    "overwrite unless --overwrite is set. An "
+                                    "encoder with --encoder must be set.",
+                                    "file");
+    parser.addOption(renderOption);
+
+    QCommandLineOption overwriteOption(QStringList() << "y" << "overwrite",
+                                       "Overwrite file when rendering");
+    parser.addOption(overwriteOption);
+
+    QCommandLineOption encoderOption(
+        "encoder",
+        "The FFmepg encoder to use when rendering. For mov with transparency: "
+        "prores (or prores_ks which may be faster but can cause issues). For "
+        "mp4/H264: libx264. For mp4/H264 with NVDIA: h264_nvenc. "
+        "For webm/VP9: libvpx-vp9. List of encoders can be viewed with ffmpeg "
+        "-encoders",
+        "encoder");
+    parser.addOption(encoderOption);
+
     parser.process(application);
 
     const QStringList args = parser.positionalArguments();
     QString newProject = parser.value(newProjectOption);
+    QString renderFile = parser.value(renderOption);
 
     NewMainWindow widget;
     if (!args.isEmpty()) {
@@ -1384,6 +1406,43 @@ int main(int argc, char **argv) {
         widget.newProjectNew(width, height, fps, durationFrames);
     }
 
-    widget.show();
+    if (!renderFile.isEmpty()) {
+        qInfo() << "";
+        QString encoder = parser.value(encoderOption);
+        if (encoder.isEmpty()) {
+            qCritical()
+                << "An encoder must also be set with --encoder. View the help "
+                   "with --help to see a short list of encoders.";
+            return 1;
+        }
+        QFileInfo info(renderFile);
+        if (info.exists()) {
+            if (!parser.isSet(overwriteOption)) {
+                qCritical()
+                    << "Not overwriting file" << info.absoluteFilePath();
+                qCritical() << "Use --overwrite to overwrite the file";
+                return 1;
+            }
+        }
+
+        // TODO: template/placeholder text
+
+        RenderWindow *renderWindow = new RenderWindow(&widget);
+        renderWindow->renderFilePathInput->setText(info.absoluteFilePath());
+        renderWindow->render(info, encoder);
+        if (renderWindow->thread) {
+            renderWindow->thread->wait();
+            if (renderWindow->thread->hasErrored) {
+                qCritical() << "An error occured while rendering:"
+                            << qPrintable(renderWindow->thread->errorMsg);
+            }
+            return 0;
+        } else {
+            return 1;
+        }
+    } else {
+        widget.show();
+    }
+
     return application.exec();
 }
