@@ -152,7 +152,7 @@ class NewMainWindow : public QMainWindow {
     uint64_t globalId{0};
 
     QStackedWidget *mainStackWidget;
-    ads::CDockManager *dockManager;
+    ads::CDockManager *dockManager{nullptr};
     ads::CDockWidget *propertiesDockWidget;
 
     QList<FramePreviewThread *> previewThreads;
