@@ -41,7 +41,8 @@ extern ImageLoader globalImageLoader;
 class StrokeInfo {
   public:
     StrokeInfo() : strokeWidth(0), lineJoin(FT_STROKER_LINEJOIN_ROUND) {}
-    StrokeInfo(int w, FT_Stroker_LineJoin lj) : strokeWidth(w), lineJoin(lj) {}
+    StrokeInfo(double w, FT_Stroker_LineJoin lj)
+        : strokeWidth(w), lineJoin(lj) {}
     std::string hash() const {
         if (strokeWidth > 0) {
             return std::to_string(strokeWidth) + "\n" +
@@ -50,7 +51,7 @@ class StrokeInfo {
             return "0\n0";
         }
     }
-    int strokeWidth;
+    double strokeWidth;
     FT_Stroker_LineJoin lineJoin;
 };
 

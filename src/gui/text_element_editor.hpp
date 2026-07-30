@@ -42,7 +42,7 @@ class TextElementEditor : public QObject {
     FontComboBox *fontComboBox;
     BrushInput *fillInput;
     QCheckBox *antialiasedCheckBox;
-    QSpinBox *strokeWidth;
+    QDoubleSpinBox *strokeWidth;
     BrushInput *strokeInput;
     QComboBox *strokeLineJoin;
     QListWidget *debugListWidget;
@@ -58,7 +58,7 @@ class TextElementEditor : public QObject {
     void setFontSize(int newValue);
     void setFill(Brush value);
     void setAntialiased(bool newValue);
-    void setStrokeWidth(int newValue);
+    void setStrokeWidth(double newValue);
     void setStroke(Brush value);
     void setStrokeLineJoin(int value);
 };

@@ -2,7 +2,6 @@
 #include "math.hpp"
 #include "render.hpp"
 #include <QDebug>
-#include <cstring>
 #include <fontconfig/fontconfig.h>
 #include <math.h>
 

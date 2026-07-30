@@ -43,9 +43,9 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
             &TextElementEditor::setAntialiased);
     layout->addRow("Antialiased", antialiasedCheckBox);
 
-    strokeWidth = new DraggableSpinBox(dockContentWidget);
+    strokeWidth = new DraggableDoubleSpinBox(dockContentWidget);
     strokeWidth->setRange(0, 500);
-    connect(strokeWidth, &QSpinBox::valueChanged, this,
+    connect(strokeWidth, &QDoubleSpinBox::valueChanged, this,
             &TextElementEditor::setStrokeWidth);
     layout->addRow("Stroke width", strokeWidth);
 
@@ -170,7 +170,7 @@ void TextElementEditor::setAntialiased(bool newValue) {
         [newValue](TextSpan &span) { span.antialiased = newValue; });
 }
 
-void TextElementEditor::setStrokeWidth(int newValue) {
+void TextElementEditor::setStrokeWidth(double newValue) {
     setSpanProperties(
         [newValue](TextSpan &span) { span.strokeWidth = newValue; });
 }

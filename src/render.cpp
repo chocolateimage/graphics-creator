@@ -152,7 +152,7 @@ FT_BitmapGlyph FontInfo::getGlyph(hb_codepoint_t codepoint) {
         FT_Stroker_Set(stroker, pixelHeight * strokeInfo.strokeWidth,
                        FT_STROKER_LINECAP_SQUARE, strokeInfo.lineJoin, 0);
         FT_Get_Glyph(face->glyph, &_glyph);
-        FT_Glyph_StrokeBorder(&_glyph, stroker, false, true);
+        FT_Glyph_Stroke(&_glyph, stroker, true);
         FT_Glyph_To_Bitmap(&_glyph, renderMode, 0, true);
         FT_Stroker_Done(stroker);
     } else {

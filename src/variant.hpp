@@ -100,7 +100,7 @@ class TextSpan {
     bool newLine{false};
     bool antialiased{true};
 
-    int strokeWidth{0};
+    double strokeWidth{0};
     Brush stroke{};
     FT_Stroker_LineJoin strokeLineJoin{FT_STROKER_LINEJOIN_ROUND};
 

@@ -259,7 +259,7 @@ template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
         } else {
             span.stroke = lastSpan->stroke;
         }
-        span.strokeWidth = spanObj["sw"].toInt(0);
+        span.strokeWidth = spanObj["sw"].toDouble(0);
         if (spanObj.contains("sl")) {
             span.strokeLineJoin = (FT_Stroker_LineJoin)spanObj["sl"].toInt();
         } else {
