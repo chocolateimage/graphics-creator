@@ -5,6 +5,7 @@
 #include "gui/push_button.hpp"
 #include "property_button.hpp"
 #include "timeline_content.hpp"
+#include <QActionGroup>
 #include <QApplication>
 #include <QDragEnterEvent>
 #include <QMenu>
@@ -67,6 +68,33 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
             &TimelineWidget::togglePlay);
     toolbarLay->addWidget(playButton);
 
+    toolbarLay->addSpacing(16);
+    positionInput = new QDoubleSpinBox(toolbar);
+    positionInput->setRange(0, INT32_MAX);
+    positionInput->setToolTip("Current position");
+    connect(positionInput, &QDoubleSpinBox::valueChanged, this,
+            &TimelineWidget::positionChanged);
+    toolbarLay->addWidget(positionInput);
+
+    positionTypeMenu = new QMenu(this);
+
+    QActionGroup *group = new QActionGroup(positionTypeMenu);
+    group->setExclusive(true);
+
+    actionSeconds = group->addAction("Seconds");
+    actionSeconds->setCheckable(true);
+    actionSeconds->setChecked(true);
+    positionTypeMenu->addAction(actionSeconds);
+    actionFrames = group->addAction("Frames");
+    actionFrames->setCheckable(true);
+    positionTypeMenu->addAction(actionFrames);
+
+    positionTypeButton = new QPushButton(toolbar);
+    positionTypeButton->setIcon(QIcon::fromTheme("arrow-down"));
+    connect(positionTypeButton, &QPushButton::pressed, this,
+            &TimelineWidget::showPositionTypeMenu);
+    toolbarLay->addWidget(positionTypeButton);
+
     toolbarLay->addStretch();
 
     zoomSlider = new QSlider(toolbar);
@@ -118,7 +146,54 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     connect(zoomSlider, &QSlider::valueChanged, timelineContent,
             &TimelineContentWidget::updateContents);
 
+    connect(scene, &Scene::frameChanged, this, &TimelineWidget::frameChanged);
+    connect(scene, &Scene::sceneInfoChanged, this,
+            &TimelineWidget::sceneInfoChanged);
+    frameChanged(0);
+    sceneInfoChanged();
+
     updateContents();
+}
+
+void TimelineWidget::showPositionTypeMenu() {
+    positionTypeMenu->exec(positionTypeButton->mapToGlobal(
+        positionTypeButton->rect().bottomLeft()));
+    positionTypeButton->clearFocus();
+    sceneInfoChanged();
+}
+
+void TimelineWidget::frameChanged(int frame) {
+    QSignalBlocker blocker(positionInput);
+    if (actionFrames->isChecked()) {
+        positionInput->setValue(frame);
+    } else {
+        positionInput->setValue((double)frame / scene->frameRate);
+    }
+}
+
+void TimelineWidget::sceneInfoChanged() {
+    QSignalBlocker blocker(positionInput);
+    if (actionFrames->isChecked()) {
+        positionInput->setRange(0, scene->durationFrames - 1);
+        positionInput->setDecimals(0);
+        positionInput->setSuffix("");
+    } else {
+        positionInput->setRange(0,
+                                (scene->durationFrames - 1) / scene->frameRate);
+        positionInput->setDecimals(2);
+        positionInput->setSuffix(" s");
+    }
+    frameChanged(scene->currentFrame);
+}
+
+void TimelineWidget::positionChanged(double value) {
+    scene->setFramesChanging(true);
+    if (actionFrames->isChecked()) {
+        scene->setFrame(positionInput->value());
+    } else {
+        scene->setFrame(positionInput->value() * scene->frameRate);
+    }
+    scene->setFramesChanging(false);
 }
 
 void TimelineWidget::framesChanging(bool changing) {

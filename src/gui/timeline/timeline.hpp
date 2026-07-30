@@ -1,6 +1,7 @@
 #pragma once
 #include "scene.hpp"
 
+#include <QDoubleSpinBox>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSlider>
@@ -30,6 +31,7 @@ class TimelineWidget : public QWidget {
     QScrollArea *timelineLeftScrollArea;
     QScrollArea *timelineMainScrollArea;
     QPushButton *playButton;
+    QDoubleSpinBox *positionInput;
     Scene *scene;
     NewMainWindow *mainWindow;
     QSlider *zoomSlider;
@@ -45,6 +47,11 @@ class TimelineWidget : public QWidget {
     QPixmap keyframeNo;
     QPixmap keyframeYes;
 
+    QPushButton *positionTypeButton;
+    QMenu *positionTypeMenu;
+    QAction *actionSeconds;
+    QAction *actionFrames;
+
   private:
     bool addCollapsible(ICollapsible *collapsible, bool *stripe, bool selected,
                         int indent);
@@ -58,6 +65,10 @@ class TimelineWidget : public QWidget {
     void goToStart();
     void playbackStateChanged(bool playing);
     void elementSelectionChanged(QList<Element *> elements);
+    void frameChanged(int frame);
+    void sceneInfoChanged();
+    void showPositionTypeMenu();
+    void positionChanged(double value);
 
   protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
