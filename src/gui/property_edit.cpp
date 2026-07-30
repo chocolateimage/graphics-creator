@@ -152,7 +152,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         connect(inputX, &DraggableSpinBox::editingFinished, this,
                 [this]() { finishEditing(); });
         connect(inputY, &DraggableSpinBox::editingFinished, this,
-                [this](double value) { finishEditing(); });
+                [this]() { finishEditing(); });
         // connect(pickButton, &QToolButton::clicked, this, [this,
         // optionLabel]() {
         //     previewWidget->beginPicking(QString::fromStdString(optionId),
@@ -192,7 +192,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         connect(inputX, &DraggableDoubleSpinBox::editingFinished, this,
                 [this]() { finishEditing(); });
         connect(inputY, &DraggableDoubleSpinBox::editingFinished, this,
-                [this](double value) { finishEditing(); });
+                [this]() { finishEditing(); });
     } else if (variantType == VariantTypeEnum::Color) {
         auto colorButton = new KColorButton(this);
         colorButton->setAlphaChannelEnabled(true);
