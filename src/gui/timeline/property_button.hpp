@@ -22,6 +22,8 @@ class TimelinePropertyButton : public QPushButton {
     void propertyUpdated(PropertyBase *updatedProperty);
     void updateAnimating(PropertyBase *updatedProperty);
 
+    void overlayUpdate();
+
   private:
     TimelineWidget *timelineWidget;
     PropertyBase *property;
@@ -32,4 +34,8 @@ class TimelinePropertyButton : public QPushButton {
     QPushButton *previousButton;
     QPushButton *keyframeButton;
     QPushButton *nextButton;
+
+    QWidget *overlayWidget{nullptr};
+    float overlayOpacity{0};
+    QTimer overlayTimer;
 };

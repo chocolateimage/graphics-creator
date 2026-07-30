@@ -106,6 +106,14 @@ TimelinePropertyButton::TimelinePropertyButton(
             &TimelinePropertyButton::nextKeyframeClicked);
     propertyLayout->addWidget(nextButton);
 
+    overlayTimer.setInterval(50);
+    connect(&overlayTimer, &QTimer::timeout, this,
+            &TimelinePropertyButton::overlayUpdate);
+
+    overlayWidget = new QWidget(this);
+    overlayWidget->setAttribute(Qt::WA_TransparentForMouseEvents);
+    overlayWidget->show();
+
     updateAnimating(property);
 
     connect(property->animatable, &Animatable::propertyIsAnimatingUpdated, this,
@@ -177,6 +185,22 @@ void TimelinePropertyButton::propertyUpdated(PropertyBase *updatedProperty) {
         return;
     }
     updateKeyframe();
+
+    overlayOpacity = 0.2;
+    overlayTimer.start();
+    overlayUpdate();
+    overlayWidget->move(0, 0);
+    overlayWidget->resize(width(), height());
+}
+
+void TimelinePropertyButton::overlayUpdate() {
+    overlayOpacity = std::max(overlayOpacity - 0.03, 0.);
+    overlayWidget->setStyleSheet("background:rgba(255,255,0," +
+                                 QString::number(overlayOpacity) + ");");
+
+    if (overlayOpacity == 0) {
+        overlayTimer.stop();
+    }
 }
 
 void TimelinePropertyButton::updateAnimating(PropertyBase *updatedProperty) {
