@@ -371,6 +371,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     pasteAction->setIcon(QIcon::fromTheme("edit-paste"));
     connect(pasteAction, &QAction::triggered, this, &NewMainWindow::pasteSlot);
 
+    duplicateAction = editMenu->addAction("Duplicate");
+    duplicateAction->setShortcut(QKeySequence("Ctrl+D"));
+    duplicateAction->setIcon(QIcon::fromTheme("edit-duplicate"));
+    connect(duplicateAction, &QAction::triggered, this,
+            &NewMainWindow::duplicateSlot);
+
     deleteAction = editMenu->addAction("Delete");
     deleteAction->setShortcut(QKeySequence::Delete);
     deleteAction->setIcon(QIcon::fromTheme("delete"));
@@ -775,6 +781,27 @@ void NewMainWindow::pasteSlot() {
     scene->selectElements(newSelected);
 }
 
+void NewMainWindow::duplicateSlot() {
+    QList<QJsonObject> array;
+    for (auto element : scene->selectedElements) {
+        QJsonObject elementObj = element->serialize();
+        elementObj.remove("id");
+        array.append(elementObj);
+    }
+
+    QList<Element *> newSelected;
+    QUndoCommand *command{nullptr};
+    for (auto elementObj : array) {
+        Element *element = loadElementFromJson(elementObj);
+        if (!element) {
+            continue;
+        }
+        scene->insertElement(element, 0);
+        newSelected.append(element);
+    }
+    scene->selectElements(newSelected);
+}
+
 void NewMainWindow::closeEvent(QCloseEvent *event) {
     if (askSaveConfirmation()) {
         event->accept();
@@ -1103,6 +1130,7 @@ void NewMainWindow::loadDefaultFont() {
 
 void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
     copyAction->setDisabled(elements.isEmpty());
+    duplicateAction->setDisabled(elements.isEmpty());
     deleteAction->setDisabled(elements.isEmpty());
 }
 

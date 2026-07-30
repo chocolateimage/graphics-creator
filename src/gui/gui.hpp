@@ -83,6 +83,7 @@ class NewMainWindow : public QMainWindow {
     QAction *playbackAction;
     QAction *copyAction;
     QAction *pasteAction;
+    QAction *duplicateAction;
     QAction *deleteAction;
 
     QAction *renderAction;
@@ -117,6 +118,7 @@ class NewMainWindow : public QMainWindow {
     void addElementUndoable(Element *element);
     void copySlot();
     void pasteSlot();
+    void duplicateSlot();
     void clipboardContentsChanged();
     void previousFrameSlot();
     void nextFrameSlot();
