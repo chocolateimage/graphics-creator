@@ -411,6 +411,32 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
                               : dropImagePreview);
         painter.restore();
     }
+
+    if (isMovingElements) {
+        paintSnapVisualRect(painter, snapVisualRect1);
+        paintSnapVisualRect(painter, snapVisualRect2);
+    }
+}
+
+void ImageViewer::paintSnapVisualRect(QPainter &painter,
+                                      const QRect &snapVisualRect) {
+    if (!snapVisualRect.isValid())
+        return;
+
+    QPointF topLeft = pixelToViewport(snapVisualRect.topLeft());
+    QPointF bottomRight =
+        pixelToViewport(snapVisualRect.bottomRight() + QPoint{1, 1});
+    float w = std::max(1., bottomRight.x() - topLeft.x());
+    float h = std::max(1., bottomRight.y() - topLeft.y());
+    if (snapVisualRect.width() == 1) {
+        w = 2;
+    }
+    if (snapVisualRect.height() == 1) {
+        h = 2;
+    }
+    painter.setPen(QPen(QColor(0, 0, 0, 80), .5));
+    painter.setBrush(QColor(255, 255, 0, 80));
+    painter.drawRect(topLeft.x(), topLeft.y(), w, h);
 }
 
 void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
@@ -576,7 +602,163 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
             }
         }
 
+        QRect rect;
+
+        bool first = true;
         int index = 0;
+        for (auto element : scene->selectedElements) {
+            QRect bbox = element->getBoundingBox(frameInfo);
+            QRect thisRect = {startElementBoundPositions[index].x() + diff.x(),
+                              startElementBoundPositions[index].y() + diff.y(),
+                              bbox.width(), bbox.height()};
+            if (index == 0) {
+                rect = thisRect;
+            } else {
+                rect = rect.united(thisRect);
+            }
+            index++;
+        }
+
+        QList<QRect> snapRects;
+        if (!QApplication::queryKeyboardModifiers().testFlag(
+                Qt::ControlModifier)) {
+            snapRects.append({0, 0, scene->width, scene->height});
+            for (auto element : scene->elements) {
+                if (!element->visible)
+                    continue;
+                if (scene->selectedElements.contains(element))
+                    continue;
+
+                snapRects.append(element->getBoundingBox(frameInfo));
+            }
+        }
+
+        int finalDiffX{0};
+        int finalDiffY{0};
+        int lastLengthX = INT32_MAX;
+        int lastLengthY = INT32_MAX;
+
+        float zoomElement =
+            pixelToViewport({2, 2}).x() - pixelToViewport({1, 1}).x();
+        int threshold = 12 / zoomElement;
+
+        for (const auto &snapRect : snapRects) {
+            if ((rect.y() + rect.height()) >= (snapRect.y() - threshold) &&
+                rect.y() < (snapRect.y() + snapRect.height() + threshold)) {
+                int outerLeftPos = snapRect.x() - rect.width();
+                int outerLeftDist = qAbs(outerLeftPos - rect.x());
+
+                int outerRightPos = snapRect.x() + snapRect.width();
+                int outerRightDist = qAbs(outerRightPos - rect.x());
+
+                int innerLeftPos = snapRect.x();
+                int innerLeftDist = qAbs(innerLeftPos - rect.x());
+
+                int innerRightPos =
+                    snapRect.x() + snapRect.width() - rect.width();
+                int innerRightDist = qAbs(innerRightPos - rect.x());
+
+                int centerPos =
+                    snapRect.x() + snapRect.width() / 2 - rect.width() / 2;
+                int centerDist = qAbs(centerPos - rect.x());
+
+                if (outerLeftDist < lastLengthX) {
+                    lastLengthX = outerLeftDist;
+                    finalDiffX = outerLeftPos;
+                    snapVisualRect1 = {innerLeftPos, snapRect.y(), 1,
+                                       snapRect.height()};
+                }
+                if (outerRightDist < lastLengthX) {
+                    lastLengthX = outerRightDist;
+                    finalDiffX = outerRightPos;
+                    snapVisualRect1 = {outerRightPos, snapRect.y(), 1,
+                                       snapRect.height()};
+                }
+                if (innerLeftDist < lastLengthX) {
+                    lastLengthX = innerLeftDist;
+                    finalDiffX = innerLeftPos;
+                    snapVisualRect1 = {innerLeftPos, snapRect.y(), 1,
+                                       snapRect.height()};
+                }
+                if (innerRightDist < lastLengthX) {
+                    lastLengthX = innerRightDist;
+                    finalDiffX = innerRightPos;
+                    snapVisualRect1 = {outerRightPos, snapRect.y(), 1,
+                                       snapRect.height()};
+                }
+                if (centerDist < lastLengthX) {
+                    lastLengthX = centerDist;
+                    finalDiffX = centerPos;
+                    snapVisualRect1 = {snapRect.x() + snapRect.width() / 2,
+                                       snapRect.y(), 1, snapRect.height()};
+                }
+            }
+
+            if ((rect.x() + rect.width()) >= (snapRect.x() - threshold) &&
+                rect.x() < (snapRect.x() + snapRect.width() + threshold)) {
+                int outerLeftPos = snapRect.y() - rect.height();
+                int outerLeftDist = qAbs(outerLeftPos - rect.y());
+
+                int outerRightPos = snapRect.y() + snapRect.height();
+                int outerRightDist = qAbs(outerRightPos - rect.y());
+
+                int innerLeftPos = snapRect.y();
+                int innerLeftDist = qAbs(innerLeftPos - rect.y());
+
+                int innerRightPos =
+                    snapRect.y() + snapRect.height() - rect.height();
+                int innerRightDist = qAbs(innerRightPos - rect.y());
+
+                int centerPos =
+                    snapRect.y() + snapRect.height() / 2 - rect.height() / 2;
+                int centerDist = qAbs(centerPos - rect.y());
+
+                if (outerLeftDist < lastLengthY) {
+                    lastLengthY = outerLeftDist;
+                    finalDiffY = outerLeftPos;
+                    snapVisualRect2 = {snapRect.x(), innerLeftPos,
+                                       snapRect.width(), 1};
+                }
+                if (outerRightDist < lastLengthY) {
+                    lastLengthY = outerRightDist;
+                    finalDiffY = outerRightPos;
+                    snapVisualRect2 = {snapRect.x(), outerRightPos,
+                                       snapRect.width(), 1};
+                }
+                if (innerLeftDist < lastLengthY) {
+                    lastLengthY = innerLeftDist;
+                    finalDiffY = innerLeftPos;
+                    snapVisualRect2 = {snapRect.x(), innerLeftPos,
+                                       snapRect.width(), 1};
+                }
+                if (innerRightDist < lastLengthY) {
+                    lastLengthY = innerRightDist;
+                    finalDiffY = innerRightPos;
+                    snapVisualRect2 = {snapRect.x(), outerRightPos,
+                                       snapRect.width(), 1};
+                }
+                if (centerDist < lastLengthY) {
+                    lastLengthY = centerDist;
+                    finalDiffY = centerPos;
+                    snapVisualRect2 = {snapRect.x(),
+                                       snapRect.y() + snapRect.height() / 2,
+                                       snapRect.width(), 1};
+                }
+            }
+        }
+
+        if (lastLengthX < threshold) {
+            diff.setX(finalDiffX - rect.x() + diff.x());
+        } else {
+            snapVisualRect1 = {0, 0, 0, 0};
+        }
+        if (lastLengthY < threshold) {
+            diff.setY(finalDiffY - rect.y() + diff.y());
+        } else {
+            snapVisualRect2 = {0, 0, 0, 0};
+        }
+
+        index = 0;
         for (auto element : scene->selectedElements) {
             element->x.set(startElementPositions[index].x() + diff.x(),
                            frameInfo);
@@ -726,6 +908,9 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
             if (clickedElement) {
                 isMovingElements = true;
                 startElementPositions.clear();
+                startElementBoundPositions.clear();
+                snapVisualRect1 = {0, 0, 0, 0};
+                snapVisualRect2 = {0, 0, 0, 0};
                 didMove = false;
                 moveOlds.clear();
                 moveNews.clear();
@@ -744,8 +929,11 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                     }
                 }
                 for (auto element : scene->selectedElements) {
-                    startElementPositions.append(QPoint{
-                        element->x.get(frameInfo), element->y.get(frameInfo)});
+                    int x = element->x.get(frameInfo);
+                    int y = element->y.get(frameInfo);
+                    QRect r = element->getBoundingBox(frameInfo);
+                    startElementPositions.append(QPoint{x, y});
+                    startElementBoundPositions.append(QPoint{r.x(), r.y()});
                     moveOlds.append(element->x.serialize());
                     moveOlds.append(element->y.serialize());
                 }

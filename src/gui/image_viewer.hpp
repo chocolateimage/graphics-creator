@@ -81,6 +81,9 @@ class ImageViewer : public QWidget {
     bool didMove{false};
     QPoint startMovePosition;
     QList<QPoint> startElementPositions;
+    QList<QPoint> startElementBoundPositions;
+    QRect snapVisualRect1;
+    QRect snapVisualRect2;
     QList<QJsonObject> moveOlds;
     QList<QJsonObject> moveNews;
 
@@ -119,6 +122,8 @@ class ImageViewer : public QWidget {
     void dragLeaveEvent(QDragLeaveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     bool event(QEvent *event) override;
+
+    void paintSnapVisualRect(QPainter &painter, const QRect &snapVisualRect);
 
     TextElementEditor *textElementEditor{nullptr};
 
