@@ -20,6 +20,8 @@ Supports [Windows and Linux](#installing).
 
 Go to the [releases page](https://github.com/chocolateimage/graphics-creator/releases/latest) and download the latest Windows setup or Linux .flatpak file.
 
+If you use Arch Linux, you can use the [`graphics-creator`](https://aur.archlinux.org/packages/graphics-creator) AUR package.
+
 If you enjoy the program, please leave a star on this repo!
 
 ## Ideas/Bugs
