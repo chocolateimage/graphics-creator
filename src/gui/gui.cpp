@@ -1041,7 +1041,7 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
 
     inProgressTasks.clear();
     renderingFrames.clear();
-    rerender(false);
+    emit scene->sceneInfoChanged();
     scene->setFramesChanging(true);
     scene->setFrame(newFrame);
     scene->setFramesChanging(false);
