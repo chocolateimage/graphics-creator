@@ -13,6 +13,7 @@ class TimelinePropertyButton : public QPushButton {
                                     bool showEdit);
 
   private slots:
+    void toggleAnimationClicked();
     void addAnimationClicked();
     void previousKeyframeClicked();
     void keyframeClicked();

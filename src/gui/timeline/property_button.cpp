@@ -45,10 +45,7 @@ TimelinePropertyButton::TimelinePropertyButton(
     toggleAnimationButton->setFlat(true);
     toggleAnimationButton->setFixedWidth(32);
     connect(toggleAnimationButton, &QPushButton::clicked, this,
-            [scene, timelineWidget, property]() {
-                property->toggleAnimating({scene->currentFrame});
-                timelineWidget->timelineContent->updateContents();
-            });
+            &TimelinePropertyButton::toggleAnimationClicked);
     propertyLayout->addWidget(toggleAnimationButton);
 
     QLabel *label = new QLabel(this);
@@ -114,6 +111,11 @@ TimelinePropertyButton::TimelinePropertyButton(
             &TimelinePropertyButton::propertyUpdated);
     connect(scene, &Scene::frameChanged, this,
             &TimelinePropertyButton::updateKeyframe);
+}
+
+void TimelinePropertyButton::toggleAnimationClicked() {
+    property->toggleAnimating({scene->currentFrame});
+    timelineWidget->timelineContent->updateContents();
 }
 
 void TimelinePropertyButton::addAnimationClicked() {
