@@ -36,8 +36,10 @@ void Element::addEffect(Effect *effect) {
 
 void Element::insertEffect(Effect *effect, int index) {
     connect(effect, &Effect::propertyUpdated, this,
-            [this, effect](PropertyBase *property) {
-                emit effectPropertyUpdated(effect, property);
+            [this](PropertyBase *property) { emit propertyUpdated(property); });
+    connect(effect, &Effect::propertyIsAnimatingUpdated, this,
+            [this](PropertyBase *property) {
+                emit propertyIsAnimatingUpdated(property);
             });
     effects.insert(effects.begin() + index, effect);
     emit effectAdded(effect, index);

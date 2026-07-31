@@ -55,7 +55,6 @@ class Element : public Animatable {
     void effectAdded(Effect *effect, int index);
     void effectRemoved(Effect *effect);
     void effectListUpdated();
-    void effectPropertyUpdated(Effect *effect, PropertyBase *property);
     void editModeUpdated(bool newMode);
     void visibilityUpdated(bool newValue);
 };

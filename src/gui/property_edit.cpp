@@ -3,14 +3,47 @@
 #include "draggable_spinbox.hpp"
 #include "fontcombobox.hpp"
 #include "line.hpp"
-#include "math.hpp"
 #include <KColorButton>
+#include <KIconColors>
+#include <KIconLoader>
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QToolButton>
+
+PropertyToggleAnimationButton::PropertyToggleAnimationButton(
+    Scene *scene, PropertyBase *property, QWidget *parent)
+    : QPushButton(parent), scene(scene), property(property) {
+    setFlat(true);
+    animationUpdated(property);
+
+    connect(this, &QPushButton::clicked, this,
+            &PropertyToggleAnimationButton::toggleAnimationClicked);
+    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated, this,
+            &PropertyToggleAnimationButton::animationUpdated);
+}
+
+void PropertyToggleAnimationButton::animationUpdated(
+    PropertyBase *updatedProperty) {
+    if (updatedProperty != property)
+        return;
+
+    if (property->isAnimating) {
+        KIconColors colors;
+        colors.setText(palette().accent().color());
+        setIcon(KDE::icon("keyframe", colors));
+        setToolTip("Animation enabled");
+    } else {
+        setIcon(QIcon::fromTheme("keyframe-disable"));
+        setToolTip("Animation disabled");
+    }
+}
+
+void PropertyToggleAnimationButton::toggleAnimationClicked() {
+    property->toggleAnimating({scene->currentFrame});
+}
 
 PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
                            QWidget *parent)

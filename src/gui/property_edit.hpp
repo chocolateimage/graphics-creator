@@ -1,7 +1,21 @@
 #pragma once
 #include "animatable/property.hpp"
 #include "scene.hpp"
+#include <QPushButton>
 #include <QWidget>
+
+class PropertyToggleAnimationButton : public QPushButton {
+    Q_OBJECT
+  public:
+    explicit PropertyToggleAnimationButton(Scene *scene, PropertyBase *property,
+                                           QWidget *parent = nullptr);
+    Scene *scene;
+    PropertyBase *property;
+
+  private slots:
+    void toggleAnimationClicked();
+    void animationUpdated(PropertyBase *updatedProperty);
+};
 
 class PropertyEdit : public QWidget {
     Q_OBJECT

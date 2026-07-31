@@ -3,8 +3,6 @@
 #include "gui/property_edit.hpp"
 #include "timeline.hpp"
 #include "timeline_content.hpp"
-#include <KIconColors>
-#include <KIconLoader>
 #include <QHBoxLayout>
 #include <QLabel>
 
@@ -40,12 +38,9 @@ TimelinePropertyButton::TimelinePropertyButton(
     propertyLayout->setContentsMargins(indent, 0, 0, 0);
     propertyLayout->setSpacing(0);
 
-    toggleAnimationButton = new QPushButton(this);
-
-    toggleAnimationButton->setFlat(true);
+    toggleAnimationButton =
+        new PropertyToggleAnimationButton(scene, property, this);
     toggleAnimationButton->setFixedWidth(32);
-    connect(toggleAnimationButton, &QPushButton::clicked, this,
-            &TimelinePropertyButton::toggleAnimationClicked);
     propertyLayout->addWidget(toggleAnimationButton);
 
     QLabel *label = new QLabel(this);
@@ -111,11 +106,6 @@ TimelinePropertyButton::TimelinePropertyButton(
             &TimelinePropertyButton::propertyUpdated);
     connect(scene, &Scene::frameChanged, this,
             &TimelinePropertyButton::updateKeyframe);
-}
-
-void TimelinePropertyButton::toggleAnimationClicked() {
-    property->toggleAnimating({scene->currentFrame});
-    timelineWidget->timelineContent->updateContents();
 }
 
 void TimelinePropertyButton::addAnimationClicked() {
@@ -184,16 +174,6 @@ void TimelinePropertyButton::propertyUpdated(PropertyBase *updatedProperty) {
 void TimelinePropertyButton::updateAnimating(PropertyBase *updatedProperty) {
     if (property != updatedProperty) {
         return;
-    }
-
-    if (property->isAnimating) {
-        KIconColors colors;
-        colors.setText(palette().accent().color());
-        toggleAnimationButton->setIcon(KDE::icon("keyframe", colors));
-        toggleAnimationButton->setToolTip("Animation enabled");
-    } else {
-        toggleAnimationButton->setIcon(QIcon::fromTheme("keyframe-disable"));
-        toggleAnimationButton->setToolTip("Animation disabled");
     }
 
     previousButton->setVisible(property->isAnimating);

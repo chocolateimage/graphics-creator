@@ -370,9 +370,9 @@ void TimelineWidget::updateContents() {
                    &TimelineContentWidget::updatePaint);
         connect(element, &Element::propertyUpdated, timelineContent,
                 &TimelineContentWidget::updatePaint);
-        disconnect(element, &Element::effectPropertyUpdated, timelineContent,
-                   &TimelineContentWidget::updatePaint);
-        connect(element, &Element::effectPropertyUpdated, timelineContent,
+        disconnect(element, &Element::propertyIsAnimatingUpdated,
+                   timelineContent, &TimelineContentWidget::updatePaint);
+        connect(element, &Element::propertyIsAnimatingUpdated, timelineContent,
                 &TimelineContentWidget::updatePaint);
         bool selected = scene->selectedElements.contains(element);
         TimelineElementButton *elementButton =

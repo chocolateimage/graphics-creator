@@ -23,8 +23,6 @@ void Scene::insertElement(Element *element, int index) {
     emit elementAdded(element, index);
     connect(element, &Element::propertyUpdated, this,
             &Scene::_elementUpdatedSlot);
-    connect(element, &Element::effectPropertyUpdated, this,
-            &Scene::_elementUpdatedSlot);
     connect(element, &Element::effectListUpdated, this,
             &Scene::_elementUpdatedSlot);
     connect(element, &Element::visibilityUpdated, this,
@@ -50,8 +48,6 @@ void Scene::selectElements(QList<Element *> elements) {
 void Scene::removeElement(Element *element) {
     element->setEditMode(false);
     disconnect(element, &Element::propertyUpdated, this,
-               &Scene::_elementUpdatedSlot);
-    disconnect(element, &Element::effectPropertyUpdated, this,
                &Scene::_elementUpdatedSlot);
     disconnect(element, &Element::effectListUpdated, this,
                &Scene::_elementUpdatedSlot);

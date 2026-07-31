@@ -3,6 +3,7 @@
 #include <QFormLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPushButton>
 
 PropertyWindow::PropertyWindow(Scene *scene) : scene(scene) {
     formLayout = new QFormLayout(this);
@@ -62,7 +63,21 @@ void PropertyWindow::selectedElementsUpdated(
     formLayout->addRow("Name", nameEdit);
 
     for (auto property : element->properties) {
-        PropertyEdit *propertyEdit = new PropertyEdit(property, scene, this);
-        formLayout->addRow(property->getDisplayName(), propertyEdit);
+        QWidget *widget = new QWidget(this);
+
+        QHBoxLayout *lay = new QHBoxLayout(widget);
+        lay->setSpacing(0);
+        lay->setContentsMargins(0, 0, 0, 0);
+
+        PropertyEdit *propertyEdit = new PropertyEdit(property, scene, widget);
+        lay->addWidget(propertyEdit);
+
+        lay->addStretch();
+
+        PropertyToggleAnimationButton *toggleAnimationButton =
+            new PropertyToggleAnimationButton(scene, property, widget);
+        lay->addWidget(toggleAnimationButton);
+
+        formLayout->addRow(property->getDisplayName(), widget);
     }
 }

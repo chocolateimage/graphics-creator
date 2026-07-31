@@ -1,6 +1,7 @@
 #pragma once
 #include "scene.hpp"
 #include <QFormLayout>
+#include <QPushButton>
 #include <QWidget>
 
 class PropertyWindow : public QWidget {
