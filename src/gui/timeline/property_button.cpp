@@ -38,8 +38,8 @@ TimelinePropertyButton::TimelinePropertyButton(
     propertyLayout->setContentsMargins(indent, 0, 0, 0);
     propertyLayout->setSpacing(0);
 
-    toggleAnimationButton =
-        new PropertyToggleAnimationButton(scene, property, this);
+    toggleAnimationButton = new PropertyToggleAnimationButton(
+        PropertyToggleAnimationButton::Animation, true, scene, property, this);
     toggleAnimationButton->setFixedWidth(32);
     propertyLayout->addWidget(toggleAnimationButton);
 

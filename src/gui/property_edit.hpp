@@ -7,14 +7,23 @@
 class PropertyToggleAnimationButton : public QPushButton {
     Q_OBJECT
   public:
-    explicit PropertyToggleAnimationButton(Scene *scene, PropertyBase *property,
+    enum Mode {
+        Animation,
+        Keyframe,
+    };
+
+    explicit PropertyToggleAnimationButton(Mode mode, bool completelyFlat,
+                                           Scene *scene, PropertyBase *property,
                                            QWidget *parent = nullptr);
     Scene *scene;
     PropertyBase *property;
+    bool completelyFlat;
+    Mode mode;
 
   private slots:
     void toggleAnimationClicked();
     void animationUpdated(PropertyBase *updatedProperty);
+    void frameChanged();
 };
 
 class PropertyEdit : public QWidget {

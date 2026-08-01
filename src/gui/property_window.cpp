@@ -75,7 +75,9 @@ void PropertyWindow::selectedElementsUpdated(
         lay->addStretch();
 
         PropertyToggleAnimationButton *toggleAnimationButton =
-            new PropertyToggleAnimationButton(scene, property, widget);
+            new PropertyToggleAnimationButton(
+                PropertyToggleAnimationButton::Keyframe, false, scene, property,
+                widget);
         lay->addWidget(toggleAnimationButton);
 
         formLayout->addRow(property->getDisplayName(), widget);

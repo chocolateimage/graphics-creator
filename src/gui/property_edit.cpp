@@ -14,15 +14,20 @@
 #include <QToolButton>
 
 PropertyToggleAnimationButton::PropertyToggleAnimationButton(
-    Scene *scene, PropertyBase *property, QWidget *parent)
-    : QPushButton(parent), scene(scene), property(property) {
-    setFlat(true);
+    Mode mode, bool completelyFlat, Scene *scene, PropertyBase *property,
+    QWidget *parent)
+    : QPushButton(parent), scene(scene), property(property),
+      completelyFlat(completelyFlat), mode(mode) {
     animationUpdated(property);
 
     connect(this, &QPushButton::clicked, this,
             &PropertyToggleAnimationButton::toggleAnimationClicked);
+    connect(scene, &Scene::frameChanged, this,
+            &PropertyToggleAnimationButton::frameChanged);
     connect(property->animatable, &Animatable::propertyIsAnimatingUpdated, this,
             &PropertyToggleAnimationButton::animationUpdated);
+    connect(property->animatable, &Animatable::propertyUpdated, this,
+            &PropertyToggleAnimationButton::frameChanged);
 }
 
 void PropertyToggleAnimationButton::animationUpdated(
@@ -32,17 +37,42 @@ void PropertyToggleAnimationButton::animationUpdated(
 
     if (property->isAnimating) {
         KIconColors colors;
-        colors.setText(palette().accent().color());
+        if (completelyFlat) {
+            colors.setText(palette().accent().color());
+        }
         setIcon(KDE::icon("keyframe", colors));
         setToolTip("Animation enabled");
     } else {
         setIcon(QIcon::fromTheme("keyframe-disable"));
         setToolTip("Animation disabled");
     }
+    frameChanged();
 }
 
 void PropertyToggleAnimationButton::toggleAnimationClicked() {
-    property->toggleAnimating({scene->currentFrame});
+    if (mode == Mode::Animation || !property->isAnimating) {
+        property->toggleAnimating({scene->currentFrame});
+    } else if (mode == Mode::Keyframe) {
+        if (property->has(scene->currentFrame)) {
+            property->remove(scene->currentFrame);
+        } else {
+            property->addToPosition({scene->currentFrame});
+        }
+    }
+    clearFocus();
+}
+
+void PropertyToggleAnimationButton::frameChanged() {
+    if (completelyFlat || !property->isAnimating) {
+        setFlat(true);
+        return;
+    }
+    setFlat(false);
+    if (property->has(scene->currentFrame)) {
+        setStyleSheet("QPushButton {background: rgba(50,255,30,0.2)}");
+    } else {
+        setStyleSheet("QPushButton {background: rgba(255,255,0,0.2)}");
+    }
 }
 
 PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
