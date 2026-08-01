@@ -36,8 +36,12 @@
 #include <QMimeData>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QProcess>
+#include <QProgressDialog>
+#include <QRandomGenerator>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QTemporaryFile>
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>
 #ifdef Q_OS_WIN
@@ -673,6 +677,51 @@ void NewMainWindow::notLatestVersion(QJsonObject obj) {
             "Update available", KGuiItem("Update"),
             KGuiItem("Remind me later")) != KMessageBox::PrimaryAction) {
         return;
+    }
+
+    for (const auto &asset : obj["assets"].toArray()) {
+        const auto &assetObj = asset.toObject();
+        QString assetName = assetObj["name"].toString();
+        if (assetName.contains("setup") && assetName.endsWith(".exe")) {
+            qInfo() << "Found setup name:" << assetName;
+            QString tempPath =
+                QDir::tempPath() + "/" +
+                QString::number(QRandomGenerator::global()->generate()) + "-" +
+                assetName;
+            QFile *tempFile = new QFile(tempPath);
+            if (tempFile->open(QFile::WriteOnly)) {
+                QProgressDialog *progressDialog =
+                    new QProgressDialog("Downloading...", "", 0, 100, this);
+                progressDialog->setCancelButton(nullptr);
+                progressDialog->setAutoClose(false);
+                progressDialog->show();
+                QNetworkRequest request;
+                request.setUrl(
+                    QUrl(assetObj["browser_download_url"].toString()));
+                request.setRawHeader(
+                    "User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) "
+                                  "Gecko/20100101 Firefox/153.0");
+
+                QNetworkReply *reply = networkAccessManager->get(request);
+                connect(
+                    reply, &QNetworkReply::readyRead, this,
+                    [tempFile, reply]() { tempFile->write(reply->readAll()); });
+                connect(
+                    reply, &QNetworkReply::downloadProgress, this,
+                    [progressDialog](qint64 bytesReceived, qint64 bytesTotal) {
+                        progressDialog->setMaximum(bytesTotal);
+                        progressDialog->setValue(bytesReceived);
+                    });
+                connect(reply, &QNetworkReply::finished, this,
+                        [tempPath, tempFile, reply]() {
+                            tempFile->close();
+                            reply->deleteLater();
+                            QProcess::startDetached(tempPath, {"/VERYSILENT"});
+                            qApp->exit();
+                        });
+                return;
+            }
+        }
     }
 
     QDesktopServices::openUrl(QUrl(obj["html_url"].toString()));
