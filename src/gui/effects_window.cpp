@@ -88,9 +88,24 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
         propertiesLayout->addWidget(descriptionLabel);
     }
     for (auto property : effect->properties) {
-        PropertyEdit *propertyEdit =
-            new PropertyEdit(property, scene, propertiesWidget);
-        propertiesLayout->addRow(property->getDisplayName(), propertyEdit);
+        QWidget *widget = new QWidget(propertiesWidget);
+
+        QHBoxLayout *lay = new QHBoxLayout(widget);
+        lay->setSpacing(0);
+        lay->setContentsMargins(0, 0, 0, 0);
+
+        PropertyEdit *propertyEdit = new PropertyEdit(property, scene, widget);
+        lay->addWidget(propertyEdit);
+
+        lay->addStretch();
+
+        PropertyToggleAnimationButton *toggleAnimationButton =
+            new PropertyToggleAnimationButton(
+                PropertyToggleAnimationButton::Keyframe, false, scene, property,
+                widget);
+        lay->addWidget(toggleAnimationButton);
+
+        propertiesLayout->addRow(property->getDisplayName(), widget);
     }
     connect(effect, &Effect::collapsedChanged, this,
             &EffectWidget::collapsedChanged);
