@@ -41,10 +41,14 @@ void PropertyToggleAnimationButton::animationUpdated(
             colors.setText(palette().accent().color());
         }
         setIcon(KDE::icon("keyframe", colors));
-        setToolTip("Animation enabled");
+        if (mode == Mode::Keyframe) {
+            setToolTip("Add/remove keyframe");
+        } else {
+            setToolTip("Disable animation");
+        }
     } else {
         setIcon(QIcon::fromTheme("keyframe-disable"));
-        setToolTip("Animation disabled");
+        setToolTip("Enable animation");
     }
     frameChanged();
 }
