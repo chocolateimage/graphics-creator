@@ -682,6 +682,7 @@ void NewMainWindow::notLatestVersion(QJsonObject obj) {
     for (const auto &asset : obj["assets"].toArray()) {
         const auto &assetObj = asset.toObject();
         QString assetName = assetObj["name"].toString();
+#ifdef Q_OS_WIN
         if (assetName.contains("setup") && assetName.endsWith(".exe")) {
             qInfo() << "Found setup name:" << assetName;
             QString tempPath =
@@ -722,6 +723,7 @@ void NewMainWindow::notLatestVersion(QJsonObject obj) {
                 return;
             }
         }
+#endif
     }
 
     QDesktopServices::openUrl(QUrl(obj["html_url"].toString()));
