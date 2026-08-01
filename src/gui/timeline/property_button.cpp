@@ -186,7 +186,7 @@ void TimelinePropertyButton::propertyUpdated(PropertyBase *updatedProperty) {
 }
 
 void TimelinePropertyButton::overlayUpdate() {
-    overlayOpacity = std::max(overlayOpacity - 0.03, 0.);
+    overlayOpacity = std::max(overlayOpacity - 0.02, 0.);
     overlayWidget->setStyleSheet("background:rgba(255,255,0," +
                                  QString::number(overlayOpacity) + ");");
 

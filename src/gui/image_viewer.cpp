@@ -581,12 +581,20 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         if (targetH < 1) {
             resizeY += targetH - 1;
         }
-        resizeElement->x.set(resizeX * resizeMode.moveX + startResizeRect.x(),
-                             frameInfo);
-        resizeElement->y.set(resizeY * resizeMode.moveY + startResizeRect.y(),
-                             frameInfo);
-        resizeElement->w.set(targetW, frameInfo);
-        resizeElement->h.set(targetH, frameInfo);
+        int targetX = resizeX * resizeMode.moveX + startResizeRect.x();
+        int targetY = resizeY * resizeMode.moveY + startResizeRect.y();
+        if (resizeElement->x.get(frameInfo) != targetX) {
+            resizeElement->x.set(targetX, frameInfo);
+        }
+        if (resizeElement->y.get(frameInfo) != targetY) {
+            resizeElement->y.set(targetY, frameInfo);
+        }
+        if (resizeElement->w.get(frameInfo) != targetW) {
+            resizeElement->w.set(targetW, frameInfo);
+        }
+        if (resizeElement->h.get(frameInfo) != targetH) {
+            resizeElement->h.set(targetH, frameInfo);
+        }
         update();
         return;
     }
@@ -760,10 +768,14 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
 
         index = 0;
         for (auto element : scene->selectedElements) {
-            element->x.set(startElementPositions[index].x() + diff.x(),
-                           frameInfo);
-            element->y.set(startElementPositions[index].y() + diff.y(),
-                           frameInfo);
+            int targetX = startElementPositions[index].x() + diff.x();
+            int targetY = startElementPositions[index].y() + diff.y();
+            if (element->x.get(frameInfo) != targetX) {
+                element->x.set(targetX, frameInfo);
+            }
+            if (element->y.get(frameInfo) != targetY) {
+                element->y.set(targetY, frameInfo);
+            }
             index++;
         }
 
