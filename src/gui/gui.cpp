@@ -13,6 +13,9 @@
 #include "welcome_popup.hpp"
 #include "welcome_screen.hpp"
 #include <DockAreaWidget.h>
+#include <KActionMenu>
+#include <KColorSchemeManager>
+#include <KColorSchemeMenu>
 #include <KIconTheme>
 #include <KMessageBox>
 #include <KStyleManager>
@@ -411,6 +414,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     viewMenu = menuBar->addMenu("View");
     viewMenu->setToolTipsVisible(true);
+
+    KActionMenu *colorMenu =
+        KColorSchemeMenu::createMenu(KColorSchemeManager::instance());
+    viewMenu->addMenu(colorMenu->menu());
+    viewMenu->addSeparator();
+
     setMenuBar(menuBar);
 
     toolBar = addToolBar("Controls");
