@@ -122,6 +122,8 @@ class NewMainWindow : public QMainWindow {
     void clipboardContentsChanged();
     void previousFrameSlot();
     void nextFrameSlot();
+    void previousKeyframeSlot();
+    void nextKeyframeSlot();
     void invalidateFrame(int frame);
     void saveLayout();
     void showWelcome(bool show);

@@ -26,6 +26,7 @@ class TimelineContentWidget : public QWidget {
     bool deleteSelected();
     QList<KeyframeBase *> selectedKeyframes;
     int updatedHeight{0};
+    QList<TimelineKeyframeData> keyframeData;
 
   public slots:
     void frameChanged(int frame);
@@ -38,7 +39,6 @@ class TimelineContentWidget : public QWidget {
     void mouseReleaseEvent(QMouseEvent *event) override;
 
   private:
-    QList<TimelineKeyframeData> keyframeData;
     bool mouseHeader{false};
     bool selecting{};
     QPoint selectStart;

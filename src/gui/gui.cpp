@@ -411,6 +411,17 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     videoMenu->addSeparator();
 
+    QAction *previousKeyframeAction = videoMenu->addAction("Previous keyframe");
+    previousKeyframeAction->setShortcuts({QKeySequence("J")});
+    connect(previousKeyframeAction, &QAction::triggered, this,
+            &NewMainWindow::previousKeyframeSlot);
+    QAction *nextKeyframeAction = videoMenu->addAction("Next keyframe");
+    nextKeyframeAction->setShortcuts({QKeySequence("K")});
+    connect(nextKeyframeAction, &QAction::triggered, this,
+            &NewMainWindow::nextKeyframeSlot);
+
+    videoMenu->addSeparator();
+
     QAction *videoSettingsAction = videoMenu->addAction("Settings…");
     videoSettingsAction->setIcon(QIcon::fromTheme("settings-configure"));
     connect(videoSettingsAction, &QAction::triggered, this,
@@ -791,6 +802,32 @@ void NewMainWindow::previousFrameSlot() {
 void NewMainWindow::nextFrameSlot() {
     scene->setFramesChanging(true);
     scene->setFrame(scene->currentFrame + 1);
+    scene->setFramesChanging(false);
+}
+
+void NewMainWindow::previousKeyframeSlot() {
+    int latestFrame = 0;
+    for (const auto &keyframe : timeline->timelineContent->keyframeData) {
+        int kFrame = keyframe.keyframe->frame;
+        if (kFrame < scene->currentFrame && kFrame > latestFrame) {
+            latestFrame = kFrame;
+        }
+    }
+    scene->setFramesChanging(true);
+    scene->setFrame(latestFrame);
+    scene->setFramesChanging(false);
+}
+
+void NewMainWindow::nextKeyframeSlot() {
+    int latestFrame = scene->durationFrames - 1;
+    for (const auto &keyframe : timeline->timelineContent->keyframeData) {
+        int kFrame = keyframe.keyframe->frame;
+        if (kFrame > scene->currentFrame && kFrame < latestFrame) {
+            latestFrame = kFrame;
+        }
+    }
+    scene->setFramesChanging(true);
+    scene->setFrame(latestFrame);
     scene->setFramesChanging(false);
 }
 
