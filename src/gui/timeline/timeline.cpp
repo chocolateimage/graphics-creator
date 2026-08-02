@@ -360,7 +360,6 @@ void TimelineWidget::updateContents() {
 
     elementButtons.clear();
     timelineContent->updatedHeight = TIMELINE_HEADER_HEIGHT;
-    bool stripe = false;
     for (auto element : scene->elements) {
         disconnect(element, &Element::effectListUpdated, this,
                    &TimelineWidget::updateContents);
@@ -381,31 +380,28 @@ void TimelineWidget::updateContents() {
         timelineLeftLayout->addWidget(elementButton);
         timelineContent->updatedHeight += OBJECT_TRACK_HEIGHT;
 
-        stripe = !stripe;
-
         if (!element->collapsed) {
             for (auto property : element->properties) {
-                addProperty(property, &stripe, elementButton, 24, false);
+                addProperty(property, elementButton, 24, false);
             }
 
             TextElement *textElement = dynamic_cast<TextElement *>(element);
             if (textElement) {
                 for (auto animator : textElement->textAnimators) {
-                    if (!addCollapsible(animator, &stripe, selected, 32))
+                    if (!addCollapsible(animator, selected, 32))
                         continue;
 
                     for (auto selector : animator->selectors) {
-                        if (!addCollapsible(selector, &stripe, selected, 48))
+                        if (!addCollapsible(selector, selected, 48))
                             continue;
 
                         for (auto selector : selector->properties) {
-                            addProperty(selector, &stripe, elementButton, 64,
-                                        true);
+                            addProperty(selector, elementButton, 64, true);
                         }
                     }
 
                     for (auto property : animator->properties) {
-                        addProperty(property, &stripe, elementButton, 48, true);
+                        addProperty(property, elementButton, 48, true);
                     }
                 }
             }
@@ -414,11 +410,11 @@ void TimelineWidget::updateContents() {
                 if (effect->properties.empty())
                     continue;
 
-                if (!addCollapsible(effect, &stripe, selected, 32))
+                if (!addCollapsible(effect, selected, 32))
                     continue;
 
                 for (auto property : effect->properties) {
-                    addProperty(property, &stripe, elementButton, 48, false);
+                    addProperty(property, elementButton, 48, false);
                 }
             }
         }
@@ -430,18 +426,14 @@ void TimelineWidget::updateContents() {
     timelineScrolled();
 }
 
-bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
-                                    bool selected, int indent) {
+bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool selected,
+                                    int indent) {
     bool collapsed = collapsible->isCollapsed();
 
     timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
     PushButton *effectButton = new PushButton(timelineLeftContents);
     QString background = "transparent";
     QString backgroundSelected = "rgba(128,128,128,0.1)";
-    if (*stripe) {
-        background = "palette(alternate-base)";
-        backgroundSelected = "rgba(128,128,128,0.13)";
-    }
     effectButton->setStyleSheet("QPushButton {"
                                 "   text-align: left;"
                                 "   padding-left: " +
@@ -452,6 +444,7 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
                                 ";"
                                 "   border-radius: 0px;"
                                 "   font-weight: 600;"
+                                "   border-top: 1px solid palette(midlight);"
                                 "}"
                                 "QPushButton[flat=\"false\"] {"
                                 "   background: " +
@@ -499,12 +492,11 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool *stripe,
             });
 
     timelineLeftLayout->addWidget(effectButton);
-    *stripe = !*stripe;
 
     return !collapsed;
 }
 
-void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
+void TimelineWidget::addProperty(PropertyBase *property,
                                  QPushButton *elementButton, int indent,
                                  bool showEdit) {
     if (!property->isAnimatable()) {
@@ -513,10 +505,9 @@ void TimelineWidget::addProperty(PropertyBase *property, bool *stripe,
     timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;
 
     TimelinePropertyButton *propertyButton = new TimelinePropertyButton(
-        property, scene, this, *stripe, elementButton, indent, showEdit);
+        property, scene, this, elementButton, indent, showEdit);
 
     timelineLeftLayout->addWidget(propertyButton);
-    *stripe = !*stripe;
 }
 
 void TimelineWidget::timelineScrolled() {

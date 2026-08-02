@@ -8,7 +8,7 @@ class TimelineWidget;
 class TimelinePropertyButton : public QPushButton {
   public:
     explicit TimelinePropertyButton(PropertyBase *property, Scene *scene,
-                                    TimelineWidget *timelineWidget, bool stripe,
+                                    TimelineWidget *timelineWidget,
                                     QPushButton *elementButton, int indent,
                                     bool showEdit);
 

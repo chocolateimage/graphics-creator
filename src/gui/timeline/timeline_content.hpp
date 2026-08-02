@@ -55,7 +55,7 @@ class TimelineContentWidget : public QWidget {
     bool isResizingOut{false};
     QList<QRectF> elementRects;
 
-    void paintProperty(QPainter &painter, PropertyBase *property, bool *stripe,
+    void paintProperty(QPainter &painter, PropertyBase *property,
                        int startOffset, double *yPos);
     void paintFrameMark(QPainter &painter, int headerPos, int frame);
 };

@@ -17,6 +17,7 @@ TimelineElementButton::TimelineElementButton(Element *element,
                   "   background: transparent;"
                   "   border-radius: 0px;"
                   "   font-weight: 600;"
+                  "   border-top: 1px solid palette(midlight);"
                   "}"
                   "#timelineElementButton:hover {"
                   "   background: rgba(128,128,128,0.1);"

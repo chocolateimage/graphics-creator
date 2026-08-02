@@ -45,16 +45,14 @@ double TimelineContentWidget::headerPos() {
 }
 
 void TimelineContentWidget::paintProperty(QPainter &painter,
-                                          PropertyBase *property, bool *stripe,
+                                          PropertyBase *property,
                                           int startOffset, double *yPos) {
     if (!property->isAnimatable())
         return;
 
-    if (*stripe) {
-        painter.fillRect(-startOffset, *yPos, width(), PROPERTY_TRACK_HEIGHT,
-                         palette().alternateBase());
-    }
-    *stripe = !*stripe;
+    painter.fillRect(-startOffset, *yPos, width(), 1, palette().mid());
+    painter.fillRect(-startOffset, *yPos + PROPERTY_TRACK_HEIGHT, width(), 1,
+                     palette().mid());
 
     if (property->isAnimating) {
         for (auto keyframe : property->keyframes) {
@@ -132,17 +130,12 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     yPos += TIMELINE_HEADER_HEIGHT;
 
     // --- Elements ---
-    bool stripe = false;
     keyframeData.clear();
     elementRects.clear();
 
     for (auto element : timelineWidget->scene->elements) {
         bool selected =
             timelineWidget->scene->selectedElements.contains(element);
-        if (stripe) {
-            painter.fillRect(-startOffset, yPos, width(), OBJECT_TRACK_HEIGHT,
-                             palette().alternateBase());
-        }
         painter.setPen(Qt::NoPen);
 
         if (selected) {
@@ -165,7 +158,6 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
                     OBJECT_TRACK_HEIGHT};
         elementRects.append(rect);
         painter.drawRect(rect);
-        stripe = !stripe;
         yPos += OBJECT_TRACK_HEIGHT;
 
         if (element->collapsed)
@@ -173,44 +165,30 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 
         // --- Properties ---
         for (auto property : element->properties) {
-            paintProperty(painter, property, &stripe, startOffset, &yPos);
+            paintProperty(painter, property, startOffset, &yPos);
         }
 
         TextElement *textElement = dynamic_cast<TextElement *>(element);
         if (textElement) {
             for (auto animator : textElement->textAnimators) {
-                if (stripe) {
-                    painter.fillRect(-startOffset, yPos, width(),
-                                     PROPERTY_TRACK_HEIGHT,
-                                     palette().alternateBase());
-                }
-                stripe = !stripe;
                 yPos += PROPERTY_TRACK_HEIGHT;
 
                 if (animator->collapsed)
                     continue;
 
                 for (auto selector : animator->selectors) {
-                    if (stripe) {
-                        painter.fillRect(-startOffset, yPos, width(),
-                                         PROPERTY_TRACK_HEIGHT,
-                                         palette().alternateBase());
-                    }
-                    stripe = !stripe;
                     yPos += PROPERTY_TRACK_HEIGHT;
 
                     if (selector->collapsed)
                         continue;
 
                     for (auto property : selector->properties) {
-                        paintProperty(painter, property, &stripe, startOffset,
-                                      &yPos);
+                        paintProperty(painter, property, startOffset, &yPos);
                     }
                 }
 
                 for (auto property : animator->properties) {
-                    paintProperty(painter, property, &stripe, startOffset,
-                                  &yPos);
+                    paintProperty(painter, property, startOffset, &yPos);
                 }
             }
         }
@@ -220,19 +198,13 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
             if (effect->properties.empty())
                 continue;
 
-            if (stripe) {
-                painter.fillRect(-startOffset, yPos, width(),
-                                 PROPERTY_TRACK_HEIGHT,
-                                 palette().alternateBase());
-            }
-            stripe = !stripe;
             yPos += PROPERTY_TRACK_HEIGHT;
 
             if (effect->collapsed)
                 continue;
 
             for (auto property : effect->properties) {
-                paintProperty(painter, property, &stripe, startOffset, &yPos);
+                paintProperty(painter, property, startOffset, &yPos);
             }
         }
     }

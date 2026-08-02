@@ -6,23 +6,22 @@
 #include <QHBoxLayout>
 #include <QLabel>
 
-TimelinePropertyButton::TimelinePropertyButton(
-    PropertyBase *property, Scene *scene, TimelineWidget *timelineWidget,
-    bool stripe, QPushButton *elementButton, int indent, bool showEdit)
+TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
+                                               Scene *scene,
+                                               TimelineWidget *timelineWidget,
+                                               QPushButton *elementButton,
+                                               int indent, bool showEdit)
     : timelineWidget(timelineWidget), property(property), scene(scene) {
     this->setObjectName("property");
     QString background = "transparent";
     QString backgroundSelected = "rgba(128,128,128,0.1)";
-    if (stripe) {
-        background = "palette(alternate-base)";
-        backgroundSelected = "rgba(128,128,128,0.13)";
-    }
     this->setStyleSheet("#property {"
                         "   text-align: left;"
                         "   background: " +
                         background +
                         ";"
                         "   border-radius: 0px;"
+                        "   border-top: 1px solid palette(midlight);"
                         "}"
                         "#property[flat=\"false\"] {"
                         "   background: " +

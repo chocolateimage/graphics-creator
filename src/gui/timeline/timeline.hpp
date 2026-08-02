@@ -53,10 +53,9 @@ class TimelineWidget : public QWidget {
     QAction *actionFrames;
 
   private:
-    bool addCollapsible(ICollapsible *collapsible, bool *stripe, bool selected,
-                        int indent);
-    void addProperty(PropertyBase *property, bool *stripe,
-                     QPushButton *elementButton, int indent, bool showEdit);
+    bool addCollapsible(ICollapsible *collapsible, bool selected, int indent);
+    void addProperty(PropertyBase *property, QPushButton *elementButton,
+                     int indent, bool showEdit);
 
     void createPixmaps();
 
