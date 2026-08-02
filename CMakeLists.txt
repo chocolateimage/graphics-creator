@@ -57,6 +57,7 @@ set(graphicscreator_SRCS
     src/animatable/element/ellipse_element.cpp
     src/animatable/element/text_element.cpp
     src/animatable/element/image_element.cpp
+    src/animatable/element/group_element.cpp
     src/resources/graphics-creator.rc
 )
 

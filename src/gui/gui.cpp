@@ -1,6 +1,7 @@
 #include "gui.hpp"
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/element/ellipse_element.hpp"
+#include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
@@ -1159,6 +1160,8 @@ Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
         element = new TextElement();
     } else if (elementType == "image") {
         element = new ImageElement();
+    } else if (elementType == "group") {
+        element = new GroupElement();
     }
 
     if (!element) {

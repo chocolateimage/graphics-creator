@@ -8,6 +8,7 @@
 #include <string>
 
 class RenderThread;
+class Scene;
 
 static constexpr uint32_t makePixel(Color color) {
     return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
@@ -31,6 +32,7 @@ class Element : public Animatable {
     Property<int> h{this, "h", 100};
     int startFrame{0};
     int durationFrames{INT32_MIN};
+    Scene *scene{nullptr};
     bool collapsed{true};
     // Text editing
     bool editMode{false};
@@ -45,11 +47,19 @@ class Element : public Animatable {
     void insertEffect(Effect *effect, int index);
     void removeEffect(Effect *effect);
     void reorderEffect(Effect *effect, int newIndex);
+    virtual bool isResizable() const { return true; }
 
     void setEditMode(bool newMode);
     void setVisible(bool visible);
 
+    void setParent(const QString &id);
+    bool hasParent() const;
+    QString getParent() const;
+
     virtual QString const typeName() = 0;
+
+  private:
+    QString parentId;
 
   signals:
     void effectAdded(Effect *effect, int index);
@@ -84,4 +94,8 @@ class ElementRender : public AnimatableRender {
 
     int currentFrame{0};
     double currentSeconds{0};
+
+    bool hasParent() const;
+    QString getParent() const;
+    QString parentId;
 };

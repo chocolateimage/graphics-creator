@@ -13,6 +13,7 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     render->visible = visible;
     render->startFrame = startFrame;
     render->durationFrames = durationFrames;
+    render->parentId = parentId;
     for (auto effect : effects) {
         if (!effect->enabled)
             continue;
@@ -87,6 +88,7 @@ void Element::setVisible(bool newValue) {
 QJsonObject Element::serialize() {
     QJsonObject obj = Animatable::serialize();
     obj["id"] = id;
+    obj["parentId"] = parentId;
     obj["elementType"] = typeName();
     obj["collapsed"] = collapsed;
     obj["visible"] = visible;
@@ -105,6 +107,7 @@ void Element::deserialize(const QJsonObject &obj) {
     if (obj.contains("id")) {
         id = obj["id"].toString();
     }
+    parentId = obj["parentId"].toString();
     collapsed = obj["collapsed"].toBool();
     visible = obj["visible"].toBool(true);
     if (obj.contains("startFrame") && obj.contains("durationFrames")) {
@@ -132,11 +135,21 @@ void Element::deserialize(const QJsonObject &obj) {
     }
 }
 
+void Element::setParent(const QString &id) { parentId = id; }
+
+bool Element::hasParent() const { return !parentId.isEmpty(); }
+
+QString Element::getParent() const { return parentId; }
+
 Element::~Element() {
     for (auto effect : effects) {
         delete effect;
     }
 }
+
+bool ElementRender::hasParent() const { return !parentId.isEmpty(); }
+
+QString ElementRender::getParent() const { return parentId; }
 
 ElementRender::~ElementRender() {
     for (auto effect : effects) {

@@ -380,14 +380,18 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             QPointF size = pixelToViewport(bottomRight) - pos;
             painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
 
-            painter.setPen(QPen(palette().accent().color().darker(), 1));
-            painter.setBrush(palette().accent());
-            for (const auto &resizeMode : resizeModes) {
-                QPointF resizePos = pos + QPointF{size.x() * resizeMode.sideX,
-                                                  size.y() * resizeMode.sideY};
-                painter.drawRect(resizePos.x() + RESIZE_HANDLE_SIZE / -2. + 1,
-                                 resizePos.y() + RESIZE_HANDLE_SIZE / -2. + 1,
-                                 RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+            if (element->isResizable()) {
+                painter.setPen(QPen(palette().accent().color().darker(), 1));
+                painter.setBrush(palette().accent());
+                for (const auto &resizeMode : resizeModes) {
+                    QPointF resizePos =
+                        pos + QPointF{size.x() * resizeMode.sideX,
+                                      size.y() * resizeMode.sideY};
+                    painter.drawRect(
+                        resizePos.x() + RESIZE_HANDLE_SIZE / -2. + 1,
+                        resizePos.y() + RESIZE_HANDLE_SIZE / -2. + 1,
+                        RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+                }
             }
 
             if (element->editMode) {
@@ -821,6 +825,9 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     hoverResizeMode = -1;
     hoverResizeElement = nullptr;
     for (auto element : scene->selectedElements) {
+        if (!element->isResizable())
+            continue;
+
         QRect boundingBox = element->getBoundingBox(frameInfo);
         QPointF pos = boundingBox.topLeft();
         QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
