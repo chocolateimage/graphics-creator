@@ -18,6 +18,7 @@ PropertyToggleAnimationButton::PropertyToggleAnimationButton(
     QWidget *parent)
     : QPushButton(parent), scene(scene), property(property),
       completelyFlat(completelyFlat), mode(mode) {
+    setFocusPolicy(Qt::FocusPolicy::NoFocus);
     animationUpdated(property);
 
     connect(this, &QPushButton::clicked, this,
