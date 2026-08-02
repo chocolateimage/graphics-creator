@@ -145,6 +145,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             widget = input;
         } else {
             auto input = new DraggableSpinBox(this);
+            inputSpinBox1 = input;
             input->setMinimum(min);
             input->setMaximum(max);
             input->setSuffix(QString::fromStdString(propertyTyped->suffix));
@@ -445,11 +446,28 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
     if (widget) {
         lay->addWidget(widget);
     }
+
+    connect(property->animatable, &Animatable::propertyUpdated, this,
+            &PropertyEdit::propertyUpdated);
 }
 
 template <typename T> void PropertyEdit::set(T newValue) {
     auto property = (Property<T> *)this->property;
     property->set(newValue, {scene->currentFrame});
+}
+
+void PropertyEdit::propertyUpdated(PropertyBase *updatedProperty) {
+    if (updatedProperty != property)
+        return;
+
+    auto variant = property->toVariant({scene->currentFrame});
+    auto variantType = variant.type();
+    if (variant.type() == VariantTypeEnum::Int) {
+        if (inputSpinBox1) {
+            QSignalBlocker blocker(inputSpinBox1);
+            inputSpinBox1->setValue(variant.get<int>());
+        }
+    }
 }
 
 class PropertyEditCommand : public QUndoCommand {
