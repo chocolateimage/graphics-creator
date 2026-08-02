@@ -142,6 +142,7 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     lay->addWidget(splitter);
 
     timelineLeftContents->installEventFilter(this);
+    timelineMainScrollArea->viewport()->installEventFilter(this);
 
     connect(zoomSlider, &QSlider::valueChanged, timelineContent,
             &TimelineContentWidget::updateContents);
@@ -339,6 +340,20 @@ bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
         }
         return true;
     }
+    if (obj == timelineMainScrollArea->viewport()) {
+        if (event->type() == QEvent::Wheel) {
+            QWheelEvent *wheelEvent = (QWheelEvent *)event;
+            if (wheelEvent->modifiers().testFlag(
+                    Qt::KeyboardModifier::ControlModifier)) {
+                float scale = wheelEvent->angleDelta().y() / 120.f;
+                int zoomValue = zoomSlider->value();
+                zoomSlider->setValue(
+                    std::ceil(zoomValue * std::pow(1.1, scale)));
+                return true;
+            }
+        }
+    }
+
     return QObject::eventFilter(obj, event);
 }
 
