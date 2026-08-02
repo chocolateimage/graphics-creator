@@ -602,13 +602,17 @@ void TextElementRender::renderGlyph(uint32_t *target, FT_BitmapGlyph glyph,
                              255.)));
                 break;
             }
-            case FT_PIXEL_MODE_BGRA:
-                // TODO: opacity
-                target[index] = over(
-                    target[index],
-                    ((uint32_t *)(glyph->bitmap
-                                      .buffer))[y * glyph->bitmap.width + x]);
+            case FT_PIXEL_MODE_BGRA: {
+                uint8_t *bitmapPixel =
+                    &(glyph->bitmap.buffer)[(y * glyph->bitmap.width + x) * 4];
+                uint8_t alpha = bitmapPixel[3] * opacity;
+                uint8_t red = bitmapPixel[2];
+                uint8_t green = bitmapPixel[1];
+                uint8_t blue = bitmapPixel[0];
+                target[index] =
+                    over(target[index], makePixel(red, green, blue, alpha));
                 break;
+            }
             default: {
                 invalid = true;
                 target[index] = over(target[index], makePixel(255, 0, 0, 255));
