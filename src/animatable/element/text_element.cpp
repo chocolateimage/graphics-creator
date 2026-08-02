@@ -267,8 +267,9 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             }
             offsetX += animator->x * percent;
             offsetY += animator->y * percent;
-            item.opacity =
-                lerp(item.opacity, animator->opacity.get() / 100., percent);
+            item.opacity = std::clamp(
+                lerp(item.opacity, animator->opacity.get() / 100., percent), 0.,
+                1.);
             item.strokeWidth += animator->strokeWidth * percent;
             curX += animator->letterSpacing * percent;
         }
