@@ -54,7 +54,7 @@ class VideoSettingsDialog : public QDialog {
   private:
     QSpinBox *width;
     QSpinBox *height;
-    QSpinBox *frameRate;
+    QDoubleSpinBox *frameRate;
     QDoubleSpinBox *duration;
     QLabel *durationFramesLabel;
 };

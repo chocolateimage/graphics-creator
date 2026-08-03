@@ -52,9 +52,9 @@ void GuiRenderThread::run() {
     context->codec_id = codec->id;
     context->width = width;
     context->height = height;
-    stream->time_base = {1, (int)frameRate};
-    stream->avg_frame_rate = {(int)frameRate, 1};
-    context->framerate = {(int)frameRate, 1};
+    stream->time_base = av_d2q(1. / frameRate, AV_TIME_BASE);
+    stream->avg_frame_rate = av_d2q(frameRate, AV_TIME_BASE);
+    context->framerate = av_d2q(frameRate, AV_TIME_BASE);
     context->time_base = stream->time_base;
     context->thread_count = 0;
     context->gop_size = 20;

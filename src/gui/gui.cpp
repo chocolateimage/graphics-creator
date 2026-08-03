@@ -105,9 +105,9 @@ VideoSettingsDialog::VideoSettingsDialog(Scene *scene, QWidget *parent)
     height->setRange(1, 999999);
     height->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-    frameRate = new QSpinBox(this);
+    frameRate = new QDoubleSpinBox(this);
     frameRate->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    frameRate->setRange(1, 999999);
+    frameRate->setRange(.1, 999999);
 
     duration = new QDoubleSpinBox(this);
     duration->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -120,7 +120,7 @@ VideoSettingsDialog::VideoSettingsDialog(Scene *scene, QWidget *parent)
     height->setValue(scene->height);
     frameRate->setValue(scene->frameRate);
     duration->setValue((double)scene->durationFrames / scene->frameRate);
-    connect(frameRate, &QSpinBox::valueChanged, this,
+    connect(frameRate, &QDoubleSpinBox::valueChanged, this,
             &VideoSettingsDialog::updateDurationFrames);
     connect(duration, &QDoubleSpinBox::valueChanged, this,
             &VideoSettingsDialog::updateDurationFrames);
