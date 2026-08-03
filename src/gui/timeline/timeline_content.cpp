@@ -4,6 +4,7 @@
 #include "scene.hpp"
 #include "timeline.hpp"
 #include <QActionGroup>
+#include <QApplication>
 #include <QMenu>
 #include <QPainter>
 #include <QScrollBar>
@@ -604,6 +605,34 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
             if (frames == 0)
                 return;
 
+            int closestDiff = 8;
+            int newFrame = INT32_MIN;
+
+            if (!QApplication::queryKeyboardModifiers().testFlag(
+                    Qt::ControlModifier)) {
+                QList<int> snapFrames;
+                snapFrames.append(timelineWidget->scene->currentFrame);
+                for (const auto &keyframeOne : keyframeData) {
+                    if (selectedKeyframes.contains(keyframeOne.keyframe))
+                        continue;
+                    snapFrames.append(keyframeOne.keyframe->frame);
+                }
+
+                for (auto pos : startKeyframePositions) {
+                    int target = pos + frames;
+                    for (auto snapFrame : snapFrames) {
+                        int diff = qAbs(snapFrame - target);
+                        if (diff < closestDiff) {
+                            newFrame = snapFrame - pos;
+                        }
+                    }
+                }
+            }
+
+            if (newFrame != INT32_MIN) {
+                frames = newFrame;
+            }
+
             int index = 0;
             for (auto keyframe : selectedKeyframes) {
                 if (startKeyframePositions[index] + frames < 0) {
@@ -611,6 +640,7 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
                 }
                 index++;
             }
+
             index = 0;
             for (auto keyframe : selectedKeyframes) {
                 keyframe->property->move(
