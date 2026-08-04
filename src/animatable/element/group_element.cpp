@@ -6,15 +6,7 @@
 GroupElement::GroupElement() : Element() {}
 
 QRect GroupElement::getBoundingBox(const FrameInfo &frameInfo) {
-    QList<Element *> children;
-    if (scene) {
-        for (auto element : scene->elements) {
-            if (element->getParent() == id) {
-                children.append(element);
-            }
-        }
-    }
-
+    QList<Element *> children = getChildren();
     QRect rect;
     for (auto element : children) {
         QRect childBox = element->getBoundingBox(frameInfo);
@@ -30,6 +22,18 @@ QRect GroupElement::getBoundingBox(const FrameInfo &frameInfo) {
 
 AnimatableRender *GroupElement::createClass() {
     return new GroupElementRender();
+}
+
+QList<Element *> GroupElement::getChildren() const {
+    QList<Element *> children;
+    if (scene) {
+        for (auto element : scene->elements) {
+            if (element->getParent() == id) {
+                children.append(element);
+            }
+        }
+    }
+    return children;
 }
 
 void GroupElementRender::prepare() {

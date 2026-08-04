@@ -10,6 +10,8 @@ class GroupElement : public Element {
     QRect getBoundingBox(const FrameInfo &frameInfo) override;
     bool isResizable() const override { return false; }
 
+    QList<Element *> getChildren() const;
+
     QString const typeName() override { return "group"; }
 };
 

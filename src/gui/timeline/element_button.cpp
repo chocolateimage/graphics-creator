@@ -6,14 +6,14 @@
 #include <QMouseEvent>
 
 TimelineElementButton::TimelineElementButton(Element *element,
-                                             TimelineWidget *timelineWidget)
+                                             TimelineWidget *timelineWidget,
+                                             int indent)
     : QPushButton(timelineWidget->timelineLeftContents),
       timelineWidget(timelineWidget), element(element) {
     bool selected = timelineWidget->scene->selectedElements.contains(element);
     setObjectName("timelineElementButton");
     setStyleSheet("#timelineElementButton {"
                   "   text-align: left;"
-                  "   padding-left: 8px;"
                   "   background: transparent;"
                   "   border-radius: 0px;"
                   "   font-weight: 600;"
@@ -25,13 +25,12 @@ TimelineElementButton::TimelineElementButton(Element *element,
                   "#timelineElementButton[flat=\"false\"] {"
                   "   background: rgba(128,128,128,0.25);"
                   "   border-left: 3px solid palette(accent);"
-                  "   padding-left: 5px;"
                   "}"
                   "#timelineElementButton:pressed {"
                   "   background: rgba(128,128,128,0.3);"
                   "}");
     QHBoxLayout *lay = new QHBoxLayout(this);
-    lay->setContentsMargins(8, 0, 8, 0);
+    lay->setContentsMargins(8 + indent, 0, 8, 0);
     lay->setSpacing(0);
 
     QPushButton *collapseButton = new QPushButton(this);

@@ -1,4 +1,5 @@
 #include "timeline.hpp"
+#include "animatable/element/group_element.hpp"
 #include "animatable/element/text_element.hpp"
 #include "element_button.hpp"
 #include "gui/line.hpp"
@@ -261,6 +262,7 @@ void TimelineWidget::dragLeaveEvent(QDragLeaveEvent *event) {
 
 void TimelineWidget::dropEvent(QDropEvent *event) {
     if (elementMoveBar) {
+        // TODO: IMPORTANT: reorder for grouped elements
         uint64_t address =
             QString::fromUtf8(event->mimeData()->data(ELEMENT_DRAG_MIME_TYPE))
                 .toULongLong();
@@ -357,6 +359,67 @@ bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
     return QObject::eventFilter(obj, event);
 }
 
+void TimelineWidget::addElement(Element *element, int indent) {
+    connect(element, &Element::effectListUpdated, this,
+            &TimelineWidget::updateContents);
+    connect(element, &Element::propertyUpdated, timelineContent,
+            &TimelineContentWidget::updatePaint);
+    connect(element, &Element::propertyIsAnimatingUpdated, timelineContent,
+            &TimelineContentWidget::updatePaint);
+    bool selected = scene->selectedElements.contains(element);
+    TimelineElementButton *elementButton =
+        new TimelineElementButton(element, this, indent);
+    elementButtons.append(elementButton);
+    timelineLeftLayout->addWidget(elementButton);
+    timelineContent->updatedHeight += OBJECT_TRACK_HEIGHT;
+
+    if (!element->collapsed) {
+        for (auto property : element->properties) {
+            addProperty(property, elementButton, 24 + indent, false);
+        }
+
+        TextElement *textElement = dynamic_cast<TextElement *>(element);
+        if (textElement) {
+            for (auto animator : textElement->textAnimators) {
+                if (!addCollapsible(animator, selected, 32 + indent))
+                    continue;
+
+                for (auto selector : animator->selectors) {
+                    if (!addCollapsible(selector, selected, 48 + indent))
+                        continue;
+
+                    for (auto selector : selector->properties) {
+                        addProperty(selector, elementButton, 64 + indent, true);
+                    }
+                }
+
+                for (auto property : animator->properties) {
+                    addProperty(property, elementButton, 48 + indent, true);
+                }
+            }
+        }
+
+        for (auto effect : element->effects) {
+            if (effect->properties.empty())
+                continue;
+
+            if (!addCollapsible(effect, selected, 32 + indent))
+                continue;
+
+            for (auto property : effect->properties) {
+                addProperty(property, elementButton, 48 + indent, false);
+            }
+        }
+
+        GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+        if (groupElement) {
+            for (auto child : groupElement->getChildren()) {
+                addElement(child, indent + 18);
+            }
+        }
+    }
+}
+
 void TimelineWidget::updateContents() {
     freezeTimelineScroll = true;
     while (timelineLeftLayout->count() > 0) {
@@ -375,64 +438,21 @@ void TimelineWidget::updateContents() {
 
     elementButtons.clear();
     timelineContent->updatedHeight = TIMELINE_HEADER_HEIGHT;
+
     for (auto element : scene->elements) {
         disconnect(element, &Element::effectListUpdated, this,
                    &TimelineWidget::updateContents);
-        connect(element, &Element::effectListUpdated, this,
-                &TimelineWidget::updateContents);
         disconnect(element, &Element::propertyUpdated, timelineContent,
                    &TimelineContentWidget::updatePaint);
-        connect(element, &Element::propertyUpdated, timelineContent,
-                &TimelineContentWidget::updatePaint);
         disconnect(element, &Element::propertyIsAnimatingUpdated,
                    timelineContent, &TimelineContentWidget::updatePaint);
-        connect(element, &Element::propertyIsAnimatingUpdated, timelineContent,
-                &TimelineContentWidget::updatePaint);
-        bool selected = scene->selectedElements.contains(element);
-        TimelineElementButton *elementButton =
-            new TimelineElementButton(element, this);
-        elementButtons.append(elementButton);
-        timelineLeftLayout->addWidget(elementButton);
-        timelineContent->updatedHeight += OBJECT_TRACK_HEIGHT;
+    }
 
-        if (!element->collapsed) {
-            for (auto property : element->properties) {
-                addProperty(property, elementButton, 24, false);
-            }
+    for (auto element : scene->elements) {
+        if (element->hasParent())
+            continue;
 
-            TextElement *textElement = dynamic_cast<TextElement *>(element);
-            if (textElement) {
-                for (auto animator : textElement->textAnimators) {
-                    if (!addCollapsible(animator, selected, 32))
-                        continue;
-
-                    for (auto selector : animator->selectors) {
-                        if (!addCollapsible(selector, selected, 48))
-                            continue;
-
-                        for (auto selector : selector->properties) {
-                            addProperty(selector, elementButton, 64, true);
-                        }
-                    }
-
-                    for (auto property : animator->properties) {
-                        addProperty(property, elementButton, 48, true);
-                    }
-                }
-            }
-
-            for (auto effect : element->effects) {
-                if (effect->properties.empty())
-                    continue;
-
-                if (!addCollapsible(effect, selected, 32))
-                    continue;
-
-                for (auto property : effect->properties) {
-                    addProperty(property, elementButton, 48, false);
-                }
-            }
-        }
+        addElement(element, 0);
     }
 
     timelineLeftLayout->addSpacing(64);

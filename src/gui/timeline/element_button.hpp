@@ -8,7 +8,7 @@ class TimelineWidget;
 class TimelineElementButton : public QPushButton {
   public:
     explicit TimelineElementButton(Element *element,
-                                   TimelineWidget *timelineWidget);
+                                   TimelineWidget *timelineWidget, int indent);
 
   protected:
     void mousePressEvent(QMouseEvent *event) override;
