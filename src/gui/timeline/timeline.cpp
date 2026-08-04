@@ -534,7 +534,7 @@ bool TimelineWidget::addCollapsible(ICollapsible *collapsible, bool selected,
 void TimelineWidget::addProperty(PropertyBase *property,
                                  QPushButton *elementButton, int indent,
                                  bool showEdit) {
-    if (!property->isAnimatable()) {
+    if (property->hidden || !property->isAnimatable()) {
         return;
     }
     timelineContent->updatedHeight += PROPERTY_TRACK_HEIGHT;

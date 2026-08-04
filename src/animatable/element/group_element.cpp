@@ -3,7 +3,10 @@
 #include "render.hpp"
 #include "scene.hpp"
 
-GroupElement::GroupElement() : Element() {}
+GroupElement::GroupElement() : Element() {
+    w.hidden = true;
+    h.hidden = true;
+}
 
 QRect GroupElement::getBoundingBox(const FrameInfo &frameInfo) {
     QList<Element *> children = getChildren();

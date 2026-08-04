@@ -391,6 +391,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(deleteAction, &QAction::triggered, this,
             &NewMainWindow::deleteTriggered);
 
+    editMenu->addSeparator();
+    groupAction = editMenu->addAction("Group");
+    groupAction->setShortcut(QKeySequence("Ctrl+G"));
+    groupAction->setIcon(QIcon::fromTheme("object-ungroup"));
+    connect(groupAction, &QAction::triggered, this, &NewMainWindow::groupSlot);
+
     videoMenu = menuBar->addMenu("Video");
 
     QAction *goToStartAction = videoMenu->addAction("Go to start");
@@ -607,6 +613,41 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
 
     rerender(false);
+}
+
+void NewMainWindow::groupSlot() {
+    if (scene->selectedElements.isEmpty())
+        return;
+
+    Element *firstSelected = scene->selectedElements.first();
+    int firstIndex = scene->elements.indexOf(firstSelected);
+    GroupElement *groupElement = new GroupElement();
+
+    int groupNumber = 1;
+    while (true) {
+        QString newName = "Group " + QString::number(groupNumber);
+        bool existingName = false;
+        for (auto element : scene->elements) {
+            if (element->objectName() == newName) {
+                existingName = true;
+                break;
+            }
+        }
+        if (existingName) {
+            groupNumber++;
+            continue;
+        }
+
+        groupElement->setObjectName(newName);
+        break;
+    }
+
+    groupElement->setParent(firstSelected->getParent());
+    for (auto element : scene->selectedElements) {
+        element->setParent(groupElement->id);
+    }
+    scene->insertElement(groupElement, firstIndex);
+    scene->selectElements({groupElement});
 }
 
 void NewMainWindow::welcomeOpenClicked(const QString &path, bool asTemplate) {
@@ -1232,6 +1273,7 @@ void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
     copyAction->setDisabled(elements.isEmpty());
     duplicateAction->setDisabled(elements.isEmpty());
     deleteAction->setDisabled(elements.isEmpty());
+    groupAction->setDisabled(elements.isEmpty());
 }
 
 void NewMainWindow::deleteTriggered() {

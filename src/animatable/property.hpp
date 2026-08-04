@@ -475,6 +475,7 @@ class PropertyBase {
     virtual void addToPosition(const FrameInfo &frameInfo) {}
 
     bool isAnimating{false};
+    bool hidden{false};
     QList<QString> flags;
     float stepMultiplier{1};
 };

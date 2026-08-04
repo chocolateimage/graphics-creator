@@ -48,7 +48,7 @@ double TimelineContentWidget::headerPos() {
 void TimelineContentWidget::paintProperty(QPainter &painter,
                                           PropertyBase *property,
                                           int startOffset, double *yPos) {
-    if (!property->isAnimatable())
+    if (property->hidden || !property->isAnimatable())
         return;
 
     painter.fillRect(-startOffset, *yPos, width(), 1, palette().mid());
