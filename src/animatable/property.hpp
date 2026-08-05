@@ -476,6 +476,7 @@ class PropertyBase {
 
     bool isAnimating{false};
     QList<QString> flags;
+    float stepMultiplier{1};
 };
 
 template <typename T> class Property : public PropertyBase {

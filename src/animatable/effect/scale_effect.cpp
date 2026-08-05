@@ -9,6 +9,11 @@ ScaleEffect::ScaleEffect() {
     alignX.setMax(1);
     alignY.setMin(0);
     alignY.setMax(1);
+
+    scaleX.stepMultiplier = 0.05;
+    scaleY.stepMultiplier = 0.05;
+    alignX.stepMultiplier = 0.05;
+    alignY.stepMultiplier = 0.05;
 }
 
 Rect ScaleEffectRender::getRenderBox(const Rect &lastBox) {

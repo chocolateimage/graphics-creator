@@ -13,15 +13,15 @@ class Color {
   public:
     int r{255}, g{255}, b{255}, a{255};
 
-    Color operator+(const Color &other) {
+    Color operator+(const Color &other) const {
         return {std::min(r + other.r, 255), std::min(g + other.g, 255),
                 std::min(b + other.b, 255), std::min(a + other.a, 255)};
     }
-    Color operator-(const Color &other) {
+    Color operator-(const Color &other) const {
         return {std::max(r - other.r, 0), std::max(g - other.g, 0),
                 std::max(b - other.b, 0), std::max(a - other.a, 0)};
     }
-    Color operator*(float value) {
+    Color operator*(float value) const {
         float clamped = std::clamp(value, 0.f, 1.f);
         return {(int)(r * clamped), (int)(g * clamped), (int)(b * clamped),
                 (int)(a * clamped)};
@@ -38,7 +38,24 @@ struct Vector2DInt {
 };
 
 struct Vector2DFloat {
+    Vector2DFloat() : x(0), y(0) {}
+    Vector2DFloat(float value) : x(value), y(value) {}
+    Vector2DFloat(float x, float y) : x(x), y(y) {}
+
     float x, y;
+
+    Vector2DFloat operator+(const Vector2DFloat &other) const {
+        return {x + other.x, y + other.y};
+    }
+    Vector2DFloat operator-(const Vector2DFloat &other) const {
+        return {x - other.x, y - other.y};
+    }
+    Vector2DFloat operator*(const Vector2DFloat &other) const {
+        return {x * other.x, y * other.y};
+    }
+    Vector2DFloat operator*(float value) const {
+        return {x * value, y * value};
+    }
 };
 
 struct Font {

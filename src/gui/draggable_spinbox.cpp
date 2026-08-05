@@ -79,7 +79,7 @@ bool DraggableDoubleSpinBox::eventFilter(QObject *obj, QEvent *event) {
             if (isHolding) {
                 float moved = mouseEvent->position().x() - holdStartPos.x();
                 if (isDragging) {
-                    setValue(holdStartValue + moved);
+                    setValue(holdStartValue + moved * multiplier);
                     if ((QCursor::pos() - holdAfterDragStartPos)
                             .manhattanLength() > 100) {
                         holdStartValue = value();

@@ -175,6 +175,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         input->setMaximum(max);
         input->setSuffix(QString::fromStdString(propertyTyped->suffix));
         input->setValue(variant.get<double>());
+        input->multiplier = property->stepMultiplier;
         connect(input, &DraggableDoubleSpinBox::editingFinished, this,
                 [this]() { finishEditing(); });
         connect(input, &DraggableDoubleSpinBox::valueChanged, this,
@@ -239,11 +240,13 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         inputX->setMinimum(min);
         inputX->setMaximum(max);
         inputX->setValue(value.x);
+        inputX->multiplier = property->stepMultiplier;
 
         auto inputY = new DraggableDoubleSpinBox(this);
         inputY->setMinimum(min);
         inputY->setMaximum(max);
         inputY->setValue(value.y);
+        inputY->multiplier = property->stepMultiplier;
 
         layout->addWidget(inputX);
         layout->addWidget(inputY);

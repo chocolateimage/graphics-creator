@@ -27,8 +27,8 @@ class ScaleEffect : public Effect {
 
     Property<bool> bilinear{this, "bilinear", true};
 
-    Property<double> scaleX{this, "scaleX", 2};
-    Property<double> scaleY{this, "scaleY", 2};
+    Property<double> scaleX{this, "scaleX", 1};
+    Property<double> scaleY{this, "scaleY", 1};
 
     Property<double> alignX{this, "alignX", 0.5};
     Property<double> alignY{this, "alignY", 0.5};

@@ -2,6 +2,7 @@
 #include "blur_effect.hpp"
 #include "brightness_effect.hpp"
 #include "color_link_effect.hpp"
+#include "corner_pin_effect.hpp"
 #include "crop_effect.hpp"
 #include "crt_effect.hpp"
 #include "drop_shadow_effect.hpp"
@@ -59,6 +60,7 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Style", "Pixelate", "pixelate", PixelateEffect),
     DEFINE_EFFECT("Style", "Threshold", "threshold", ThresholdEffect),
     DEFINE_EFFECT("Style", "Twist", "twist", TwistEffect),
+    DEFINE_EFFECT("Style", "Corner Pin", "cornerPin", CornerPinEffect),
     DEFINE_EFFECT("Style", "Tile", "tile", TileEffect),
 
     DEFINE_EFFECT("Generate", "Grid", "grid", GridEffect),

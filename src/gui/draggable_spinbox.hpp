@@ -18,6 +18,7 @@ class DraggableSpinBox : public QSpinBox {
 class DraggableDoubleSpinBox : public QDoubleSpinBox {
   public:
     explicit DraggableDoubleSpinBox(QWidget *parent = nullptr);
+    float multiplier{1};
 
   protected:
     double holdStartValue;
