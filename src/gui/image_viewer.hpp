@@ -86,6 +86,10 @@ class ImageViewer : public QWidget {
     QRect snapVisualRect2;
     QList<QJsonObject> moveOlds;
     QList<QJsonObject> moveNews;
+    int moveSpacing{0};
+    QPoint moveSpacingCursorStart;
+    bool moveSpacingMoving{false};
+    QRect snapElementRectPreview;
 
     bool isDroppingImage{false};
     QString dropImagePath;

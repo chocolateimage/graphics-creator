@@ -415,6 +415,17 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     if (isMovingElements) {
         paintSnapVisualRect(painter, snapVisualRect1);
         paintSnapVisualRect(painter, snapVisualRect2);
+
+        if (moveSpacing > 0 && snapElementRectPreview.isValid()) {
+            QPointF topLeft = pixelToViewport(snapElementRectPreview.topLeft());
+            QPointF bottomRight = pixelToViewport(
+                snapElementRectPreview.bottomRight() + QPoint{1, 1});
+            painter.setPen(QPen(QColor(61, 148, 255, 255), 2));
+            painter.setBrush(QColor(61, 148, 255, 40));
+            painter.drawRect(topLeft.x(), topLeft.y(),
+                             bottomRight.x() - topLeft.x(),
+                             bottomRight.y() - topLeft.y());
+        }
     }
 }
 
@@ -600,6 +611,13 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     }
 
     if (isMovingElements) {
+        if (moveSpacingMoving) {
+            moveSpacing = std::max(
+                0, moveSpacing + (QCursor::pos() - moveSpacingCursorStart).x());
+            QCursor::setPos(moveSpacingCursorStart);
+            pixelPos = viewportToPixel(mapFromGlobal(moveSpacingCursorStart));
+        }
+
         QPoint diff = pixelPos - startMovePosition;
         if (QApplication::queryKeyboardModifiers().testFlag(
                 Qt::ShiftModifier)) {
@@ -611,6 +629,7 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         }
 
         QRect rect;
+        int spacing = moveSpacing;
 
         bool first = true;
         int index = 0;
@@ -627,6 +646,9 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
             index++;
         }
 
+        rect = rect.marginsAdded(QMargins{spacing, spacing, spacing, spacing});
+        snapElementRectPreview = rect;
+
         QList<QRect> snapRects;
         if (!QApplication::queryKeyboardModifiers().testFlag(
                 Qt::ControlModifier)) {
@@ -639,6 +661,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
 
                 snapRects.append(element->getBoundingBox(frameInfo));
             }
+        } else {
+            snapElementRectPreview = {};
         }
 
         int finalDiffX{0};
@@ -757,11 +781,19 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
 
         if (lastLengthX < threshold) {
             diff.setX(finalDiffX - rect.x() + diff.x());
+            snapElementRectPreview =
+                QRect(finalDiffX, snapElementRectPreview.y(),
+                      snapElementRectPreview.width(),
+                      snapElementRectPreview.height());
         } else {
             snapVisualRect1 = {0, 0, 0, 0};
         }
         if (lastLengthY < threshold) {
             diff.setY(finalDiffY - rect.y() + diff.y());
+            snapElementRectPreview =
+                QRect(snapElementRectPreview.x(), finalDiffY,
+                      snapElementRectPreview.width(),
+                      snapElementRectPreview.height());
         } else {
             snapVisualRect2 = {0, 0, 0, 0};
         }
@@ -881,6 +913,13 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
         }
     }
 
+    if (event->button() == Qt::RightButton) {
+        if (isMovingElements) {
+            moveSpacingCursorStart = QCursor::pos();
+            moveSpacingMoving = true;
+        }
+    }
+
     if (event->button() == Qt::LeftButton) {
         if (scene && !scene->isPlaying()) {
             FrameInfo frameInfo = {scene->currentFrame};
@@ -919,6 +958,7 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 
             if (clickedElement) {
                 isMovingElements = true;
+                snapElementRectPreview = {};
                 startElementPositions.clear();
                 startElementBoundPositions.clear();
                 snapVisualRect1 = {0, 0, 0, 0};
@@ -1103,6 +1143,12 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
         if (dragging) {
             dragging = false;
             QGuiApplication::restoreOverrideCursor();
+        }
+    }
+
+    if (event->button() == Qt::RightButton) {
+        if (moveSpacingMoving) {
+            moveSpacingMoving = false;
         }
     }
 }
