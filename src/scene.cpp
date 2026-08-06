@@ -129,3 +129,13 @@ void Scene::setFrame(int frame) {
 }
 
 bool Scene::isPlaying() { return timer->isActive(); }
+
+Element *Scene::findElementById(const QString &id) {
+    for (auto element : elements) {
+        if (element->id == id) {
+            return element;
+        }
+    }
+
+    return nullptr;
+}

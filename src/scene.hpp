@@ -32,6 +32,8 @@ class Scene : public QObject {
     void reorderElement(Element *element, int newIndex);
     void selectElements(QList<Element *> elements);
 
+    Element *findElementById(const QString &id);
+
     std::function<bool()> canContinuePlayback;
 
   signals:

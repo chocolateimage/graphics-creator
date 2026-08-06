@@ -135,7 +135,7 @@ class TextElement : public Element {
 
     FontManager *fontManager;
     AnimatableRender *createClass() override;
-    QRect getBoundingBox(const FrameInfo &frameInfo) override;
+    QRect _getBoundingBox(const FrameInfo &frameInfo) override;
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     QList<TextAnimatorRender *> toRenderAnimators(const FrameInfo &frameInfo);
     QJsonObject serialize() override;

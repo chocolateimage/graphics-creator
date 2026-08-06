@@ -1,5 +1,6 @@
 #include "element.hpp"
 #include "animatable/effect/effect_list.hpp"
+#include "scene.hpp"
 #include <KMessageBox>
 #include <QDebug>
 
@@ -26,9 +27,34 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     return render;
 }
 
-QRect Element::getBoundingBox(const FrameInfo &frameInfo) {
+QRect Element::_getBoundingBox(const FrameInfo &frameInfo) {
     return {x.get(frameInfo), y.get(frameInfo), w.get(frameInfo),
             h.get(frameInfo)};
+}
+
+QRect Element::getBoundingBox(const FrameInfo &frameInfo) {
+    int offsetX{0};
+    int offsetY{0};
+
+    QString parent = getParent();
+    while (!parent.isEmpty()) {
+        Element *parentElement = scene->findElementById(parent);
+        if (!parentElement) {
+            qWarning() << "Parent element is null!!";
+            break;
+        }
+
+        offsetX += parentElement->x.get(frameInfo);
+        offsetY += parentElement->y.get(frameInfo);
+
+        parent = parentElement->getParent();
+    }
+
+    QRect bbox = _getBoundingBox(frameInfo);
+
+    bbox.translate(offsetX, offsetY);
+
+    return bbox;
 }
 
 void Element::addEffect(Effect *effect) {
