@@ -410,7 +410,7 @@ TextLayout TextElement::layTheTextOut(const FrameInfo &frameInfo) {
     return lay;
 }
 
-QRect TextElement::_getBoundingBox(const FrameInfo &frameInfo) {
+QRect TextElement::getRawBoundingBox(const FrameInfo &frameInfo) {
     if (w.get(frameInfo) != 1 || h.get(frameInfo) != 1) {
         return Element::getBoundingBox(frameInfo);
     }

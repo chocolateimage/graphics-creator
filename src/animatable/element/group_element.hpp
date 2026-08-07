@@ -7,7 +7,7 @@ class GroupElement : public Element {
     virtual ~GroupElement() {}
 
     AnimatableRender *createClass() override;
-    QRect _getBoundingBox(const FrameInfo &frameInfo) override;
+    QRect getRawBoundingBox(const FrameInfo &frameInfo) override;
     bool isResizable() const override { return false; }
 
     QList<Element *> getChildren() const;

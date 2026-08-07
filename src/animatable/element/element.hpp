@@ -40,7 +40,7 @@ class Element : public Animatable {
     bool visible{true};
 
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
-    virtual QRect _getBoundingBox(const FrameInfo &frameInfo);
+    virtual QRect getRawBoundingBox(const FrameInfo &frameInfo);
     QRect getBoundingBox(const FrameInfo &frameInfo);
     QJsonObject serialize() override;
     void deserialize(const QJsonObject &obj) override;

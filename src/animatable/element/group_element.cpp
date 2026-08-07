@@ -8,11 +8,11 @@ GroupElement::GroupElement() : Element() {
     h.hidden = true;
 }
 
-QRect GroupElement::_getBoundingBox(const FrameInfo &frameInfo) {
+QRect GroupElement::getRawBoundingBox(const FrameInfo &frameInfo) {
     QList<Element *> children = getChildren();
     QRect rect;
     for (auto element : children) {
-        QRect childBox = element->_getBoundingBox(frameInfo);
+        QRect childBox = element->getRawBoundingBox(frameInfo);
         if (rect.isNull()) {
             rect = childBox;
         } else {

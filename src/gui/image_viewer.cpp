@@ -937,7 +937,7 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                 resizeOldY = resizeElement->y.serialize();
                 resizeOldW = resizeElement->w.serialize();
                 resizeOldH = resizeElement->h.serialize();
-                startResizeRect = resizeElement->getBoundingBox(frameInfo);
+                startResizeRect = resizeElement->getRawBoundingBox(frameInfo);
                 activeResizeMode = hoverResizeMode;
                 return;
             }

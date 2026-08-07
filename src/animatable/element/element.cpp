@@ -27,7 +27,7 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     return render;
 }
 
-QRect Element::_getBoundingBox(const FrameInfo &frameInfo) {
+QRect Element::getRawBoundingBox(const FrameInfo &frameInfo) {
     return {x.get(frameInfo), y.get(frameInfo), w.get(frameInfo),
             h.get(frameInfo)};
 }
@@ -50,7 +50,7 @@ QRect Element::getBoundingBox(const FrameInfo &frameInfo) {
         parent = parentElement->getParent();
     }
 
-    QRect bbox = _getBoundingBox(frameInfo);
+    QRect bbox = getRawBoundingBox(frameInfo);
 
     bbox.translate(offsetX, offsetY);
 
