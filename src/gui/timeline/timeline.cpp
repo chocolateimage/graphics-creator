@@ -244,12 +244,18 @@ void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
         for (int i = 0; i < yPositions.size(); i++) {
             int diff = std::abs(yPositions[i] - yPos);
             if (diff < lastClosest) {
-                targetElementIndex = i;
+                if (i == yPositions.size() - 1) {
+                    targetElementIndex = scene->elements.size();
+                } else {
+                    targetElementIndex =
+                        scene->elements.indexOf(elementButtons[i]->element);
+                }
+                elementMoveBar->move(0, yPositions[i]);
                 lastClosest = diff;
             }
         }
+        qInfo() << targetElementIndex;
         elementMoveTarget = targetElementIndex;
-        elementMoveBar->move(0, yPositions[targetElementIndex]);
     }
 }
 

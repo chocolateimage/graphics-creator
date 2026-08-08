@@ -10,8 +10,8 @@
 TimelineElementButton::TimelineElementButton(Element *element,
                                              TimelineWidget *timelineWidget,
                                              int indent)
-    : QPushButton(timelineWidget->timelineLeftContents),
-      timelineWidget(timelineWidget), element(element) {
+    : QPushButton(timelineWidget->timelineLeftContents), element(element),
+      timelineWidget(timelineWidget) {
     bool selected = timelineWidget->scene->selectedElements.contains(element);
     setObjectName("timelineElementButton");
     setStyleSheet("#timelineElementButton {"
@@ -72,6 +72,10 @@ TimelineElementButton::TimelineElementButton(Element *element,
             &TimelineElementButton::visibilityUpdated);
     connect(this, &QPushButton::clicked, this,
             &TimelineElementButton::clickedSlot);
+
+    opacityEffect = new QGraphicsOpacityEffect(this);
+    opacityEffect->setOpacity(1);
+    setGraphicsEffect(opacityEffect);
 }
 
 void TimelineElementButton::visibilityClicked() {
@@ -127,10 +131,12 @@ void TimelineElementButton::mousePressEvent(QMouseEvent *event) {
             ungroupAction = menu.addAction("Ungroup");
             ungroupAction->setIcon(QIcon::fromTheme("object-ungroup"));
         }
-        QAction *action = menu.exec(QCursor::pos());
+        if (groupElement) { // if check is temporary until more actions exist
+            QAction *action = menu.exec(QCursor::pos());
 
-        if (action == ungroupAction) {
-            groupElement->ungroup();
+            if (action == ungroupAction) {
+                groupElement->ungroup();
+            }
         }
     }
 
@@ -149,7 +155,11 @@ void TimelineElementButton::mouseMoveEvent(QMouseEvent *event) {
     // This is some very cursed code :')
     mimeData->setData(ELEMENT_DRAG_MIME_TYPE,
                       QString::number((uint64_t)(element)).toUtf8());
+    QPixmap preview = grab();
+    drag->setPixmap(preview);
     drag->setMimeData(mimeData);
 
+    opacityEffect->setOpacity(0.1);
     Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+    opacityEffect->setOpacity(1);
 }
