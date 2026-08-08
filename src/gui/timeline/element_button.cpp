@@ -1,7 +1,9 @@
 #include "element_button.hpp"
+#include "animatable/element/group_element.hpp"
 #include "timeline.hpp"
 #include <QApplication>
 #include <QDrag>
+#include <QMenu>
 #include <QMimeData>
 #include <QMouseEvent>
 
@@ -116,6 +118,20 @@ void TimelineElementButton::clickedSlot() {
 void TimelineElementButton::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         dragStartPosition = event->pos();
+    }
+    if (event->button() == Qt::RightButton) {
+        QMenu menu;
+        QAction *ungroupAction = nullptr;
+        GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+        if (groupElement) {
+            ungroupAction = menu.addAction("Ungroup");
+            ungroupAction->setIcon(QIcon::fromTheme("object-ungroup"));
+        }
+        QAction *action = menu.exec(QCursor::pos());
+
+        if (action == ungroupAction) {
+            groupElement->ungroup();
+        }
     }
 
     return QPushButton::mousePressEvent(event);

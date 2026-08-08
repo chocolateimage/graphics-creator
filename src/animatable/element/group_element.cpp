@@ -39,6 +39,17 @@ QList<Element *> GroupElement::getChildren() const {
     return children;
 }
 
+void GroupElement::ungroup() {
+    QList<Element *> children = getChildren();
+    for (auto element : children) {
+        element->setParent(getParent());
+    }
+
+    scene->selectElements(children);
+    scene->removeElement(this);
+    delete this; // TODO: undo redo so not this
+}
+
 void GroupElementRender::prepare() {
     for (auto element : renderThread->currentFrameTask->renderElements) {
         if (element->getParent() == id) {

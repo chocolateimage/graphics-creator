@@ -394,8 +394,14 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     editMenu->addSeparator();
     groupAction = editMenu->addAction("Group");
     groupAction->setShortcut(QKeySequence("Ctrl+G"));
-    groupAction->setIcon(QIcon::fromTheme("object-ungroup"));
+    groupAction->setIcon(QIcon::fromTheme("object-group"));
     connect(groupAction, &QAction::triggered, this, &NewMainWindow::groupSlot);
+
+    ungroupAction = editMenu->addAction("Ungroup");
+    ungroupAction->setShortcut(QKeySequence("Ctrl+Shift+G"));
+    ungroupAction->setIcon(QIcon::fromTheme("object-ungroup"));
+    connect(ungroupAction, &QAction::triggered, this,
+            &NewMainWindow::ungroupSlot);
 
     videoMenu = menuBar->addMenu("Video");
 
@@ -648,6 +654,18 @@ void NewMainWindow::groupSlot() {
     }
     scene->insertElement(groupElement, firstIndex);
     scene->selectElements({groupElement});
+}
+
+void NewMainWindow::ungroupSlot() {
+    if (scene->selectedElements.isEmpty())
+        return;
+
+    for (auto element : scene->selectedElements) {
+        GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+        if (groupElement) {
+            groupElement->ungroup();
+        }
+    }
 }
 
 void NewMainWindow::welcomeOpenClicked(const QString &path, bool asTemplate) {
@@ -1274,6 +1292,13 @@ void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
     duplicateAction->setDisabled(elements.isEmpty());
     deleteAction->setDisabled(elements.isEmpty());
     groupAction->setDisabled(elements.isEmpty());
+    bool hasGroupElement = false;
+    for (auto element : elements) {
+        if (dynamic_cast<GroupElement *>(element)) {
+            hasGroupElement = true;
+        }
+    }
+    ungroupAction->setEnabled(hasGroupElement);
 }
 
 void NewMainWindow::deleteTriggered() {

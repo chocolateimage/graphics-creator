@@ -86,6 +86,7 @@ class NewMainWindow : public QMainWindow {
     QAction *duplicateAction;
     QAction *deleteAction;
     QAction *groupAction;
+    QAction *ungroupAction;
 
     QAction *renderAction;
     RenderWindow *renderWindow{nullptr};
@@ -137,6 +138,7 @@ class NewMainWindow : public QMainWindow {
     void notLatestVersion(QJsonObject obj);
     void welcomeOpenClicked(const QString &path, bool asTemplate);
     void groupSlot();
+    void ungroupSlot();
 
     QNetworkAccessManager *networkAccessManager;
 
