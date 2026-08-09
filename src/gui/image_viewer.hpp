@@ -90,6 +90,7 @@ class ImageViewer : public QWidget {
     QPoint moveSpacingCursorStart;
     bool moveSpacingMoving{false};
     QRect snapElementRectPreview;
+    Element *hoverElement{nullptr};
 
     bool isDroppingImage{false};
     QString dropImagePath;
