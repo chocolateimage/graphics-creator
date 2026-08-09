@@ -662,6 +662,16 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
                     continue;
                 if (scene->selectedElements.contains(element))
                     continue;
+                bool skip = false;
+                for (auto selectedElement : scene->selectedElements) {
+                    if (selectedElement->isAnyChild(element) ||
+                        selectedElement->isAnyParent(element)) {
+                        skip = true;
+                        continue;
+                    }
+                }
+                if (skip)
+                    continue;
 
                 snapRects.append(element->getBoundingBox(frameInfo));
             }

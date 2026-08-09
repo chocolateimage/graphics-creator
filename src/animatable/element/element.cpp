@@ -167,6 +167,54 @@ bool Element::hasParent() const { return !parentId.isEmpty(); }
 
 QString Element::getParent() const { return parentId; }
 
+QList<Element *> Element::getChildren() const {
+    QList<Element *> children;
+    if (scene) {
+        for (auto element : scene->elements) {
+            if (element->getParent() == id) {
+                children.append(element);
+            }
+        }
+    }
+    return children;
+}
+
+bool Element::isDirectChild(Element *element) const {
+    for (auto child : getChildren()) {
+        if (child == element) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Element::isAnyChild(Element *element) const {
+    for (auto child : getChildren()) {
+        if (child == element) {
+            return true;
+        }
+
+        if (element->isAnyChild(element)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Element::isAnyParent(Element *element) const {
+    if (!hasParent()) {
+        return false;
+    }
+
+    Element *parentElement = scene->findElementById(getParent());
+    if (parentElement == element)
+        return true;
+
+    return parentElement->isAnyParent(element);
+}
+
 Element::~Element() {
     for (auto effect : effects) {
         delete effect;

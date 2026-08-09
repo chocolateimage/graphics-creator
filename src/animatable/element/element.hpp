@@ -56,6 +56,10 @@ class Element : public Animatable {
     void setParent(const QString &id);
     bool hasParent() const;
     QString getParent() const;
+    QList<Element *> getChildren() const;
+    bool isDirectChild(Element *element) const;
+    bool isAnyChild(Element *element) const;
+    bool isAnyParent(Element *element) const;
 
     virtual QString const typeName() = 0;
 

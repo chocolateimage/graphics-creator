@@ -27,43 +27,6 @@ AnimatableRender *GroupElement::createClass() {
     return new GroupElementRender();
 }
 
-QList<Element *> GroupElement::getChildren() const {
-    QList<Element *> children;
-    if (scene) {
-        for (auto element : scene->elements) {
-            if (element->getParent() == id) {
-                children.append(element);
-            }
-        }
-    }
-    return children;
-}
-
-bool GroupElement::isDirectChild(Element *element) const {
-    for (auto child : getChildren()) {
-        if (child == element) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool GroupElement::isAnyChild(Element *element) const {
-    for (auto child : getChildren()) {
-        if (child == element) {
-            return true;
-        }
-
-        GroupElement *groupElement = dynamic_cast<GroupElement *>(child);
-        if (groupElement && groupElement->isAnyChild(element)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void GroupElement::ungroup() {
     QList<Element *> children = getChildren();
     for (auto element : children) {
@@ -132,10 +95,5 @@ bool GroupElementRender::render(uint32_t *target) {
         }
     }
 
-    // for (int y = 0; y < h; y++) {
-    //     for (int x = 0; x < w; x++) {
-    //         target[pixelIndex(x, y, rect.w)] = makePixel(255, 0, 0, 255);
-    //     }
-    // }
     return true;
 }
