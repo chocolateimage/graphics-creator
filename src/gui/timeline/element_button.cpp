@@ -157,6 +157,7 @@ void TimelineElementButton::mouseMoveEvent(QMouseEvent *event) {
                       QString::number((uint64_t)(element)).toUtf8());
     QPixmap preview = grab();
     drag->setPixmap(preview);
+    drag->setHotSpot(dragStartPosition);
     drag->setMimeData(mimeData);
 
     opacityEffect->setOpacity(0.1);

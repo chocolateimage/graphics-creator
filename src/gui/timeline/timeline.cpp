@@ -244,14 +244,14 @@ void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
         elementGroupBar->move(-999, -999);
 
         QList<int> yPositions;
-        yPositions.append(elementButtons[0]->y());
-
         for (auto element : elementButtons) {
-            yPositions.append(element->y() + OBJECT_TRACK_HEIGHT);
+            yPositions.append(element->y());
         }
+        yPositions.append(timelineContent->height());
 
         QPointF pos =
             timelineLeftContents->mapFromGlobal(mapToGlobal(event->position()));
+
         int yPos = pos.y();
         int targetElementIndex = 0;
         int lastClosest = INT32_MAX;
@@ -264,24 +264,38 @@ void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
                     targetElementIndex =
                         scene->elements.indexOf(elementButtons[i]->element);
                 }
-                elementMoveBar->move(0, yPositions[i]);
+                elementMoveBar->move(0, yPositions[i] - 1);
                 lastClosest = diff;
             }
         }
-        for (int i = 0; i < yPositions.size() - 1; i++) {
-            if (yPos >= yPositions[i] &&
-                yPos < yPositions[i] + OBJECT_TRACK_HEIGHT) {
-                Element *element = elementButtons[i]->element;
+        elementMoveTarget = targetElementIndex;
+
+        uint64_t address =
+            QString::fromUtf8(event->mimeData()->data(ELEMENT_DRAG_MIME_TYPE))
+                .toULongLong();
+        Element *gotElement = (Element *)address;
+        GroupElement *gotGroupElement =
+            dynamic_cast<GroupElement *>(gotElement);
+
+        for (auto elementButton : elementButtons) {
+            int y = elementButton->y();
+            if (yPos >= y && yPos < y + OBJECT_TRACK_HEIGHT) {
+                Element *element = elementButton->element;
                 GroupElement *groupElement =
                     dynamic_cast<GroupElement *>(element);
 
-                if (groupElement) {
-                    elementGroupBar->move(0, yPositions[i]);
+                if (groupElement && groupElement != gotElement) {
+                    if (gotGroupElement) {
+                        if (gotGroupElement->isAnyChild(groupElement)) {
+                            break;
+                        }
+                    }
+                    elementGroupBar->move(0, y);
                     dragGroupElement = groupElement;
                 }
+                break;
             }
         }
-        elementMoveTarget = targetElementIndex;
     }
 }
 
@@ -304,9 +318,7 @@ void TimelineWidget::dropEvent(QDropEvent *event) {
                 .toULongLong();
         Element *gotElement = (Element *)address;
         if (dragGroupElement) {
-            if (gotElement->id != dragGroupElement->id) {
-                gotElement->setParent(dragGroupElement->id);
-            }
+            gotElement->setParent(dragGroupElement->id);
         }
         scene->reorderElement(gotElement, elementMoveTarget);
 

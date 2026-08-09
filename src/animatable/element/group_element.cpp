@@ -39,6 +39,31 @@ QList<Element *> GroupElement::getChildren() const {
     return children;
 }
 
+bool GroupElement::isDirectChild(Element *element) const {
+    for (auto child : getChildren()) {
+        if (child == element) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool GroupElement::isAnyChild(Element *element) const {
+    for (auto child : getChildren()) {
+        if (child == element) {
+            return true;
+        }
+
+        GroupElement *groupElement = dynamic_cast<GroupElement *>(child);
+        if (groupElement && groupElement->isAnyChild(element)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void GroupElement::ungroup() {
     QList<Element *> children = getChildren();
     for (auto element : children) {

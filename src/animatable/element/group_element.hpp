@@ -13,6 +13,8 @@ class GroupElement : public Element {
     void ungroup();
 
     QList<Element *> getChildren() const;
+    bool isDirectChild(Element *element) const;
+    bool isAnyChild(Element *element) const;
 
     QString const typeName() override { return "group"; }
 };
