@@ -284,16 +284,29 @@ void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
                 GroupElement *groupElement =
                     dynamic_cast<GroupElement *>(element);
 
+                if (gotElement == element) {
+                    continue;
+                }
+                if (gotGroupElement) {
+                    if (gotGroupElement->isAnyChild(element)) {
+                        continue;
+                    }
+                }
+
                 if (groupElement && groupElement != gotElement) {
-                    if (gotGroupElement) {
-                        if (gotGroupElement->isAnyChild(groupElement)) {
+                    elementGroupBar->move(0, y);
+                    dragGroupElement = groupElement;
+                } else {
+                    Element *parentElement =
+                        scene->findElementById(element->getParent());
+                    for (auto elementButton : elementButtons) {
+                        if (elementButton->element == parentElement) {
+                            elementGroupBar->move(0, elementButton->y());
                             break;
                         }
                     }
-                    elementGroupBar->move(0, y);
-                    dragGroupElement = groupElement;
+                    dragGroupElement = parentElement;
                 }
-                break;
             }
         }
     }
@@ -312,13 +325,14 @@ void TimelineWidget::dragLeaveEvent(QDragLeaveEvent *event) {
 
 void TimelineWidget::dropEvent(QDropEvent *event) {
     if (elementMoveBar) {
-        // TODO: IMPORTANT: reorder for grouped elements
         uint64_t address =
             QString::fromUtf8(event->mimeData()->data(ELEMENT_DRAG_MIME_TYPE))
                 .toULongLong();
         Element *gotElement = (Element *)address;
         if (dragGroupElement) {
             gotElement->setParent(dragGroupElement->id);
+        } else {
+            gotElement->setParent("");
         }
         scene->reorderElement(gotElement, elementMoveTarget);
 
