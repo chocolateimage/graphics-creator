@@ -370,7 +370,7 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     if (scene && !scene->isPlaying()) {
         FrameInfo fi = {scene->currentFrame};
 
-        if (!isMovingElements && hoverElement &&
+        if (!isMovingElements && !isPicking && hoverElement &&
             !scene->selectedElements.contains(hoverElement)) {
             QPen pen(palette().accent(), 2);
             pen.setStyle(Qt::PenStyle::DotLine);
