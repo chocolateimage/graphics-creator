@@ -873,10 +873,12 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
             }
         }
 
-        for (auto element : scene->selectedElements) {
-            if (element->getBoundingBox(frameInfo).contains(pixelPos)) {
-                hoverElement = element;
-                break;
+        if (!exact) {
+            for (auto element : scene->selectedElements) {
+                if (element->getBoundingBox(frameInfo).contains(pixelPos)) {
+                    hoverElement = element;
+                    break;
+                }
             }
         }
         update();
