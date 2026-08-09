@@ -228,8 +228,22 @@ void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
             timelineLeftLayout->addWidget(elementMoveBar);
         }
 
-        QList<int> yPositions;
+        if (!elementGroupBar) {
+            elementGroupBar = new QFrame(timelineLeftContents);
+            elementGroupBar->setFixedWidth(timelineLeftContents->width());
+            elementGroupBar->setFixedHeight(OBJECT_TRACK_HEIGHT);
+            QColor groupColor = palette().accent().color();
+            groupColor.setAlpha(100);
+            elementGroupBar->setStyleSheet(
+                "background: " + groupColor.name(QColor::HexArgb) + ";");
+            elementGroupBar->move(-999, -999);
+            timelineLeftLayout->addWidget(elementGroupBar);
+        }
 
+        dragGroupElement = nullptr;
+        elementGroupBar->move(-999, -999);
+
+        QList<int> yPositions;
         yPositions.append(elementButtons[0]->y());
 
         for (auto element : elementButtons) {
@@ -254,7 +268,19 @@ void TimelineWidget::dragMoveEvent(QDragMoveEvent *event) {
                 lastClosest = diff;
             }
         }
-        qInfo() << targetElementIndex;
+        for (int i = 0; i < yPositions.size() - 1; i++) {
+            if (yPos >= yPositions[i] &&
+                yPos < yPositions[i] + OBJECT_TRACK_HEIGHT) {
+                Element *element = elementButtons[i]->element;
+                GroupElement *groupElement =
+                    dynamic_cast<GroupElement *>(element);
+
+                if (groupElement) {
+                    elementGroupBar->move(0, yPositions[i]);
+                    dragGroupElement = groupElement;
+                }
+            }
+        }
         elementMoveTarget = targetElementIndex;
     }
 }
@@ -263,6 +289,10 @@ void TimelineWidget::dragLeaveEvent(QDragLeaveEvent *event) {
     if (elementMoveBar) {
         elementMoveBar->deleteLater();
         elementMoveBar = nullptr;
+    }
+    if (elementGroupBar) {
+        elementGroupBar->deleteLater();
+        elementGroupBar = nullptr;
     }
 }
 
@@ -273,10 +303,19 @@ void TimelineWidget::dropEvent(QDropEvent *event) {
             QString::fromUtf8(event->mimeData()->data(ELEMENT_DRAG_MIME_TYPE))
                 .toULongLong();
         Element *gotElement = (Element *)address;
+        if (dragGroupElement) {
+            if (gotElement->id != dragGroupElement->id) {
+                gotElement->setParent(dragGroupElement->id);
+            }
+        }
         scene->reorderElement(gotElement, elementMoveTarget);
 
         elementMoveBar->deleteLater();
         elementMoveBar = nullptr;
+    }
+    if (elementGroupBar) {
+        elementGroupBar->deleteLater();
+        elementGroupBar = nullptr;
     }
 }
 

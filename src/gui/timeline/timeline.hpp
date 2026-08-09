@@ -38,6 +38,8 @@ class TimelineWidget : public QWidget {
     QFrame *elementMoveBar{nullptr};
     int elementMoveTarget;
     QList<TimelineElementButton *> elementButtons;
+    QFrame *elementGroupBar{nullptr};
+    Element *dragGroupElement{nullptr};
     void updateContents();
     void timelineScrolled();
     void framesChanging(bool changing);
