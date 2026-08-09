@@ -195,7 +195,7 @@ bool Element::isAnyChild(Element *element) const {
             return true;
         }
 
-        if (element->isAnyChild(element)) {
+        if (child->isAnyChild(element)) {
             return true;
         }
     }

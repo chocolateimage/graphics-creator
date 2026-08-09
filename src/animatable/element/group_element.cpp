@@ -6,25 +6,43 @@
 GroupElement::GroupElement() : Element() {
     w.hidden = true;
     h.hidden = true;
+
+    bounds.enumList.push_back("Children");
+    bounds.enumList.push_back("Scene");
+    bounds.updateBoundsToEnumList();
 }
 
 QRect GroupElement::getRawBoundingBox(const FrameInfo &frameInfo) {
-    QList<Element *> children = getChildren();
     QRect rect;
-    for (auto element : children) {
-        QRect childBox = element->getRawBoundingBox(frameInfo);
-        if (rect.isNull()) {
-            rect = childBox;
-        } else {
-            rect = rect.united(childBox);
+
+    if (bounds.get(frameInfo) == BoundsType::Children) {
+        QList<Element *> children = getChildren();
+        for (auto element : children) {
+            QRect childBox = element->getRawBoundingBox(frameInfo);
+            if (rect.isNull()) {
+                rect = childBox;
+            } else {
+                rect = rect.united(childBox);
+            }
         }
+    } else {
+        rect = {0, 0, scene->width, scene->height};
     }
+
     rect.translate(x.get(frameInfo), y.get(frameInfo));
     return rect;
 }
 
 AnimatableRender *GroupElement::createClass() {
     return new GroupElementRender();
+}
+
+AnimatableRender *GroupElement::toRender(const FrameInfo &frameInfo) {
+    GroupElementRender *render =
+        (GroupElementRender *)Element::toRender(frameInfo);
+    render->sceneWidth = scene->width;
+    render->sceneHeight = scene->height;
+    return render;
 }
 
 void GroupElement::ungroup() {
@@ -48,14 +66,19 @@ void GroupElementRender::prepare() {
 
 Rect GroupElementRender::getRenderBox() {
     QRect rect;
-    for (auto element : children) {
-        QRect childBox = element->getRenderBox().toQRect();
-        if (rect.isNull()) {
-            rect = childBox;
-        } else {
-            rect = rect.united(childBox);
+    if (bounds.get() == GroupElement::Children) {
+        for (auto element : children) {
+            QRect childBox = element->getRenderBox().toQRect();
+            if (rect.isNull()) {
+                rect = childBox;
+            } else {
+                rect = rect.united(childBox);
+            }
         }
+    } else {
+        rect = {0, 0, sceneWidth, sceneHeight};
     }
+
     rect.translate(x.get(), y.get());
     return Rect::fromQRect(rect);
 }
