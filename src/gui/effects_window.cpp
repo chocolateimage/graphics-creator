@@ -88,6 +88,9 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
         propertiesLayout->addWidget(descriptionLabel);
     }
     for (auto property : effect->properties) {
+        if (property->hidden)
+            continue;
+
         QWidget *widget = new QWidget(propertiesWidget);
 
         QHBoxLayout *lay = new QHBoxLayout(widget);

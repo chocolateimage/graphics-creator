@@ -1,6 +1,7 @@
 #include "gui.hpp"
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/element/ellipse_element.hpp"
+#include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
@@ -390,6 +391,18 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(deleteAction, &QAction::triggered, this,
             &NewMainWindow::deleteTriggered);
 
+    editMenu->addSeparator();
+    groupAction = editMenu->addAction("Group");
+    groupAction->setShortcut(QKeySequence("Ctrl+G"));
+    groupAction->setIcon(QIcon::fromTheme("object-group"));
+    connect(groupAction, &QAction::triggered, this, &NewMainWindow::groupSlot);
+
+    ungroupAction = editMenu->addAction("Ungroup");
+    ungroupAction->setShortcut(QKeySequence("Ctrl+Shift+G"));
+    ungroupAction->setIcon(QIcon::fromTheme("object-ungroup"));
+    connect(ungroupAction, &QAction::triggered, this,
+            &NewMainWindow::ungroupSlot);
+
     videoMenu = menuBar->addMenu("Video");
 
     QAction *goToStartAction = videoMenu->addAction("Go to start");
@@ -606,6 +619,53 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
 
     rerender(false);
+}
+
+void NewMainWindow::groupSlot() {
+    if (scene->selectedElements.isEmpty())
+        return;
+
+    Element *firstSelected = scene->selectedElements.first();
+    int firstIndex = scene->elements.indexOf(firstSelected);
+    GroupElement *groupElement = new GroupElement();
+
+    int groupNumber = 1;
+    while (true) {
+        QString newName = "Group " + QString::number(groupNumber);
+        bool existingName = false;
+        for (auto element : scene->elements) {
+            if (element->objectName() == newName) {
+                existingName = true;
+                break;
+            }
+        }
+        if (existingName) {
+            groupNumber++;
+            continue;
+        }
+
+        groupElement->setObjectName(newName);
+        break;
+    }
+
+    groupElement->setParent(firstSelected->getParent());
+    for (auto element : scene->selectedElements) {
+        element->setParent(groupElement->id);
+    }
+    scene->insertElement(groupElement, firstIndex);
+    scene->selectElements({groupElement});
+}
+
+void NewMainWindow::ungroupSlot() {
+    if (scene->selectedElements.isEmpty())
+        return;
+
+    for (auto element : scene->selectedElements) {
+        GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+        if (groupElement) {
+            groupElement->ungroup();
+        }
+    }
 }
 
 void NewMainWindow::welcomeOpenClicked(const QString &path, bool asTemplate) {
@@ -1161,6 +1221,8 @@ Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
         element = new TextElement();
     } else if (elementType == "image") {
         element = new ImageElement();
+    } else if (elementType == "group") {
+        element = new GroupElement();
     }
 
     if (!element) {
@@ -1231,14 +1293,28 @@ void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
     copyAction->setDisabled(elements.isEmpty());
     duplicateAction->setDisabled(elements.isEmpty());
     deleteAction->setDisabled(elements.isEmpty());
+    groupAction->setDisabled(elements.isEmpty());
+    bool hasGroupElement = false;
+    for (auto element : elements) {
+        if (dynamic_cast<GroupElement *>(element)) {
+            hasGroupElement = true;
+        }
+    }
+    ungroupAction->setEnabled(hasGroupElement);
 }
 
 void NewMainWindow::deleteTriggered() {
     if (timeline->timelineContent->deleteSelected())
         return;
 
-    scene->undoStack->push(
-        new RemoveElementsCommand(scene, scene->selectedElements));
+    QList<Element *> elementsToDelete;
+
+    for (auto element : scene->selectedElements) {
+        elementsToDelete.append(element);
+        elementsToDelete.append(element->getDescendants());
+    }
+
+    scene->undoStack->push(new RemoveElementsCommand(scene, elementsToDelete));
 }
 
 void NewMainWindow::createThread() {

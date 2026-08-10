@@ -63,6 +63,9 @@ void PropertyWindow::selectedElementsUpdated(
     formLayout->addRow("Name", nameEdit);
 
     for (auto property : element->properties) {
+        if (property->hidden)
+            continue;
+
         QWidget *widget = new QWidget(this);
 
         QHBoxLayout *lay = new QHBoxLayout(widget);

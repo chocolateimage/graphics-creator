@@ -19,6 +19,7 @@ void Scene::insertElement(Element *element, int index) {
     if (element->durationFrames == INT32_MIN) {
         element->durationFrames = durationFrames - element->startFrame;
     }
+    element->scene = this;
     elements.insert(index, element);
     emit elementAdded(element, index);
     connect(element, &Element::propertyUpdated, this,
@@ -46,6 +47,7 @@ void Scene::selectElements(QList<Element *> elements) {
 }
 
 void Scene::removeElement(Element *element) {
+    element->scene = nullptr;
     element->setEditMode(false);
     disconnect(element, &Element::propertyUpdated, this,
                &Scene::_elementUpdatedSlot);
@@ -127,3 +129,13 @@ void Scene::setFrame(int frame) {
 }
 
 bool Scene::isPlaying() { return timer->isActive(); }
+
+Element *Scene::findElementById(const QString &id) {
+    for (auto element : elements) {
+        if (element->id == id) {
+            return element;
+        }
+    }
+
+    return nullptr;
+}

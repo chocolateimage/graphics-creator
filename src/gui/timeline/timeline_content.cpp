@@ -1,4 +1,5 @@
 #include "timeline_content.hpp"
+#include "animatable/element/group_element.hpp"
 #include "animatable/element/text_element.hpp"
 #include "gui/gui.hpp"
 #include "scene.hpp"
@@ -45,15 +46,98 @@ double TimelineContentWidget::headerPos() {
     return timelineWidget->timelineMainScrollArea->verticalScrollBar()->value();
 }
 
-void TimelineContentWidget::paintProperty(QPainter &painter,
-                                          PropertyBase *property,
-                                          int startOffset, double *yPos) {
-    if (!property->isAnimatable())
+void TimelineContentWidget::paintElement(QPainter &painter, Element *element,
+                                         double *yPos) {
+    bool selected = timelineWidget->scene->selectedElements.contains(element);
+    painter.setPen(Qt::NoPen);
+
+    if (selected) {
+        QLinearGradient durationGradient(0, *yPos, 0,
+                                         OBJECT_TRACK_HEIGHT + *yPos);
+        durationGradient.setColorAt(0, palette().accent().color().darker(110));
+        durationGradient.setColorAt(1, palette().accent().color().darker(130));
+        QBrush durationBrush(durationGradient);
+        painter.setBrush(durationGradient);
+    } else {
+        painter.setBrush(palette().accent().color().darker(200));
+    }
+    QRectF rect{
+        secondsToPixels(element->startFrame / timelineWidget->scene->frameRate),
+        *yPos,
+        secondsToPixels(element->durationFrames /
+                        timelineWidget->scene->frameRate),
+        OBJECT_TRACK_HEIGHT};
+    elementRects.append(rect);
+    painter.drawRect(rect);
+    *yPos += OBJECT_TRACK_HEIGHT;
+
+    if (element->collapsed)
         return;
 
-    painter.fillRect(-startOffset, *yPos, width(), 1, palette().mid());
-    painter.fillRect(-startOffset, *yPos + PROPERTY_TRACK_HEIGHT, width(), 1,
+    // --- Properties ---
+    for (auto property : element->properties) {
+        paintProperty(painter, property, yPos);
+    }
+
+    TextElement *textElement = dynamic_cast<TextElement *>(element);
+    if (textElement) {
+        for (auto animator : textElement->textAnimators) {
+            *yPos += PROPERTY_TRACK_HEIGHT;
+
+            if (animator->collapsed)
+                continue;
+
+            for (auto selector : animator->selectors) {
+                *yPos += PROPERTY_TRACK_HEIGHT;
+
+                if (selector->collapsed)
+                    continue;
+
+                for (auto property : selector->properties) {
+                    paintProperty(painter, property, yPos);
+                }
+            }
+
+            for (auto property : animator->properties) {
+                paintProperty(painter, property, yPos);
+            }
+        }
+    }
+
+    // --- Effects ---
+    for (auto effect : element->effects) {
+        if (effect->properties.empty())
+            continue;
+
+        *yPos += PROPERTY_TRACK_HEIGHT;
+
+        if (effect->collapsed)
+            continue;
+
+        for (auto property : effect->properties) {
+            paintProperty(painter, property, yPos);
+        }
+    }
+
+    GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+
+    if (groupElement) {
+        for (auto child : groupElement->getChildren()) {
+            paintElement(painter, child, yPos);
+        }
+    }
+}
+
+void TimelineContentWidget::paintProperty(QPainter &painter,
+                                          PropertyBase *property,
+                                          double *yPos) {
+    if (property->hidden || !property->isAnimatable())
+        return;
+
+    painter.fillRect(-TIMELINE_START_OFFSET, *yPos, width(), 1,
                      palette().mid());
+    painter.fillRect(-TIMELINE_START_OFFSET, *yPos + PROPERTY_TRACK_HEIGHT,
+                     width(), 1, palette().mid());
 
     if (property->isAnimating) {
         for (auto keyframe : property->keyframes) {
@@ -135,79 +219,10 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
     elementRects.clear();
 
     for (auto element : timelineWidget->scene->elements) {
-        bool selected =
-            timelineWidget->scene->selectedElements.contains(element);
-        painter.setPen(Qt::NoPen);
-
-        if (selected) {
-            QLinearGradient durationGradient(0, yPos, 0,
-                                             OBJECT_TRACK_HEIGHT + yPos);
-            durationGradient.setColorAt(0,
-                                        palette().accent().color().darker(110));
-            durationGradient.setColorAt(1,
-                                        palette().accent().color().darker(130));
-            QBrush durationBrush(durationGradient);
-            painter.setBrush(durationGradient);
-        } else {
-            painter.setBrush(palette().accent().color().darker(200));
-        }
-        QRectF rect{secondsToPixels(element->startFrame /
-                                    timelineWidget->scene->frameRate),
-                    yPos,
-                    secondsToPixels(element->durationFrames /
-                                    timelineWidget->scene->frameRate),
-                    OBJECT_TRACK_HEIGHT};
-        elementRects.append(rect);
-        painter.drawRect(rect);
-        yPos += OBJECT_TRACK_HEIGHT;
-
-        if (element->collapsed)
+        if (element->hasParent())
             continue;
 
-        // --- Properties ---
-        for (auto property : element->properties) {
-            paintProperty(painter, property, startOffset, &yPos);
-        }
-
-        TextElement *textElement = dynamic_cast<TextElement *>(element);
-        if (textElement) {
-            for (auto animator : textElement->textAnimators) {
-                yPos += PROPERTY_TRACK_HEIGHT;
-
-                if (animator->collapsed)
-                    continue;
-
-                for (auto selector : animator->selectors) {
-                    yPos += PROPERTY_TRACK_HEIGHT;
-
-                    if (selector->collapsed)
-                        continue;
-
-                    for (auto property : selector->properties) {
-                        paintProperty(painter, property, startOffset, &yPos);
-                    }
-                }
-
-                for (auto property : animator->properties) {
-                    paintProperty(painter, property, startOffset, &yPos);
-                }
-            }
-        }
-
-        // --- Effects ---
-        for (auto effect : element->effects) {
-            if (effect->properties.empty())
-                continue;
-
-            yPos += PROPERTY_TRACK_HEIGHT;
-
-            if (effect->collapsed)
-                continue;
-
-            for (auto property : effect->properties) {
-                paintProperty(painter, property, startOffset, &yPos);
-            }
-        }
+        paintElement(painter, element, &yPos);
     }
 
     // --- Timeline Header ---

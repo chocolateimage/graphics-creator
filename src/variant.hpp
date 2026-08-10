@@ -2,6 +2,7 @@
 
 #include <QEasingCurve>
 #include <QList>
+#include <QRect>
 #include <algorithm>
 #include <freetype/ftstroke.h>
 #include <string>
@@ -82,6 +83,12 @@ struct Rect {
         int right = std::max(x + w, other.x + other.w);
         int bottom = std::max(y + h, other.y + other.h);
         return {left, top, right - left, bottom - top};
+    }
+
+    QRect toQRect() const { return {x, y, w, h}; }
+
+    static Rect fromQRect(const QRect &qrect) {
+        return {qrect.x(), qrect.y(), qrect.width(), qrect.height()};
     }
 };
 

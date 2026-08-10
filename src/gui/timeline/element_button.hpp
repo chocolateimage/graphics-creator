@@ -1,5 +1,6 @@
 #pragma once
 #include "animatable/element/element.hpp"
+#include <QGraphicsOpacityEffect>
 #include <QLabel>
 #include <QPushButton>
 
@@ -8,7 +9,9 @@ class TimelineWidget;
 class TimelineElementButton : public QPushButton {
   public:
     explicit TimelineElementButton(Element *element,
-                                   TimelineWidget *timelineWidget);
+                                   TimelineWidget *timelineWidget, int indent);
+    Element *element;
+    QGraphicsOpacityEffect *opacityEffect;
 
   protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -23,7 +26,6 @@ class TimelineElementButton : public QPushButton {
 
   private:
     TimelineWidget *timelineWidget;
-    Element *element;
     QPoint dragStartPosition;
     QLabel *objectNameLabel;
     QPushButton *visibilityButton;

@@ -1,19 +1,21 @@
 #include "element_button.hpp"
+#include "animatable/element/group_element.hpp"
 #include "timeline.hpp"
 #include <QApplication>
 #include <QDrag>
+#include <QMenu>
 #include <QMimeData>
 #include <QMouseEvent>
 
 TimelineElementButton::TimelineElementButton(Element *element,
-                                             TimelineWidget *timelineWidget)
-    : QPushButton(timelineWidget->timelineLeftContents),
-      timelineWidget(timelineWidget), element(element) {
+                                             TimelineWidget *timelineWidget,
+                                             int indent)
+    : QPushButton(timelineWidget->timelineLeftContents), element(element),
+      timelineWidget(timelineWidget) {
     bool selected = timelineWidget->scene->selectedElements.contains(element);
     setObjectName("timelineElementButton");
     setStyleSheet("#timelineElementButton {"
                   "   text-align: left;"
-                  "   padding-left: 8px;"
                   "   background: transparent;"
                   "   border-radius: 0px;"
                   "   font-weight: 600;"
@@ -25,13 +27,12 @@ TimelineElementButton::TimelineElementButton(Element *element,
                   "#timelineElementButton[flat=\"false\"] {"
                   "   background: rgba(128,128,128,0.25);"
                   "   border-left: 3px solid palette(accent);"
-                  "   padding-left: 5px;"
                   "}"
                   "#timelineElementButton:pressed {"
                   "   background: rgba(128,128,128,0.3);"
                   "}");
     QHBoxLayout *lay = new QHBoxLayout(this);
-    lay->setContentsMargins(8, 0, 8, 0);
+    lay->setContentsMargins(8 + indent, 0, 8, 0);
     lay->setSpacing(0);
 
     QPushButton *collapseButton = new QPushButton(this);
@@ -71,6 +72,10 @@ TimelineElementButton::TimelineElementButton(Element *element,
             &TimelineElementButton::visibilityUpdated);
     connect(this, &QPushButton::clicked, this,
             &TimelineElementButton::clickedSlot);
+
+    opacityEffect = new QGraphicsOpacityEffect(this);
+    opacityEffect->setOpacity(1);
+    setGraphicsEffect(opacityEffect);
 }
 
 void TimelineElementButton::visibilityClicked() {
@@ -118,6 +123,22 @@ void TimelineElementButton::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         dragStartPosition = event->pos();
     }
+    if (event->button() == Qt::RightButton) {
+        QMenu menu;
+        QAction *ungroupAction = nullptr;
+        GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+        if (groupElement) {
+            ungroupAction = menu.addAction("Ungroup");
+            ungroupAction->setIcon(QIcon::fromTheme("object-ungroup"));
+        }
+        if (groupElement) { // if check is temporary until more actions exist
+            QAction *action = menu.exec(QCursor::pos());
+
+            if (action == ungroupAction) {
+                groupElement->ungroup();
+            }
+        }
+    }
 
     return QPushButton::mousePressEvent(event);
 }
@@ -134,7 +155,12 @@ void TimelineElementButton::mouseMoveEvent(QMouseEvent *event) {
     // This is some very cursed code :')
     mimeData->setData(ELEMENT_DRAG_MIME_TYPE,
                       QString::number((uint64_t)(element)).toUtf8());
+    QPixmap preview = grab();
+    drag->setPixmap(preview);
+    drag->setHotSpot(dragStartPosition);
     drag->setMimeData(mimeData);
 
+    opacityEffect->setOpacity(0.1);
     Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+    opacityEffect->setOpacity(1);
 }

@@ -1,5 +1,6 @@
 #include "element.hpp"
 #include "animatable/effect/effect_list.hpp"
+#include "scene.hpp"
 #include <KMessageBox>
 #include <QDebug>
 
@@ -13,6 +14,7 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     render->visible = visible;
     render->startFrame = startFrame;
     render->durationFrames = durationFrames;
+    render->parentId = parentId;
     for (auto effect : effects) {
         if (!effect->enabled)
             continue;
@@ -25,9 +27,34 @@ AnimatableRender *Element::toRender(const FrameInfo &frameInfo) {
     return render;
 }
 
-QRect Element::getBoundingBox(const FrameInfo &frameInfo) {
+QRect Element::getRawBoundingBox(const FrameInfo &frameInfo) {
     return {x.get(frameInfo), y.get(frameInfo), w.get(frameInfo),
             h.get(frameInfo)};
+}
+
+QRect Element::getBoundingBox(const FrameInfo &frameInfo) {
+    int offsetX{0};
+    int offsetY{0};
+
+    QString parent = getParent();
+    while (!parent.isEmpty()) {
+        Element *parentElement = scene->findElementById(parent);
+        if (!parentElement) {
+            qWarning() << "Parent element is null!!";
+            break;
+        }
+
+        offsetX += parentElement->x.get(frameInfo);
+        offsetY += parentElement->y.get(frameInfo);
+
+        parent = parentElement->getParent();
+    }
+
+    QRect bbox = getRawBoundingBox(frameInfo);
+
+    bbox.translate(offsetX, offsetY);
+
+    return bbox;
 }
 
 void Element::addEffect(Effect *effect) {
@@ -87,6 +114,7 @@ void Element::setVisible(bool newValue) {
 QJsonObject Element::serialize() {
     QJsonObject obj = Animatable::serialize();
     obj["id"] = id;
+    obj["parentId"] = parentId;
     obj["elementType"] = typeName();
     obj["collapsed"] = collapsed;
     obj["visible"] = visible;
@@ -105,6 +133,7 @@ void Element::deserialize(const QJsonObject &obj) {
     if (obj.contains("id")) {
         id = obj["id"].toString();
     }
+    parentId = obj["parentId"].toString();
     collapsed = obj["collapsed"].toBool();
     visible = obj["visible"].toBool(true);
     if (obj.contains("startFrame") && obj.contains("durationFrames")) {
@@ -132,11 +161,82 @@ void Element::deserialize(const QJsonObject &obj) {
     }
 }
 
+void Element::setParent(const QString &id) { parentId = id; }
+
+bool Element::hasParent() const { return !parentId.isEmpty(); }
+
+QString Element::getParent() const { return parentId; }
+
+QList<Element *> Element::getChildren() const {
+    QList<Element *> children;
+    if (scene) {
+        for (auto element : scene->elements) {
+            if (element->getParent() == id) {
+                children.append(element);
+            }
+        }
+    }
+    return children;
+}
+
+QList<Element *> Element::getDescendants() const {
+    QList<Element *> children;
+    if (scene) {
+        for (auto element : scene->elements) {
+            if (element->getParent() == id) {
+                children.append(element);
+                children.append(element->getDescendants());
+            }
+        }
+    }
+    return children;
+}
+
+bool Element::isDirectChild(Element *element) const {
+    for (auto child : getChildren()) {
+        if (child == element) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Element::isAnyChild(Element *element) const {
+    for (auto child : getChildren()) {
+        if (child == element) {
+            return true;
+        }
+
+        if (child->isAnyChild(element)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Element::isAnyParent(Element *element) const {
+    if (!hasParent()) {
+        return false;
+    }
+
+    Element *parentElement = scene->findElementById(getParent());
+    if (parentElement == element)
+        return true;
+
+    return parentElement->isAnyParent(element);
+}
+
 Element::~Element() {
     for (auto effect : effects) {
         delete effect;
     }
 }
+
+bool ElementRender::hasParent() const { return !parentId.isEmpty(); }
+
+QString ElementRender::getParent() const { return parentId; }
 
 ElementRender::~ElementRender() {
     for (auto effect : effects) {

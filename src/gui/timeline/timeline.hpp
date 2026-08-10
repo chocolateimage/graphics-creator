@@ -38,6 +38,8 @@ class TimelineWidget : public QWidget {
     QFrame *elementMoveBar{nullptr};
     int elementMoveTarget;
     QList<TimelineElementButton *> elementButtons;
+    QFrame *elementGroupBar{nullptr};
+    Element *dragGroupElement{nullptr};
     void updateContents();
     void timelineScrolled();
     void framesChanging(bool changing);
@@ -53,6 +55,7 @@ class TimelineWidget : public QWidget {
     QAction *actionFrames;
 
   private:
+    void addElement(Element *element, int indent);
     bool addCollapsible(ICollapsible *collapsible, bool selected, int indent);
     void addProperty(PropertyBase *property, QPushButton *elementButton,
                      int indent, bool showEdit);

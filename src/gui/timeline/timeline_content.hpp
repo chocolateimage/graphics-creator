@@ -2,6 +2,7 @@
 #include "animatable/property.hpp"
 #include <QWidget>
 
+class Element;
 class TimelineWidget;
 
 struct TimelineKeyframeData {
@@ -55,7 +56,7 @@ class TimelineContentWidget : public QWidget {
     bool isResizingOut{false};
     QList<QRectF> elementRects;
 
-    void paintProperty(QPainter &painter, PropertyBase *property,
-                       int startOffset, double *yPos);
+    void paintElement(QPainter &painter, Element *element, double *yPos);
+    void paintProperty(QPainter &painter, PropertyBase *property, double *yPos);
     void paintFrameMark(QPainter &painter, int headerPos, int frame);
 };

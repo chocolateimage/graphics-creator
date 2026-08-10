@@ -1,4 +1,5 @@
 #include "image_viewer.hpp"
+#include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
 #include "gui.hpp"
 #include <QApplication>
@@ -176,9 +177,16 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
                 &ImageViewer::elementSelectionChanged);
         connect(scene, &Scene::elementEditModeChanged, this,
                 &ImageViewer::elementEditModeChanged);
+        connect(scene, &Scene::elementRemoved, this,
+                &ImageViewer::elementRemoved);
         connect(scene, &Scene::playbackStateChanged, this,
                 &ImageViewer::playbackStateChanged);
     }
+}
+
+void ImageViewer::elementRemoved(Element *element) {
+    hoverElement = nullptr;
+    update();
 }
 
 void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
@@ -369,6 +377,21 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
     if (scene && !scene->isPlaying()) {
         FrameInfo fi = {scene->currentFrame};
 
+        if (!isMovingElements && !isPicking && hoverElement &&
+            !scene->selectedElements.contains(hoverElement)) {
+            QPen pen(palette().accent(), 2);
+            pen.setStyle(Qt::PenStyle::DotLine);
+            painter.setPen(pen);
+            painter.setBrush(Qt::NoBrush);
+
+            QRect boundingBox = hoverElement->getBoundingBox(fi);
+            QPointF pos = boundingBox.topLeft();
+            QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
+            pos = pixelToViewport(pos);
+            QPointF size = pixelToViewport(bottomRight) - pos;
+            painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+        }
+
         for (auto element : scene->selectedElements) {
             painter.setPen(QPen(palette().accent(), 2));
             painter.setBrush(Qt::NoBrush);
@@ -380,14 +403,18 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             QPointF size = pixelToViewport(bottomRight) - pos;
             painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
 
-            painter.setPen(QPen(palette().accent().color().darker(), 1));
-            painter.setBrush(palette().accent());
-            for (const auto &resizeMode : resizeModes) {
-                QPointF resizePos = pos + QPointF{size.x() * resizeMode.sideX,
-                                                  size.y() * resizeMode.sideY};
-                painter.drawRect(resizePos.x() + RESIZE_HANDLE_SIZE / -2. + 1,
-                                 resizePos.y() + RESIZE_HANDLE_SIZE / -2. + 1,
-                                 RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+            if (element->isResizable()) {
+                painter.setPen(QPen(palette().accent().color().darker(), 1));
+                painter.setBrush(palette().accent());
+                for (const auto &resizeMode : resizeModes) {
+                    QPointF resizePos =
+                        pos + QPointF{size.x() * resizeMode.sideX,
+                                      size.y() * resizeMode.sideY};
+                    painter.drawRect(
+                        resizePos.x() + RESIZE_HANDLE_SIZE / -2. + 1,
+                        resizePos.y() + RESIZE_HANDLE_SIZE / -2. + 1,
+                        RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+                }
             }
 
             if (element->editMode) {
@@ -658,6 +685,16 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
                     continue;
                 if (scene->selectedElements.contains(element))
                     continue;
+                bool skip = false;
+                for (auto selectedElement : scene->selectedElements) {
+                    if (selectedElement->isAnyChild(element) ||
+                        selectedElement->isAnyParent(element)) {
+                        skip = true;
+                        continue;
+                    }
+                }
+                if (skip)
+                    continue;
 
                 snapRects.append(element->getBoundingBox(frameInfo));
             }
@@ -818,9 +855,48 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
 
+    {
+        bool exact =
+            QApplication::queryKeyboardModifiers().testFlag(Qt::AltModifier);
+
+        hoverElement = nullptr;
+        for (auto element : scene->elements) {
+            if (!element->visible)
+                continue;
+
+            if (exact) {
+                GroupElement *groupElement =
+                    dynamic_cast<GroupElement *>(element);
+                if (groupElement)
+                    continue;
+            } else {
+                if (element->hasParent())
+                    continue;
+            }
+
+            if (element->getBoundingBox(frameInfo).contains(pixelPos)) {
+                hoverElement = element;
+                break;
+            }
+        }
+
+        if (!exact) {
+            for (auto element : scene->selectedElements) {
+                if (element->getBoundingBox(frameInfo).contains(pixelPos)) {
+                    hoverElement = element;
+                    break;
+                }
+            }
+        }
+        update();
+    }
+
     hoverResizeMode = -1;
     hoverResizeElement = nullptr;
     for (auto element : scene->selectedElements) {
+        if (!element->isResizable())
+            continue;
+
         QRect boundingBox = element->getBoundingBox(frameInfo);
         QPointF pos = boundingBox.topLeft();
         QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
@@ -930,31 +1006,13 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                 resizeOldY = resizeElement->y.serialize();
                 resizeOldW = resizeElement->w.serialize();
                 resizeOldH = resizeElement->h.serialize();
-                startResizeRect = resizeElement->getBoundingBox(frameInfo);
+                startResizeRect = resizeElement->getRawBoundingBox(frameInfo);
                 activeResizeMode = hoverResizeMode;
                 return;
             }
 
-            Element *clickedElement{nullptr};
+            Element *clickedElement = hoverElement;
             startMovePosition = viewportToPixel(event->position());
-
-            for (auto element : scene->elements) {
-                if (!element->visible)
-                    continue;
-                if (element->getBoundingBox(frameInfo).contains(
-                        startMovePosition)) {
-                    clickedElement = element;
-                    break;
-                }
-            }
-
-            for (auto element : scene->selectedElements) {
-                if (element->getBoundingBox(frameInfo).contains(
-                        startMovePosition)) {
-                    clickedElement = element;
-                    break;
-                }
-            }
 
             if (clickedElement) {
                 isMovingElements = true;

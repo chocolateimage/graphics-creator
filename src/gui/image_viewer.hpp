@@ -90,6 +90,7 @@ class ImageViewer : public QWidget {
     QPoint moveSpacingCursorStart;
     bool moveSpacingMoving{false};
     QRect snapElementRectPreview;
+    Element *hoverElement{nullptr};
 
     bool isDroppingImage{false};
     QString dropImagePath;
@@ -133,6 +134,7 @@ class ImageViewer : public QWidget {
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
+    void elementRemoved(Element *element);
     void elementEditModeChanged(Element *element, bool editMode);
     void playbackStateChanged(bool playing);
 

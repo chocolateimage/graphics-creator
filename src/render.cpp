@@ -200,7 +200,6 @@ FontInfo *FontManager::getFont(const Font &font, int fontSize, bool antialiased,
 }
 
 void FontManager::garbageCollect() {
-
     std::vector<std::string> toRemove;
     for (auto &fontInfo : loadedFonts) {
         if (++fontInfo.second->framesUnused > 10) {
@@ -340,6 +339,9 @@ void FrameTask::render(RenderThread &renderThread) {
             frame >= element->startFrame + element->durationFrames) {
             continue;
         }
+
+        if (element->hasParent())
+            continue;
 
         RenderedElement *renderedElement;
 
