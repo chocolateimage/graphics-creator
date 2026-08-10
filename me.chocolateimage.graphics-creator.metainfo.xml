@@ -43,4 +43,22 @@
     <color type="primary" scheme_preference="light">#008e93</color>
     <color type="primary" scheme_preference="dark">#008e93</color>
   </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <image
+            >https://party.playlook.de/public/graphics-creator/screenshot-title-animation.png</image>
+      <caption>Text animation</caption>
+    </screenshot>
+    <screenshot>
+      <image
+            >https://party.playlook.de/public/graphics-creator/screenshot-effects.png</image>
+      <caption>Text effects</caption>
+    </screenshot>
+    <screenshot>
+      <image
+            >https://party.playlook.de/public/graphics-creator/screenshot-tile.png</image>
+      <caption>Effects</caption>
+    </screenshot>
+  </screenshots>
 </component>
