@@ -49,7 +49,7 @@
 #include <windows.h>
 #endif
 
-const QString VERSION = "0.3.0";
+const QString VERSION = "0.4.0";
 
 const QString ELEMENT_COPY_MIME_TYPE =
     "application/x-graphicscreator-element-copy";

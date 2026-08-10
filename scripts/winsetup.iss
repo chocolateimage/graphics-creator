@@ -4,7 +4,7 @@
 ; Non-commercial use only
 
 #define MyAppName "Graphics Creator"
-#define MyAppVersion "0.3.0"
+#define MyAppVersion "0.4.0"
 #define MyAppPublisher "Graphics Creator"
 #define MyAppURL "https://github.com/chocolateimage/graphics-creator"
 #define MyAppExeName "graphics-creator.exe"
