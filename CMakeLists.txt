@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.26)
 
 project(GraphicsCreator LANGUAGES CXX)
 
+option(UPDATE_CHECK "Enable update check" ON)
+
+if(UPDATE_CHECK)
+  add_definitions(-DUPDATE_CHECK)
+endif(UPDATE_CHECK)
+
 find_package(ECM REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_FIND_MODULE_DIR})
 

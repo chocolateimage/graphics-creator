@@ -619,6 +619,7 @@ void NewMainWindow::welcomeOpenClicked(const QString &path, bool asTemplate) {
 void NewMainWindow::showEvent(QShowEvent *event) {
     QMainWindow::showEvent(event);
 
+#ifdef UPDATE_CHECK
     QSettings settings;
 
     if (!settings.value("welcome/shown").toBool()) {
@@ -641,6 +642,7 @@ void NewMainWindow::showEvent(QShowEvent *event) {
             checkForUpdates();
         }
     }
+#endif
 }
 
 void NewMainWindow::checkForUpdates() {

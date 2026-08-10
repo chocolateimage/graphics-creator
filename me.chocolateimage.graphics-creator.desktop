@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 
 Name=Graphics Creator
-Comment=Create titles and other visual effects with Lua.
+Comment=Create titles and other visual effects
 Categories=Graphics;
 
 Icon=me.chocolateimage.graphics-creator

@@ -3,18 +3,44 @@
   <id>me.chocolateimage.graphics-creator</id>
 
   <name>Graphics Creator</name>
-  <summary>Create titles and other visual effects with Lua.</summary>
+  <summary>Create titles and other visual effects</summary>
+
+  <url type="homepage">https://github.com/chocolateimage/graphics-creator</url>
+  <url
+        type="bugtracker"
+    >https://github.com/chocolateimage/graphics-creator/issues</url>
+  <url
+        type="vcs-browser"
+    >https://github.com/chocolateimage/graphics-creator</url>
+
+  <developer id="me.chocolateimage">
+    <name>chocolateimage</name>
+  </developer>
 
   <metadata_license>MIT</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
 
   <description>
-    <p>
-      Create titles and other visual effects with Lua.
-    </p>
+    <p
+        >Graphics Creator is a motion graphics and visual effects application. It supports text animation, easing, shadows, and many font configurations, making it easy to create engaging graphics.</p>
   </description>
 
   <launchable
         type="desktop-id"
     >me.chocolateimage.graphics-creator.desktop</launchable>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.3.0" date="2026-08-02">
+      <url
+                type="details"
+            >https://github.com/chocolateimage/graphics-creator/releases/tag/v0.3.0</url>
+    </release>
+  </releases>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#008e93</color>
+    <color type="primary" scheme_preference="dark">#008e93</color>
+  </branding>
 </component>
