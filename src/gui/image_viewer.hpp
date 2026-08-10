@@ -134,7 +134,6 @@ class ImageViewer : public QWidget {
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
-    void elementRemoved(Element *element);
     void elementEditModeChanged(Element *element, bool editMode);
     void playbackStateChanged(bool playing);
 

@@ -177,16 +177,9 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
                 &ImageViewer::elementSelectionChanged);
         connect(scene, &Scene::elementEditModeChanged, this,
                 &ImageViewer::elementEditModeChanged);
-        connect(scene, &Scene::elementRemoved, this,
-                &ImageViewer::elementRemoved);
         connect(scene, &Scene::playbackStateChanged, this,
                 &ImageViewer::playbackStateChanged);
     }
-}
-
-void ImageViewer::elementRemoved(Element *element) {
-    hoverElement = nullptr;
-    update();
 }
 
 void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
@@ -208,6 +201,7 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
 }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
+    hoverElement = nullptr;
     update();
 }
 
