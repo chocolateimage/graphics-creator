@@ -1305,8 +1305,14 @@ void NewMainWindow::deleteTriggered() {
     if (timeline->timelineContent->deleteSelected())
         return;
 
-    scene->undoStack->push(
-        new RemoveElementsCommand(scene, scene->selectedElements));
+    QList<Element *> elementsToDelete;
+
+    for (auto element : scene->selectedElements) {
+        elementsToDelete.append(element);
+        elementsToDelete.append(element->getDescendants());
+    }
+
+    scene->undoStack->push(new RemoveElementsCommand(scene, elementsToDelete));
 }
 
 void NewMainWindow::createThread() {

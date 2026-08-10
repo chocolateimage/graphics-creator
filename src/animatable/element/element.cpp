@@ -179,6 +179,19 @@ QList<Element *> Element::getChildren() const {
     return children;
 }
 
+QList<Element *> Element::getDescendants() const {
+    QList<Element *> children;
+    if (scene) {
+        for (auto element : scene->elements) {
+            if (element->getParent() == id) {
+                children.append(element);
+                children.append(element->getDescendants());
+            }
+        }
+    }
+    return children;
+}
+
 bool Element::isDirectChild(Element *element) const {
     for (auto child : getChildren()) {
         if (child == element) {

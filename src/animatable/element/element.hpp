@@ -57,6 +57,7 @@ class Element : public Animatable {
     bool hasParent() const;
     QString getParent() const;
     QList<Element *> getChildren() const;
+    QList<Element *> getDescendants() const;
     bool isDirectChild(Element *element) const;
     bool isAnyChild(Element *element) const;
     bool isAnyParent(Element *element) const;
