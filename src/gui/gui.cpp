@@ -1549,7 +1549,6 @@ int main(int argc, char **argv) {
 #endif
     KIconTheme::initTheme();
     QApplication application(argc, argv);
-    qInfo() << "pid:" << application.applicationPid();
     application.setOrganizationName(QStringLiteral("graphics-creator"));
     application.setApplicationName(QStringLiteral("graphics-creator"));
     application.setDesktopFileName("me.chocolateimage.graphics-creator");
