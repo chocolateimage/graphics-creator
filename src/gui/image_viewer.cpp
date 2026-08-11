@@ -1164,6 +1164,9 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
         if (isMovingElements || activeResizeMode != -1) {
             // hack to make properties panel update
             scene->selectElements(scene->selectedElements);
+            if (!scene->selectedElements.isEmpty()) {
+                hoverElement = scene->selectedElements[0];
+            }
         }
         if (isMovingElements) {
             if (didMove) {
