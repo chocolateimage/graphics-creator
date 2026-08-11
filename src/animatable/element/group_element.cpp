@@ -68,11 +68,14 @@ Rect GroupElementRender::getRenderBox() {
     QRect rect;
     if (bounds.get() == GroupElement::Children) {
         for (auto element : children) {
-            QRect childBox = element->getRenderBox().toQRect();
+            Rect childBox = element->getRenderBox();
+            for (auto effect : element->effects) {
+                childBox = effect->getRenderBox(childBox);
+            }
             if (rect.isNull()) {
-                rect = childBox;
+                rect = childBox.toQRect();
             } else {
-                rect = rect.united(childBox);
+                rect = rect.united(childBox.toQRect());
             }
         }
     } else {
