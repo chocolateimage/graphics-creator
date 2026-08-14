@@ -145,7 +145,7 @@ class NewMainWindow : public QMainWindow {
     QString dataPath;
 
     QJsonDocument saveInto();
-    void loadFile(const QString &filePath);
+    void loadFile(const QString &filePath, bool asTemplate);
     bool loadFrom(const QJsonDocument &document);
     QString openFilePath;
     void setOpenFilePath(const QString &newPath);

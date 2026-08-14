@@ -669,11 +669,7 @@ void NewMainWindow::ungroupSlot() {
 }
 
 void NewMainWindow::welcomeOpenClicked(const QString &path, bool asTemplate) {
-    loadFile(path);
-    if (asTemplate) {
-        setOpenFilePath("");
-        setWindowModified(true);
-    }
+    loadFile(path, asTemplate);
 }
 
 void NewMainWindow::showEvent(QShowEvent *event) {
@@ -1000,10 +996,10 @@ void NewMainWindow::openSlot() {
     if (filePath.isEmpty())
         return;
 
-    loadFile(filePath);
+    loadFile(filePath, false);
 }
 
-void NewMainWindow::loadFile(const QString &filePath) {
+void NewMainWindow::loadFile(const QString &filePath, bool asTemplate) {
     QFileInfo fileInfo{filePath};
     QString newPath = fileInfo.absoluteFilePath();
     QFile file(newPath);
@@ -1015,12 +1011,20 @@ void NewMainWindow::loadFile(const QString &filePath) {
     }
 
     showWelcome(false);
-    setOpenFilePath(newPath);
+    if (asTemplate) {
+        setOpenFilePath("");
+    } else {
+        setOpenFilePath(newPath);
+    }
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
 
     loadFrom(doc);
+
+    if (asTemplate) {
+        setWindowModified(true);
+    }
 }
 
 bool NewMainWindow::saveSlot() {
@@ -1596,7 +1600,7 @@ int main(int argc, char **argv) {
 
     NewMainWindow widget;
     if (!args.isEmpty()) {
-        widget.loadFile(args[0]);
+        widget.loadFile(args[0], false);
     } else if (!newProject.isEmpty()) {
         QStringList splitted = newProject.split(":");
         if (splitted.length() != 4) {
