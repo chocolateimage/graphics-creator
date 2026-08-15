@@ -12,6 +12,7 @@ class RotationEffectRender : public EffectRender {
     PropertyRender<double> angle{this};
     PropertyRender<double> pivotX{this};
     PropertyRender<double> pivotY{this};
+    PropertyRender<bool> bilinear{this};
 };
 
 class RotationEffect : public Effect {
@@ -26,4 +27,5 @@ class RotationEffect : public Effect {
     Property<double> angle{this, "angle", 0};
     Property<double> pivotX{this, "pivotX", 50};
     Property<double> pivotY{this, "pivotY", 50};
+    Property<bool> bilinear{this, "bilinear", true};
 };
