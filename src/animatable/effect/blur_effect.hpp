@@ -7,6 +7,7 @@ class BlurEffectRender : public EffectRender {
     ~BlurEffectRender() {}
 
     PropertyRender<int> radius{this};
+    PropertyRender<int> iterations{this};
 
     bool render(const uint32_t *source, const Rect &sourceRect,
                 uint32_t *target) override;
@@ -20,6 +21,7 @@ class BlurEffect : public Effect {
     QString effectName() override { return "boxBlur"; };
 
     Property<int> radius{this, "radius", 32};
+    Property<int> iterations{this, "iterations", 1};
 
     AnimatableRender *createClass() override;
 };

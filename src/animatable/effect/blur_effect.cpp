@@ -3,13 +3,18 @@
 #include <QDebug>
 #include <QElapsedTimer>
 
-BlurEffect::BlurEffect() { radius.setMin(0); }
+BlurEffect::BlurEffect() {
+    radius.setMin(0);
+    iterations.setMin(1);
+    iterations.setMax(10);
+}
 
 AnimatableRender *BlurEffect::createClass() { return new BlurEffectRender(); }
 
 Rect BlurEffectRender::getRenderBox(const Rect &lastBox) {
-    return {lastBox.x - radius, lastBox.y - radius, lastBox.w + radius * 2,
-            lastBox.h + radius * 2};
+    return {lastBox.x - radius * iterations, lastBox.y - radius * iterations,
+            lastBox.w + radius * 2 * iterations,
+            lastBox.h + radius * 2 * iterations};
 }
 
 bool BlurEffectRender::render(const uint32_t *source, const Rect &sourceRect,
@@ -20,117 +25,130 @@ bool BlurEffectRender::render(const uint32_t *source, const Rect &sourceRect,
     int windowSize = radius * 2 + 1;
 
     uint32_t *tempValues = new uint32_t[rect.w * rect.h];
-    memset(tempValues, 0, rect.w * rect.h * 4);
+    uint32_t *tempValues2 = new uint32_t[rect.w * rect.h];
 
-    for (int y = radius; y < rect.h - radius; y++) {
-        int r = 0;
-        int g = 0;
-        int b = 0;
-        int a = 0;
+    memset(tempValues2, 0, rect.w * rect.h * 4);
+    int offset = radius * iterations;
+    for (int y = 0; y < sourceRect.h; y++) {
+        memcpy(tempValues2 + rect.w * (y + offset) + offset,
+               source + sourceRect.w * y, sourceRect.w * 4);
+    }
 
+    for (int i = 0; i < iterations; i++) {
+        memset(tempValues, 0, rect.w * rect.h * 4);
+
+        for (int y = radius; y < rect.h; y++) {
+            int r = 0;
+            int g = 0;
+            int b = 0;
+            int a = 0;
+
+            for (int x = 0; x < rect.w; x++) {
+                int leftX = x - radius - 1;
+                int rightX = x + radius;
+                uint8_t leftR = 0;
+                uint8_t leftG = 0;
+                uint8_t leftB = 0;
+                uint8_t leftA = 0;
+                uint8_t rightR = 0;
+                uint8_t rightG = 0;
+                uint8_t rightB = 0;
+                uint8_t rightA = 0;
+                if (leftX >= 0 && leftX < rect.w) {
+                    uint32_t color = tempValues2[pixelIndex(leftX, y, rect.w)];
+                    leftA = color >> 24;
+                    leftR = ((color >> 16) & 0xff) * leftA / 255;
+                    leftG = ((color >> 8) & 0xff) * leftA / 255;
+                    leftB = (color & 0xff) * leftA / 255;
+                }
+                if (rightX >= 0 && rightX < rect.w) {
+                    uint32_t color = tempValues2[pixelIndex(rightX, y, rect.w)];
+                    rightA = color >> 24;
+                    rightR = ((color >> 16) & 0xff) * rightA / 255;
+                    rightG = ((color >> 8) & 0xff) * rightA / 255;
+                    rightB = (color & 0xff) * rightA / 255;
+                }
+
+                r += rightR - leftR;
+                g += rightG - leftG;
+                b += rightB - leftB;
+                a += rightA - leftA;
+
+                int finalR = r / windowSize;
+                int finalG = g / windowSize;
+                int finalB = b / windowSize;
+                int finalA = a / windowSize;
+
+                if (finalA > 0) {
+                    finalR = finalR * 255 / finalA;
+                    finalG = finalG * 255 / finalA;
+                    finalB = finalB * 255 / finalA;
+                }
+
+                tempValues[pixelIndex(x, y, rect.w)] =
+                    makePixel(finalR, finalG, finalB, finalA);
+            }
+        }
+
+        memset(tempValues2, 0, rect.w * rect.h * 4);
         for (int x = 0; x < rect.w; x++) {
-            int leftX = x - radius - 1 - radius;
-            int rightX = x + radius - radius;
-            uint8_t leftR = 0;
-            uint8_t leftG = 0;
-            uint8_t leftB = 0;
-            uint8_t leftA = 0;
-            uint8_t rightR = 0;
-            uint8_t rightG = 0;
-            uint8_t rightB = 0;
-            uint8_t rightA = 0;
-            if (leftX >= 0 && leftX < sourceRect.w) {
-                uint32_t color =
-                    source[pixelIndex(leftX, y - radius, sourceRect.w)];
-                leftA = color >> 24;
-                leftR = ((color >> 16) & 0xff) * leftA / 255;
-                leftG = ((color >> 8) & 0xff) * leftA / 255;
-                leftB = (color & 0xff) * leftA / 255;
+            int r = 0;
+            int g = 0;
+            int b = 0;
+            int a = 0;
+
+            for (int y = 0; y < rect.h; y++) {
+                int topY = y - radius - 1;
+                int bottomY = y + radius;
+                uint8_t leftR = 0;
+                uint8_t leftG = 0;
+                uint8_t leftB = 0;
+                uint8_t leftA = 0;
+                uint8_t rightR = 0;
+                uint8_t rightG = 0;
+                uint8_t rightB = 0;
+                uint8_t rightA = 0;
+                if (topY >= 0 && topY < rect.h) {
+                    uint32_t color = tempValues[pixelIndex(x, topY, rect.w)];
+                    leftA = color >> 24;
+                    leftR = ((color >> 16) & 0xff) * leftA / 255;
+                    leftG = ((color >> 8) & 0xff) * leftA / 255;
+                    leftB = (color & 0xff) * leftA / 255;
+                }
+                if (bottomY >= 0 && bottomY < rect.h) {
+                    uint32_t color = tempValues[pixelIndex(x, bottomY, rect.w)];
+                    rightA = color >> 24;
+                    rightR = ((color >> 16) & 0xff) * rightA / 255;
+                    rightG = ((color >> 8) & 0xff) * rightA / 255;
+                    rightB = (color & 0xff) * rightA / 255;
+                }
+
+                r += rightR - leftR;
+                g += rightG - leftG;
+                b += rightB - leftB;
+                a += rightA - leftA;
+
+                int finalR = r / windowSize;
+                int finalG = g / windowSize;
+                int finalB = b / windowSize;
+                int finalA = a / windowSize;
+
+                if (finalA > 0) {
+                    finalR = finalR * 255 / finalA;
+                    finalG = finalG * 255 / finalA;
+                    finalB = finalB * 255 / finalA;
+                }
+
+                tempValues2[pixelIndex(x, y, rect.w)] =
+                    makePixel(finalR, finalG, finalB, finalA);
             }
-            if (rightX >= 0 && rightX < sourceRect.w) {
-                uint32_t color =
-                    source[pixelIndex(rightX, y - radius, sourceRect.w)];
-                rightA = color >> 24;
-                rightR = ((color >> 16) & 0xff) * rightA / 255;
-                rightG = ((color >> 8) & 0xff) * rightA / 255;
-                rightB = (color & 0xff) * rightA / 255;
-            }
-
-            r += rightR - leftR;
-            g += rightG - leftG;
-            b += rightB - leftB;
-            a += rightA - leftA;
-
-            int finalR = r / windowSize;
-            int finalG = g / windowSize;
-            int finalB = b / windowSize;
-            int finalA = a / windowSize;
-
-            if (finalA > 0) {
-                finalR = finalR * 255 / finalA;
-                finalG = finalG * 255 / finalA;
-                finalB = finalB * 255 / finalA;
-            }
-
-            tempValues[pixelIndex(x, y, rect.w)] =
-                makePixel(finalR, finalG, finalB, finalA);
         }
     }
 
-    for (int x = 0; x < rect.w; x++) {
-        int r = 0;
-        int g = 0;
-        int b = 0;
-        int a = 0;
-
-        for (int y = 0; y < rect.h; y++) {
-            int topY = y - radius - 1;
-            int bottomY = y + radius;
-            uint8_t leftR = 0;
-            uint8_t leftG = 0;
-            uint8_t leftB = 0;
-            uint8_t leftA = 0;
-            uint8_t rightR = 0;
-            uint8_t rightG = 0;
-            uint8_t rightB = 0;
-            uint8_t rightA = 0;
-            if (topY >= 0 && topY < rect.h) {
-                uint32_t color = tempValues[pixelIndex(x, topY, rect.w)];
-                leftA = color >> 24;
-                leftR = ((color >> 16) & 0xff) * leftA / 255;
-                leftG = ((color >> 8) & 0xff) * leftA / 255;
-                leftB = (color & 0xff) * leftA / 255;
-            }
-            if (bottomY >= 0 && bottomY < rect.h) {
-                uint32_t color = tempValues[pixelIndex(x, bottomY, rect.w)];
-                rightA = color >> 24;
-                rightR = ((color >> 16) & 0xff) * rightA / 255;
-                rightG = ((color >> 8) & 0xff) * rightA / 255;
-                rightB = (color & 0xff) * rightA / 255;
-            }
-
-            r += rightR - leftR;
-            g += rightG - leftG;
-            b += rightB - leftB;
-            a += rightA - leftA;
-
-            int finalR = r / windowSize;
-            int finalG = g / windowSize;
-            int finalB = b / windowSize;
-            int finalA = a / windowSize;
-
-            if (finalA > 0) {
-                finalR = finalR * 255 / finalA;
-                finalG = finalG * 255 / finalA;
-                finalB = finalB * 255 / finalA;
-            }
-
-            target[pixelIndex(x, y, rect.w)] =
-                makePixel(finalR, finalG, finalB, finalA);
-        }
-    }
+    memcpy(target, tempValues2, rect.w * rect.h * 4);
 
     delete[] tempValues;
+    delete[] tempValues2;
 
     return true;
 }
