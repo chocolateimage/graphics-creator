@@ -27,6 +27,7 @@
 #include "tile_effect.hpp"
 #include "tint_effect.hpp"
 #include "twist_effect.hpp"
+#include "vignette_effect.hpp"
 #include "wave_effect.hpp"
 
 std::vector<EffectInfo> effectList = {
@@ -62,6 +63,7 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Style", "Twist", "twist", TwistEffect),
     DEFINE_EFFECT("Style", "Corner Pin", "cornerPin", CornerPinEffect),
     DEFINE_EFFECT("Style", "Tile", "tile", TileEffect),
+    DEFINE_EFFECT("Style", "Vignette", "vignette", VignetteEffect),
 
     DEFINE_EFFECT("Generate", "Grid", "grid", GridEffect),
     DEFINE_EFFECT("Generate", "Noise", "noise", NoiseEffect),

@@ -50,6 +50,11 @@ inline constexpr double linearstep(double from, double to, double x) {
     return saturate((x - from) / (to - from));
 }
 
+inline constexpr double smoothstep(double from, double to, double x) {
+    x = saturate((x - from) / (to - from));
+    return x * x * (3 - 2 * x);
+}
+
 static double linear(double x) { return x; }
 
 static double easeInQuad(double x) { return x * x; }
