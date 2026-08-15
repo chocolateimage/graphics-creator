@@ -1,5 +1,4 @@
 #include "scale_effect.hpp"
-#include "animatable/element/element.hpp"
 #include "math.hpp"
 
 ScaleEffect::ScaleEffect() {
@@ -17,12 +16,9 @@ ScaleEffect::ScaleEffect() {
 }
 
 Rect ScaleEffectRender::getRenderBox(const Rect &lastBox) {
-    int distX = lastBox.x - element->x;
-    int distY = lastBox.y - element->y;
-    int offsetX = (element->w * alignX) - (element->w * alignX * scaleX);
-    int offsetY = (element->h * alignY) - (element->h * alignY * scaleY);
-    return {(int)(element->x + distX * scaleX) + offsetX,
-            (int)(element->y + distY * scaleY) + offsetY,
+    int offsetX = (lastBox.w * alignX) - (lastBox.w * alignX * scaleX);
+    int offsetY = (lastBox.h * alignY) - (lastBox.h * alignY * scaleY);
+    return {(int)(lastBox.x) + offsetX, (int)(lastBox.y) + offsetY,
             std::max(1, (int)(lastBox.w * scaleX)),
             std::max(1, (int)(lastBox.h * scaleY))};
 }
