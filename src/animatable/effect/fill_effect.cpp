@@ -11,6 +11,9 @@ bool FillEffectRender::render(const uint32_t *source, const Rect &sourceRect,
     for (int y = 0; y < sourceRect.h; y++) {
         for (int x = 0; x < sourceRect.w; x++) {
             float alpha = (source[pixelIndex(x, y, sourceRect.w)] >> 24) / 255.;
+            if (alpha == 0)
+                continue;
+
             Color c = getBrushPixel(fill, x, y, sourceRect.w, sourceRect.h);
             target[pixelIndex(x, y, rect.w)] =
                 makePixel(c.r, c.g, c.b, c.a * alpha);
