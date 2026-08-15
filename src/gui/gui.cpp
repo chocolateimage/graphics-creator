@@ -596,6 +596,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
 
+    QMenu *helpMenu = menuBar->addMenu("Help");
+    QAction *aboutAction = helpMenu->addAction("About");
+    connect(aboutAction, &QAction::triggered, this, &NewMainWindow::about);
+    QAction *aboutQtAction = helpMenu->addAction("About Qt");
+    connect(aboutQtAction, &QAction::triggered, this, &NewMainWindow::aboutQt);
+
     QSettings settings;
     dockManager->loadPerspectives(settings);
     dockManager->openPerspective("Default");
@@ -620,6 +626,18 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     rerender(false);
 }
+
+void NewMainWindow::about() {
+    QMessageBox::about(this, "About",
+                       "Graphics Creator v" + VERSION +
+                           "<br><br><a "
+                           "href=\"https://github.com/chocolateimage/"
+                           "graphics-creator\">Source code</a> | <a "
+                           "href=\"https://github.com/chocolateimage/"
+                           "graphics-creator/issues\">Report issue</a>");
+}
+
+void NewMainWindow::aboutQt() { QMessageBox::aboutQt(this); }
 
 void NewMainWindow::groupSlot() {
     if (scene->selectedElements.isEmpty())

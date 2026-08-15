@@ -139,6 +139,8 @@ class NewMainWindow : public QMainWindow {
     void welcomeOpenClicked(const QString &path, bool asTemplate);
     void groupSlot();
     void ungroupSlot();
+    void aboutQt();
+    void about();
 
     QNetworkAccessManager *networkAccessManager;
 
