@@ -10,11 +10,6 @@ HsvEffect::HsvEffect() {
     lightness.setMax(100);
 }
 
-QString HsvEffect::effectDescription() {
-    return "<span style='color:orange;'>The saturation and lightness values "
-           "may be a bit broken.</span>";
-}
-
 bool HsvEffectRender::render(const uint32_t *source, const Rect &sourceRect,
                              uint32_t *target) {
     Rect rect = renderBox;

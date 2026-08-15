@@ -36,7 +36,7 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Color", "Brightness", "brightness", BrightnessEffect),
     DEFINE_EFFECT("Color", "Tint", "tint", TintEffect),
     DEFINE_EFFECT("Color", "Invert", "invert", InvertEffect),
-    DEFINE_EFFECT("Color", "HSV", "hsv", HsvEffect),
+    DEFINE_EFFECT("Color", "Hue/Saturation", "hsv", HsvEffect),
     DEFINE_EFFECT("Color", "Fill", "fill", FillEffect),
     DEFINE_EFFECT("Color", "Color Link", "colorLink", ColorLinkEffect),
     DEFINE_EFFECT("Color", "Levels", "levels", LevelsEffect),

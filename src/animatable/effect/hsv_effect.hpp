@@ -18,7 +18,6 @@ class HsvEffect : public Effect {
     HsvEffect();
     ~HsvEffect() {};
     QString effectName() override { return "hsv"; };
-    QString effectDescription() override;
     AnimatableRender *createClass() override { return new HsvEffectRender(); };
 
     Property<int> hue{this, "hue", 0};
