@@ -3,6 +3,7 @@
 #include "animatable/element/image_element.hpp"
 #include "animatable/element/video_element.hpp"
 #include "gui.hpp"
+#include <KMessageBox>
 #include <QApplication>
 #include <QClipboard>
 #include <QFileDialog>
@@ -562,15 +563,24 @@ void ImageViewer::dropEvent(QDropEvent *event) {
         update();
     }
     if (isDroppingVideo) {
-        VideoElement *videoElement = new VideoElement();
-        videoElement->x.set(0, {0});
-        videoElement->y.set(0, {0});
-        videoElement->w.set(scene->width, {0});
-        videoElement->h.set(scene->height, {0});
-        videoElement->path.set(dropVideoPath.toStdString(), {0});
-        videoElement->setObjectName(
-            dropVideoPath.split("/").last().split("\\").last());
-        mainWindow->addElementUndoable(videoElement);
+        std::string path = dropVideoPath.toStdString();
+        auto videoData = globalLoader.loadVideo(path);
+        if (videoData->error) {
+            KMessageBox::error(this, "Error while loading video");
+        } else {
+            float seconds = videoData->streamDuration;
+            VideoElement *videoElement = new VideoElement();
+            videoElement->x.set(0, {0});
+            videoElement->y.set(0, {0});
+            videoElement->w.set(scene->width, {0});
+            videoElement->h.set(scene->height, {0});
+            videoElement->path.set(path, {0});
+            videoElement->durationFrames =
+                videoData->durationSeconds * scene->frameRate;
+            videoElement->setObjectName(
+                dropVideoPath.split("/").last().split("\\").last());
+            mainWindow->addElementUndoable(videoElement);
+        }
         isDroppingVideo = false;
         update();
     }

@@ -43,6 +43,9 @@ class VideoData {
     double lastSecond{-1};
 
     int streamIndex;
+    int64_t streamDuration;
+    double durationSeconds;
+    SwsContext *swsCtx{nullptr};
     AVStream *stream{nullptr};
     AVFormatContext *fmtCtx{nullptr};
     AVCodecContext *decodeCtx{nullptr};

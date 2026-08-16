@@ -53,6 +53,9 @@ VideoData::VideoData(const std::string &path) {
         return;
     }
 
+    decodeCtx->thread_count = 0;
+    decodeCtx->thread_type = FF_THREAD_SLICE;
+
     if (avcodec_open2(decodeCtx, codec, nullptr) < 0) {
         error = true;
         return;
@@ -61,15 +64,25 @@ VideoData::VideoData(const std::string &path) {
     packet = av_packet_alloc();
     frame = av_frame_alloc();
 
+    streamDuration = stream->duration;
+    if (streamDuration == AV_NOPTS_VALUE) {
+        qWarning() << "Duration not found from stream";
+        streamDuration = av_rescale_q(fmtCtx->duration, {1, AV_TIME_BASE},
+                                      stream->time_base);
+    }
+
+    durationSeconds = (double)fmtCtx->duration / AV_TIME_BASE;
+
     qDebug() << "Created video. Size:" << decodeCtx->width << "x"
-             << decodeCtx->height;
+             << decodeCtx->height << "Duration:" << streamDuration;
 }
 
 AVFrame *VideoData::getFrame(double seconds, int w, int h) {
     int64_t timestamp = av_rescale_q(seconds * AV_TIME_BASE, {1, AV_TIME_BASE},
                                      stream->time_base);
-    if (timestamp >= stream->duration)
+    if (timestamp >= streamDuration) {
         return nullptr;
+    }
 
     QMutexLocker locker(&mutex);
     bool seek =
@@ -84,9 +97,9 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
         avcodec_flush_buffers(decodeCtx);
     }
 
-    SwsContext *swsCtx = sws_getContext(
-        decodeCtx->width, decodeCtx->height, decodeCtx->pix_fmt, w, h,
-        AV_PIX_FMT_BGRA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+    swsCtx = sws_getCachedContext(swsCtx, decodeCtx->width, decodeCtx->height,
+                                  decodeCtx->pix_fmt, w, h, AV_PIX_FMT_BGRA,
+                                  SWS_BILINEAR, nullptr, nullptr, nullptr);
     if (!swsCtx) {
         return nullptr;
     }
@@ -140,12 +153,14 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
         }
     }
 
-    sws_freeContext(swsCtx);
     return vdFrame;
 }
 
 VideoData::~VideoData() {
     qDebug() << "Freeing video";
+    if (swsCtx) {
+        sws_freeContext(swsCtx);
+    }
     if (decodeCtx) {
         avcodec_free_context(&decodeCtx);
     }
