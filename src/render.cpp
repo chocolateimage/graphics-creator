@@ -6,9 +6,142 @@
 #include <QMutexLocker>
 #include <freetype/ftoutln.h>
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+}
+
 ImageData::~ImageData() { delete[] data; }
 
-std::shared_ptr<ImageData> ImageLoader::loadImage(const std::string &path) {
+VideoData::VideoData(const std::string &path) {
+    qDebug() << "Creating video";
+
+    if (avformat_open_input(&fmtCtx, path.c_str(), nullptr, nullptr) < 0) {
+        error = true;
+        return;
+    }
+    if (avformat_find_stream_info(fmtCtx, nullptr) < 0) {
+        error = true;
+        return;
+    }
+
+    streamIndex =
+        av_find_best_stream(fmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (streamIndex < 0) {
+        error = true;
+        return;
+    }
+
+    AVStream *stream = fmtCtx->streams[streamIndex];
+
+    const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    if (!codec) {
+        error = true;
+        return;
+    }
+
+    decodeCtx = avcodec_alloc_context3(codec);
+    if (!decodeCtx) {
+        error = true;
+        return;
+    }
+
+    if (avcodec_parameters_to_context(decodeCtx, stream->codecpar) < 0) {
+        error = true;
+        return;
+    }
+
+    if (avcodec_open2(decodeCtx, codec, nullptr) < 0) {
+        error = true;
+        return;
+    }
+
+    packet = av_packet_alloc();
+    frame = av_frame_alloc();
+
+    qDebug() << "Created video. Size:" << decodeCtx->width << "x"
+             << decodeCtx->height;
+}
+
+AVFrame *VideoData::getFrame(int frameIndex, int w, int h) {
+    QMutexLocker locker(&mutex);
+    // TODO: timebase
+    if (av_seek_frame(fmtCtx, streamIndex, frameIndex, 0) < 0) {
+        // TODO: fail
+    }
+
+    SwsContext *swsCtx = sws_getContext(
+        decodeCtx->width, decodeCtx->height, decodeCtx->pix_fmt, w, h,
+        AV_PIX_FMT_BGRA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+    AVFrame *vdFrame{nullptr};
+
+    while (av_read_frame(fmtCtx, packet) >= 0) {
+        if (packet->stream_index != streamIndex) {
+            av_packet_unref(packet);
+            continue;
+        }
+
+        int ret = avcodec_send_packet(decodeCtx, packet);
+        if (ret < 0) {
+            qWarning() << "Error submitting a packet for decoding."
+                       << av_err2str(ret);
+            av_packet_unref(packet);
+            continue;
+        }
+
+        while (ret >= 0) {
+            ret = avcodec_receive_frame(decodeCtx, frame);
+            if (ret < 0)
+                continue;
+
+            if (decodeCtx->codec->type == AVMEDIA_TYPE_VIDEO) {
+                if (vdFrame) {
+                    qWarning() << "vdFrame already created";
+                    continue;
+                }
+
+                vdFrame = av_frame_alloc();
+                vdFrame->width = w;
+                vdFrame->height = h;
+                vdFrame->format = AV_PIX_FMT_BGRA;
+                av_frame_make_writable(vdFrame);
+                sws_scale_frame(swsCtx, vdFrame, frame);
+            } else {
+                qWarning() << "Non video frame";
+            }
+
+            av_frame_unref(frame);
+            break;
+        }
+        if (vdFrame) {
+            break;
+        }
+        av_packet_unref(packet);
+    }
+
+    sws_freeContext(swsCtx);
+    return vdFrame;
+}
+
+VideoData::~VideoData() {
+    qDebug() << "Freeing video";
+    if (decodeCtx) {
+        avcodec_free_context(&decodeCtx);
+    }
+    if (fmtCtx) {
+        avformat_close_input(&fmtCtx);
+    }
+    if (packet) {
+        av_packet_free(&packet);
+    }
+    if (frame) {
+        av_frame_free(&frame);
+    }
+}
+
+std::shared_ptr<ImageData> Loader::loadImage(const std::string &path) {
     QMutexLocker locker(&imageDatasMutex);
     auto it = imageDatas.find(path);
     if (it != imageDatas.end()) {
@@ -27,7 +160,19 @@ std::shared_ptr<ImageData> ImageLoader::loadImage(const std::string &path) {
     return data;
 }
 
-ImageLoader globalImageLoader;
+std::shared_ptr<VideoData> Loader::loadVideo(const std::string &path) {
+    QMutexLocker locker(&videoDatasMutex);
+    auto it = videoDatas.find(path);
+    if (it != videoDatas.end()) {
+        return it->second;
+    }
+
+    std::shared_ptr<VideoData> data = std::make_shared<VideoData>(path);
+    videoDatas.emplace(path, data);
+    return data;
+}
+
+Loader globalLoader;
 
 std::string getFontHash(const Font &font, int fontSize, bool antialiased,
                         const StrokeInfo &strokeInfo) {

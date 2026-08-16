@@ -1,6 +1,7 @@
 #include "image_viewer.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
+#include "animatable/element/video_element.hpp"
 #include "gui.hpp"
 #include <QApplication>
 #include <QClipboard>
@@ -433,6 +434,18 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         painter.restore();
     }
 
+    if (isDroppingVideo) {
+        QPointF topLeft = pixelToViewport({0, 0});
+        QPointF bottomRight =
+            pixelToViewport({(double)scene->width, (double)scene->height});
+        painter.setPen(QPen(QColor(128, 128, 128), 4));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawRect(QRectF{topLeft, bottomRight});
+        painter.drawLine(topLeft, bottomRight);
+        painter.drawLine(bottomRight.x(), topLeft.y(), topLeft.x(),
+                         bottomRight.y());
+    }
+
     if (isMovingElements) {
         paintSnapVisualRect(painter, snapVisualRect1);
         paintSnapVisualRect(painter, snapVisualRect2);
@@ -487,6 +500,12 @@ void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
             event->setDropAction(Qt::DropAction::LinkAction);
             event->accept();
             update();
+        } else if (type.name().startsWith("video/")) {
+            dropVideoPath = url.toLocalFile();
+            isDroppingVideo = true;
+            event->setDropAction(Qt::DropAction::LinkAction);
+            event->accept();
+            update();
         }
     }
 }
@@ -521,6 +540,10 @@ void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
         dropImagePreview = QImage();
         update();
     }
+    if (isDroppingVideo) {
+        isDroppingVideo = false;
+        update();
+    }
 }
 
 void ImageViewer::dropEvent(QDropEvent *event) {
@@ -536,6 +559,19 @@ void ImageViewer::dropEvent(QDropEvent *event) {
         mainWindow->addElementUndoable(imageElement);
         dropImagePreview = QImage();
         isDroppingImage = false;
+        update();
+    }
+    if (isDroppingVideo) {
+        VideoElement *videoElement = new VideoElement();
+        videoElement->x.set(0, {0});
+        videoElement->y.set(0, {0});
+        videoElement->w.set(scene->width, {0});
+        videoElement->h.set(scene->height, {0});
+        videoElement->path.set(dropVideoPath.toStdString(), {0});
+        videoElement->setObjectName(
+            dropVideoPath.split("/").last().split("\\").last());
+        mainWindow->addElementUndoable(videoElement);
+        isDroppingVideo = false;
         update();
     }
 }

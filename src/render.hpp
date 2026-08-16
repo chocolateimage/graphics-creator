@@ -10,7 +10,10 @@
 #include <unordered_map>
 
 extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libavutil/frame.h>
+#include <libswscale/swscale.h>
 }
 
 class FontManager;
@@ -28,15 +31,35 @@ class ImageData {
     uint32_t *data;
 };
 
-class ImageLoader {
+class VideoData {
   public:
-    std::unordered_map<std::string, std::shared_ptr<ImageData>> imageDatas{};
-    QMutex imageDatasMutex{};
+    VideoData(const std::string &path);
+    ~VideoData();
 
-    std::shared_ptr<ImageData> loadImage(const std::string &path);
+    QMutex mutex{};
+    AVFrame *getFrame(int frame, int w, int h);
+
+    bool error{false};
+
+    int streamIndex;
+    AVFormatContext *fmtCtx{nullptr};
+    AVCodecContext *decodeCtx{nullptr};
+    AVPacket *packet{nullptr};
+    AVFrame *frame{nullptr};
 };
 
-extern ImageLoader globalImageLoader;
+class Loader {
+  public:
+    std::unordered_map<std::string, std::shared_ptr<ImageData>> imageDatas{};
+    std::unordered_map<std::string, std::shared_ptr<VideoData>> videoDatas{};
+    QMutex imageDatasMutex{};
+    QMutex videoDatasMutex{};
+
+    std::shared_ptr<ImageData> loadImage(const std::string &path);
+    std::shared_ptr<VideoData> loadVideo(const std::string &path);
+};
+
+extern Loader globalLoader;
 
 class StrokeInfo {
   public:
