@@ -24,8 +24,8 @@ find_package(FFmpeg REQUIRED COMPONENTS
 find_package(HarfBuzz REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(Fontconfig REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg)
-find_package(KF6 REQUIRED TextEditor IconThemes WidgetsAddons)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg Network)
+find_package(KF6 REQUIRED IconThemes WidgetsAddons ColorScheme ConfigWidgets)
 find_package(qtadvanceddocking-qt6 REQUIRED)
 
 find_package(PkgConfig REQUIRED)
@@ -72,7 +72,14 @@ add_executable(graphics-creator WIN32 ${graphicscreator_SRCS})
 set_property(TARGET graphics-creator PROPERTY AUTOMOC ON)
 
 target_include_directories(graphics-creator PRIVATE ${FFMPEG_INCLUDE_DIRS} ${HARFBUZZ_INCLUDE_DIR} ${FREETYPE_INCLUDE_DIRS} src)
-target_link_libraries(graphics-creator Qt6::Core Qt6::Widgets Qt6::Svg FFmpeg::FFmpeg harfbuzz Freetype::Freetype KF6::TextEditor KF6::IconThemes KF6::WidgetsAddons Fontconfig::Fontconfig ads::qtadvanceddocking-qt6)
+target_link_libraries(
+    graphics-creator
+    Qt6::Core Qt6::Widgets Qt6::Svg Qt6::Network
+    ads::qtadvanceddocking-qt6
+    KF6::ColorScheme KF6::ConfigWidgets KF6::IconThemes KF6::WidgetsAddons
+    FFmpeg::FFmpeg
+    harfbuzz Freetype::Freetype Fontconfig::Fontconfig
+)
 target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter)
 
 add_custom_command(TARGET graphics-creator POST_BUILD
