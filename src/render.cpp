@@ -84,7 +84,20 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
         return nullptr;
     }
 
-    QMutexLocker locker(&mutex);
+    PriorityMutexLocker locker(&mutex, seconds);
+
+    swsCtx = sws_getCachedContext(swsCtx, decodeCtx->width, decodeCtx->height,
+                                  decodeCtx->pix_fmt, w, h, AV_PIX_FMT_BGRA,
+                                  SWS_BILINEAR, nullptr, nullptr, nullptr);
+    if (!swsCtx) {
+        return nullptr;
+    }
+
+    if (lastSecond == seconds) {
+        return scaleCurrentFrame();
+    }
+    av_frame_unref(frame);
+
     bool seek =
         lastSecond == -1 || seconds <= lastSecond || seconds - lastSecond > 1;
 
@@ -95,13 +108,6 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
         }
 
         avcodec_flush_buffers(decodeCtx);
-    }
-
-    swsCtx = sws_getCachedContext(swsCtx, decodeCtx->width, decodeCtx->height,
-                                  decodeCtx->pix_fmt, w, h, AV_PIX_FMT_BGRA,
-                                  SWS_BILINEAR, nullptr, nullptr, nullptr);
-    if (!swsCtx) {
-        return nullptr;
     }
 
     AVFrame *vdFrame{nullptr};
@@ -134,18 +140,12 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
             }
 
             if (decodeCtx->codec->type == AVMEDIA_TYPE_VIDEO) {
-                vdFrame = av_frame_alloc();
-                vdFrame->width = w;
-                vdFrame->height = h;
-                vdFrame->format = AV_PIX_FMT_BGRA;
                 lastSecond = seconds;
-                av_frame_get_buffer(vdFrame, 0);
-                sws_scale_frame(swsCtx, vdFrame, frame);
+                vdFrame = scaleCurrentFrame();
             } else {
                 qWarning() << "Non video frame";
             }
 
-            av_frame_unref(frame);
             break;
         }
         if (vdFrame) {
@@ -153,6 +153,16 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
         }
     }
 
+    return vdFrame;
+}
+
+AVFrame *VideoData::scaleCurrentFrame() {
+    AVFrame *vdFrame = av_frame_alloc();
+    vdFrame->width = swsCtx->dst_w;
+    vdFrame->height = swsCtx->dst_h;
+    vdFrame->format = AV_PIX_FMT_BGRA;
+    av_frame_get_buffer(vdFrame, 0);
+    sws_scale_frame(swsCtx, vdFrame, frame);
     return vdFrame;
 }
 

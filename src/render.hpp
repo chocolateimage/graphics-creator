@@ -1,4 +1,5 @@
 #pragma once
+#include "priority_mutex.hpp"
 #include "variant.hpp"
 #include <QMutex>
 #include <freetype/freetype.h>
@@ -36,8 +37,9 @@ class VideoData {
     VideoData(const std::string &path);
     ~VideoData();
 
-    QMutex mutex{};
+    PriorityMutex mutex{};
     AVFrame *getFrame(double seconds, int w, int h);
+    AVFrame *scaleCurrentFrame();
 
     bool error{false};
     double lastSecond{-1};
