@@ -276,25 +276,16 @@ void GuiRenderDrawThread::run() {
         FrameTask *frameTask = guiRenderThread->tasks[curFrame];
         frameTask->render(renderThread);
 
-        AVFrame *srcFrame = av_frame_alloc();
-        srcFrame->width = frameTask->width;
-        srcFrame->height = frameTask->height;
-        srcFrame->format = AV_PIX_FMT_BGRA;
-        av_frame_get_buffer(srcFrame, 0);
-        av_frame_make_writable(srcFrame);
-        for (int y = 0; y < frameTask->height; y++) {
-            memcpy(srcFrame->data[0] + y * srcFrame->linesize[0],
-                   frameTask->values + y * frameTask->width,
-                   frameTask->width * 4);
-        }
-        delete[] frameTask->values;
-
         swsCtx = sws_getCachedContext(
             swsCtx, frameTask->width, frameTask->height, AV_PIX_FMT_BGRA,
             frameTask->width, frameTask->height, (AVPixelFormat)frame->format,
             0, nullptr, nullptr, nullptr);
-        sws_scale_frame(swsCtx, frame, srcFrame);
-        av_frame_free(&srcFrame);
+
+        int strides[] = {frameTask->width * 4};
+        sws_scale(swsCtx, (const uint8_t *const *)&frameTask->values, strides,
+                  0, frameTask->height, frame->data, frame->linesize);
+
+        delete[] frameTask->values;
 
         guiRenderThread->frameMutex.lock();
         guiRenderThread->frames[curFrame] = frame;
