@@ -12,7 +12,6 @@ VignetteEffect::VignetteEffect() {
 
 bool VignetteEffectRender::render(const uint32_t *source,
                                   const Rect &sourceRect, uint32_t *target) {
-    Rect rect = renderBox;
     int from = this->from;
     int to = this->to;
     bool useColor = mode == 0;
