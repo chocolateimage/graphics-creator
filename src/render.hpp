@@ -22,8 +22,6 @@ class ElementRender;
 class RenderedElement;
 class FrameTask;
 
-void convertToAvFrame(AVFrame *frame, uint32_t *source, int w, int h);
-
 class ImageData {
   public:
     ~ImageData();

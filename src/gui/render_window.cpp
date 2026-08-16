@@ -275,15 +275,35 @@ void GuiRenderDrawThread::run() {
 
         FrameTask *frameTask = guiRenderThread->tasks[curFrame];
         frameTask->render(renderThread);
-        convertToAvFrame(frame, frameTask->values, frameTask->width,
-                         frameTask->height);
+
+        AVFrame *srcFrame = av_frame_alloc();
+        srcFrame->width = frameTask->width;
+        srcFrame->height = frameTask->height;
+        srcFrame->format = AV_PIX_FMT_BGRA;
+        av_frame_get_buffer(srcFrame, 0);
+        av_frame_make_writable(srcFrame);
+        for (int y = 0; y < frameTask->height; y++) {
+            memcpy(srcFrame->data[0] + y * srcFrame->linesize[0],
+                   frameTask->values + y * frameTask->width,
+                   frameTask->width * 4);
+        }
         delete[] frameTask->values;
+
+        swsCtx = sws_getCachedContext(
+            swsCtx, frameTask->width, frameTask->height, AV_PIX_FMT_BGRA,
+            frameTask->width, frameTask->height, (AVPixelFormat)frame->format,
+            0, nullptr, nullptr, nullptr);
+        sws_scale_frame(swsCtx, frame, srcFrame);
+        av_frame_free(&srcFrame);
 
         guiRenderThread->frameMutex.lock();
         guiRenderThread->frames[curFrame] = frame;
         guiRenderThread->frameMutex.unlock();
     }
 
+    if (swsCtx) {
+        sws_freeContext(swsCtx);
+    }
     renderThread.close();
 }
 
