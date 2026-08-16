@@ -38,7 +38,7 @@ class VideoData {
     ~VideoData();
 
     PriorityMutex mutex{};
-    AVFrame *getFrame(double seconds, int w, int h);
+    AVFrame *getFrame(double seconds, int w, int h, int scaleFlags);
     AVFrame *scaleCurrentFrame();
 
     bool error{false};

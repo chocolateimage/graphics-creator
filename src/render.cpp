@@ -77,7 +77,7 @@ VideoData::VideoData(const std::string &path) {
              << decodeCtx->height << "Duration:" << streamDuration;
 }
 
-AVFrame *VideoData::getFrame(double seconds, int w, int h) {
+AVFrame *VideoData::getFrame(double seconds, int w, int h, int scaleFlags) {
     int64_t timestamp = av_rescale_q(seconds * AV_TIME_BASE, {1, AV_TIME_BASE},
                                      stream->time_base);
     if (timestamp >= streamDuration) {
@@ -88,7 +88,7 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h) {
 
     swsCtx = sws_getCachedContext(swsCtx, decodeCtx->width, decodeCtx->height,
                                   decodeCtx->pix_fmt, w, h, AV_PIX_FMT_BGRA,
-                                  SWS_BILINEAR, nullptr, nullptr, nullptr);
+                                  scaleFlags, nullptr, nullptr, nullptr);
     if (!swsCtx) {
         return nullptr;
     }
