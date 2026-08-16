@@ -14,7 +14,18 @@ bool VideoElementRender::render(uint32_t *target) {
     int h = this->h;
 
     auto videoData = globalLoader.loadVideo(this->path);
-    AVFrame *frame = videoData->getFrame(currentFrame, w, h);
+    if (videoData->error) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                target[pixelIndex(x, y, w)] = makePixel(240, 50, 50, 255);
+            }
+        }
+        return true;
+    }
+    AVFrame *frame = videoData->getFrame(currentSeconds, w, h);
+    if (!frame) {
+        return true;
+    }
     for (int y = 0; y < h; y++) {
         memcpy(target + y * w, frame->data[0] + y * frame->linesize[0], w * 4);
     }

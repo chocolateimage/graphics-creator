@@ -37,11 +37,13 @@ class VideoData {
     ~VideoData();
 
     QMutex mutex{};
-    AVFrame *getFrame(int frame, int w, int h);
+    AVFrame *getFrame(double seconds, int w, int h);
 
     bool error{false};
+    double lastSecond{-1};
 
     int streamIndex;
+    AVStream *stream{nullptr};
     AVFormatContext *fmtCtx{nullptr};
     AVCodecContext *decodeCtx{nullptr};
     AVPacket *packet{nullptr};

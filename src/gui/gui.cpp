@@ -5,6 +5,7 @@
 #include "animatable/element/image_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
+#include "animatable/element/video_element.hpp"
 #include "effects_window.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
@@ -1245,6 +1246,8 @@ Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
         element = new ImageElement();
     } else if (elementType == "group") {
         element = new GroupElement();
+    } else if (elementType == "video") {
+        element = new VideoElement();
     }
 
     if (!element) {

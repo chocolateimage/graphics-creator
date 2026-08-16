@@ -34,7 +34,7 @@ VideoData::VideoData(const std::string &path) {
         return;
     }
 
-    AVStream *stream = fmtCtx->streams[streamIndex];
+    stream = fmtCtx->streams[streamIndex];
 
     const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
     if (!codec) {
@@ -65,16 +65,32 @@ VideoData::VideoData(const std::string &path) {
              << decodeCtx->height;
 }
 
-AVFrame *VideoData::getFrame(int frameIndex, int w, int h) {
+AVFrame *VideoData::getFrame(double seconds, int w, int h) {
+    int64_t timestamp = av_rescale_q(seconds * AV_TIME_BASE, {1, AV_TIME_BASE},
+                                     stream->time_base);
+    if (timestamp >= stream->duration)
+        return nullptr;
+
     QMutexLocker locker(&mutex);
-    // TODO: timebase
-    if (av_seek_frame(fmtCtx, streamIndex, frameIndex, 0) < 0) {
-        // TODO: fail
+    bool seek =
+        lastSecond == -1 || seconds <= lastSecond || seconds - lastSecond > 1;
+
+    if (seek) {
+        if (av_seek_frame(fmtCtx, streamIndex, timestamp,
+                          AVSEEK_FLAG_BACKWARD) < 0) {
+            return nullptr;
+        }
+
+        avcodec_flush_buffers(decodeCtx);
     }
 
     SwsContext *swsCtx = sws_getContext(
         decodeCtx->width, decodeCtx->height, decodeCtx->pix_fmt, w, h,
         AV_PIX_FMT_BGRA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+    if (!swsCtx) {
+        return nullptr;
+    }
+
     AVFrame *vdFrame{nullptr};
 
     while (av_read_frame(fmtCtx, packet) >= 0) {
@@ -84,29 +100,33 @@ AVFrame *VideoData::getFrame(int frameIndex, int w, int h) {
         }
 
         int ret = avcodec_send_packet(decodeCtx, packet);
+        av_packet_unref(packet);
         if (ret < 0) {
             qWarning() << "Error submitting a packet for decoding."
                        << av_err2str(ret);
-            av_packet_unref(packet);
             continue;
         }
 
-        while (ret >= 0) {
+        while (true) {
             ret = avcodec_receive_frame(decodeCtx, frame);
-            if (ret < 0)
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                break;
+            } else if (ret < 0) {
+                break;
+            }
+
+            if (frame->pts != AV_NOPTS_VALUE && frame->pts < timestamp) {
+                av_frame_unref(frame);
                 continue;
+            }
 
             if (decodeCtx->codec->type == AVMEDIA_TYPE_VIDEO) {
-                if (vdFrame) {
-                    qWarning() << "vdFrame already created";
-                    continue;
-                }
-
                 vdFrame = av_frame_alloc();
                 vdFrame->width = w;
                 vdFrame->height = h;
                 vdFrame->format = AV_PIX_FMT_BGRA;
-                av_frame_make_writable(vdFrame);
+                lastSecond = seconds;
+                av_frame_get_buffer(vdFrame, 0);
                 sws_scale_frame(swsCtx, vdFrame, frame);
             } else {
                 qWarning() << "Non video frame";
@@ -118,7 +138,6 @@ AVFrame *VideoData::getFrame(int frameIndex, int w, int h) {
         if (vdFrame) {
             break;
         }
-        av_packet_unref(packet);
     }
 
     sws_freeContext(swsCtx);
