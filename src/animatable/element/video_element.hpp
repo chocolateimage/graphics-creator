@@ -6,12 +6,17 @@ class VideoElement : public Element {
     VideoElement();
     virtual ~VideoElement() {}
 
-    virtual AnimatableRender *createClass();
+    AnimatableRender *createClass() override;
+    AnimatableRender *toRender(const FrameInfo &frameInfo) override;
+    QJsonObject serialize() override;
+    void deserialize(const QJsonObject &obj) override;
 
     Property<std::string> path{this, "path", ""};
     Property<int> scaleType{this, "scaleType", 2};
 
-    virtual QString const typeName() { return "video"; }
+    int frameOffset{0};
+
+    QString const typeName() override { return "video"; }
 };
 
 class VideoElementRender : public ElementRender {
@@ -21,6 +26,8 @@ class VideoElementRender : public ElementRender {
 
     PropertyRender<std::string> path{this};
     PropertyRender<int> scaleType{this};
+
+    double secondsOffset;
 
     virtual bool render(uint32_t *target);
 };

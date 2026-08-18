@@ -1,6 +1,7 @@
 #include "video_element.hpp"
 #include "math.hpp"
 #include "render.hpp"
+#include "scene.hpp"
 
 VideoElement::VideoElement() : Element() {
     scaleType.enumList.push_back("Nearest neighbour");
@@ -18,10 +19,33 @@ AnimatableRender *VideoElement::createClass() {
     return new VideoElementRender();
 }
 
+AnimatableRender *VideoElement::toRender(const FrameInfo &frameInfo) {
+    VideoElementRender *render =
+        (VideoElementRender *)Element::toRender(frameInfo);
+    render->secondsOffset = (double)frameOffset / scene->frameRate;
+    return render;
+}
+
+QJsonObject VideoElement::serialize() {
+    QJsonObject obj = Element::serialize();
+    obj["frameOffset"] = frameOffset;
+    return obj;
+}
+
+void VideoElement::deserialize(const QJsonObject &obj) {
+    Element::deserialize(obj);
+    frameOffset = obj["frameOffset"].toInt();
+}
+
 bool VideoElementRender::render(uint32_t *target) {
     auto rect = getRenderBox();
     int w = this->w;
     int h = this->h;
+
+    double seconds = currentSeconds - secondsOffset;
+
+    if (seconds < 0)
+        return true;
 
     auto videoData = globalLoader.loadVideo(this->path);
     if (videoData->error) {
@@ -51,7 +75,7 @@ bool VideoElementRender::render(uint32_t *target) {
     } else if (scaleType == 7) {
         scaleFlags = SWS_SPLINE;
     }
-    AVFrame *frame = videoData->getFrame(currentSeconds, w, h, scaleFlags);
+    AVFrame *frame = videoData->getFrame(seconds, w, h, scaleFlags);
     if (!frame) {
         return true;
     }
