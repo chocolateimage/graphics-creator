@@ -240,12 +240,14 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         inputX->setMinimum(min);
         inputX->setMaximum(max);
         inputX->setValue(value.x);
+        inputX->setMinimumWidth(50);
         inputX->multiplier = property->stepMultiplier;
 
         auto inputY = new DraggableDoubleSpinBox(this);
         inputY->setMinimum(min);
         inputY->setMaximum(max);
         inputY->setValue(value.y);
+        inputY->setMinimumWidth(50);
         inputY->multiplier = property->stepMultiplier;
 
         layout->addWidget(inputX);
