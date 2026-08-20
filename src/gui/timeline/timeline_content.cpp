@@ -601,23 +601,25 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
                             maxFrames = endFrame - element->startFrame;
                         }
                     }
-                    element->durationFrames = std::clamp(
-                        startElementSizes[i] + framesMoved, 1, maxFrames);
+                    element->durationFrames =
+                        std::clamp(startElementSizes[i] + framesMoved, 1,
+                                   std::max(1, maxFrames));
                 } else if (isResizing && !isResizingOut) {
                     int maxFrames = startElementMove[i] + startElementSizes[i];
                     if (videoElement) {
                         maxFrames -= videoElement->frameOffset;
                     }
-                    element->durationFrames = std::clamp(
-                        startElementSizes[i] - framesMoved, 1, maxFrames);
+                    element->durationFrames =
+                        std::clamp(startElementSizes[i] - framesMoved, 1,
+                                   std::max(1, maxFrames));
                     element->startFrame = startElementSizes[i] -
                                           element->durationFrames +
                                           startElementMove[i];
                 } else {
-                    int newStartFrame =
-                        std::clamp(startElementMove[i] + framesMoved, 0,
-                                   timelineWidget->scene->durationFrames -
-                                       element->durationFrames);
+                    int newStartFrame = std::clamp(
+                        startElementMove[i] + framesMoved, 0,
+                        std::max(0, timelineWidget->scene->durationFrames -
+                                        element->durationFrames));
                     if (videoElement) {
                         videoElement->frameOffset +=
                             newStartFrame - element->startFrame;
