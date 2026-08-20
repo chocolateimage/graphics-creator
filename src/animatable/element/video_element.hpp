@@ -1,6 +1,8 @@
 #pragma once
 #include "element.hpp"
 
+class VideoData;
+
 class VideoElement : public Element {
   public:
     VideoElement();
@@ -10,6 +12,7 @@ class VideoElement : public Element {
     AnimatableRender *toRender(const FrameInfo &frameInfo) override;
     QJsonObject serialize() override;
     void deserialize(const QJsonObject &obj) override;
+    std::shared_ptr<VideoData> getVideoData(const FrameInfo &frameInfo);
 
     Property<std::string> path{this, "path", ""};
     Property<int> scaleType{this, "scaleType", 2};

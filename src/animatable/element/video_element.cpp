@@ -37,6 +37,11 @@ void VideoElement::deserialize(const QJsonObject &obj) {
     frameOffset = obj["frameOffset"].toInt();
 }
 
+std::shared_ptr<VideoData>
+VideoElement::getVideoData(const FrameInfo &frameInfo) {
+    return globalLoader.loadVideo(path.get(frameInfo));
+}
+
 bool VideoElementRender::render(uint32_t *target) {
     auto rect = getRenderBox();
     int w = this->w;
