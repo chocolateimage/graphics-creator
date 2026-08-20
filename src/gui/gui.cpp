@@ -36,6 +36,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeData>
+#include <QMimeDatabase>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProcess>
@@ -464,38 +465,30 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlEllipse =
         toolBar->addAction(QIcon::fromTheme("draw-circle"), "Ellipse");
     controlEllipse->setShortcut(QKeySequence("E"));
-    controlPolygon =
-        toolBar->addAction(QIcon::fromTheme("draw-polygon"), "Polygon");
     controlText = toolBar->addAction(QIcon::fromTheme("draw-text"), "Text");
     controlText->setShortcut(QKeySequence("T"));
-    controlLua = toolBar->addAction(QIcon::fromTheme("scriptnew"), "Lua");
-
-    // not implemented yet
-    controlPolygon->setVisible(false);
-    controlLua->setVisible(false);
+    toolBar->addSeparator();
+    controlImport = toolBar->addAction(QIcon::fromTheme("download"), "Import");
+    controlImport->setToolTip("Add media files to scene");
+    controlImport->setShortcut(QKeySequence("Ctrl+I"));
 
     editMenu->addSeparator();
 
     editMenu->addAction(controlSelect);
     editMenu->addAction(controlRectangle);
     editMenu->addAction(controlEllipse);
-    editMenu->addAction(controlPolygon);
     editMenu->addAction(controlText);
-    editMenu->addAction(controlLua);
+    editMenu->addAction(controlImport);
 
     controlSelect->setActionGroup(controlsGroup);
     controlRectangle->setActionGroup(controlsGroup);
     controlEllipse->setActionGroup(controlsGroup);
-    controlPolygon->setActionGroup(controlsGroup);
     controlText->setActionGroup(controlsGroup);
-    controlLua->setActionGroup(controlsGroup);
 
     controlSelect->setCheckable(true);
     controlRectangle->setCheckable(true);
     controlEllipse->setCheckable(true);
-    controlPolygon->setCheckable(true);
     controlText->setCheckable(true);
-    controlLua->setCheckable(true);
 
     controlSelect->setChecked(true);
 
@@ -505,12 +498,10 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &NewMainWindow::controlsUpdated);
     connect(controlEllipse, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
-    connect(controlPolygon, &QAction::triggered, this,
-            &NewMainWindow::controlsUpdated);
     connect(controlText, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
-    connect(controlLua, &QAction::triggered, this,
-            &NewMainWindow::controlsUpdated);
+    connect(controlImport, &QAction::triggered, this,
+            &NewMainWindow::importClicked);
 
     QWidget *spacing = new QWidget(toolBar);
     spacing->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -626,6 +617,107 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
 
     rerender(false);
+}
+
+void NewMainWindow::importClicked() {
+    QMimeDatabase db;
+    QList<QString> imageExtensions;
+    QList<QString> videoExtensions;
+    for (auto mimeType : db.allMimeTypes()) {
+        QString name = mimeType.name();
+        if (name.startsWith("image/")) {
+            imageExtensions << mimeType.suffixes();
+        } else if (name.startsWith("video/")) {
+            videoExtensions << mimeType.suffixes();
+        }
+    }
+
+    imageExtensions.sort(Qt::CaseInsensitive);
+    videoExtensions.sort(Qt::CaseInsensitive);
+
+    QString filterString;
+
+    filterString += "Image files (";
+    for (const auto &extension : imageExtensions) {
+        filterString += "*." + extension + " ";
+    }
+    filterString += ");;";
+
+    filterString += "Video files (";
+    for (const auto &extension : videoExtensions) {
+        filterString += "*." + extension + " ";
+    }
+    filterString += ");;";
+
+    QString mediaFilter = "Media files (";
+    int index = 0;
+    for (const auto &extension : imageExtensions) {
+        if (index++ > 0)
+            mediaFilter += " ";
+        mediaFilter += "*." + extension;
+    }
+    for (const auto &extension : videoExtensions) {
+        mediaFilter += " *." + extension;
+    }
+    mediaFilter += ")";
+
+    filterString += mediaFilter;
+    filterString += ";;";
+    filterString += "All files (*.*)";
+
+    QString selectedFilter = mediaFilter;
+    QStringList files = QFileDialog::getOpenFileNames(
+        this, "Import files", "", filterString, &selectedFilter);
+
+    if (files.isEmpty())
+        return;
+
+    // TODO: undo as group instead of individually
+    for (const auto &file : files) {
+        QMimeType mimeType = db.mimeTypeForFile(file);
+        bool isVideo = mimeType.name().startsWith("video/");
+        QString name = file.split("/").last().split("\\").last();
+
+        Element *element;
+
+        std::string path = file.toStdString();
+        if (isVideo) {
+            auto videoData = globalLoader.loadVideo(path);
+            if (videoData->error) {
+                KMessageBox::error(this,
+                                   "Error while loading video\n\n" + file);
+                continue;
+            } else {
+                float seconds = videoData->streamDuration;
+                VideoElement *videoElement = new VideoElement();
+                videoElement->x.set(0, {0});
+                videoElement->y.set(0, {0});
+                videoElement->w.set(scene->width, {0});
+                videoElement->h.set(scene->height, {0});
+                videoElement->path.set(path, {0});
+                videoElement->durationFrames =
+                    videoData->durationSeconds * scene->frameRate;
+                element = videoElement;
+            }
+        } else {
+            QImage img(file);
+            if (img.isNull()) {
+                KMessageBox::error(this,
+                                   "Error while loading video\n\n" + file);
+                continue;
+            }
+            ImageElement *imageElement = new ImageElement();
+            imageElement->x.set(0, {0});
+            imageElement->y.set(0, {0});
+            imageElement->w.set(img.width(), {0});
+            imageElement->h.set(img.height(), {0});
+            imageElement->path.set(path, {0});
+            element = imageElement;
+        }
+
+        element->setObjectName(name);
+        addElementUndoable(element);
+    }
 }
 
 void NewMainWindow::about() {

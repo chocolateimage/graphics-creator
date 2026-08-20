@@ -71,9 +71,8 @@ class NewMainWindow : public QMainWindow {
     QAction *controlSelect;
     QAction *controlRectangle;
     QAction *controlEllipse;
-    QAction *controlPolygon;
     QAction *controlText;
-    QAction *controlLua;
+    QAction *controlImport;
 
     QStatusBar *statusBar;
 
@@ -141,6 +140,7 @@ class NewMainWindow : public QMainWindow {
     void ungroupSlot();
     void aboutQt();
     void about();
+    void importClicked();
 
     QNetworkAccessManager *networkAccessManager;
 
