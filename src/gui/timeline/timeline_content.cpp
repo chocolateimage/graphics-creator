@@ -1,6 +1,7 @@
 #include "timeline_content.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/text_element.hpp"
+#include "animatable/element/video_element.hpp"
 #include "gui/gui.hpp"
 #include "scene.hpp"
 #include "timeline.hpp"
@@ -51,6 +52,20 @@ void TimelineContentWidget::paintElement(QPainter &painter, Element *element,
     bool selected = timelineWidget->scene->selectedElements.contains(element);
     painter.setPen(Qt::NoPen);
 
+    VideoElement *videoElement = dynamic_cast<VideoElement *>(element);
+    if (videoElement) {
+        auto videoData = videoElement->getVideoData({0});
+        if (videoData) {
+            QRectF fullVideoRect{
+                secondsToPixels(videoElement->frameOffset /
+                                timelineWidget->scene->frameRate),
+                *yPos, secondsToPixels(videoData->durationSeconds),
+                OBJECT_TRACK_HEIGHT};
+            painter.setBrush(QColor(128, 128, 128, 128));
+            painter.drawRect(fullVideoRect);
+        }
+    }
+
     if (selected) {
         QLinearGradient durationGradient(0, *yPos, 0,
                                          OBJECT_TRACK_HEIGHT + *yPos);
@@ -67,6 +82,7 @@ void TimelineContentWidget::paintElement(QPainter &painter, Element *element,
         secondsToPixels(element->durationFrames /
                         timelineWidget->scene->frameRate),
         OBJECT_TRACK_HEIGHT};
+    // TODO: IMPORTANT: fix element rect order in groups
     elementRects.append(rect);
     painter.drawRect(rect);
     *yPos += OBJECT_TRACK_HEIGHT;
@@ -570,23 +586,45 @@ void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
             for (int i = 0;
                  i < timelineWidget->scene->selectedElements.length(); i++) {
                 Element *element = timelineWidget->scene->selectedElements[i];
+                VideoElement *videoElement =
+                    dynamic_cast<VideoElement *>(element);
+
                 if (isResizing && isResizingOut) {
+                    int maxFrames = timelineWidget->scene->durationFrames -
+                                    element->startFrame;
+                    if (videoElement) {
+                        auto videoData = videoElement->getVideoData({0});
+                        if (videoData) {
+                            int endFrame = videoElement->frameOffset +
+                                           videoData->durationSeconds *
+                                               timelineWidget->scene->frameRate;
+                            maxFrames = endFrame - element->startFrame;
+                        }
+                    }
                     element->durationFrames =
                         std::clamp(startElementSizes[i] + framesMoved, 1,
-                                   timelineWidget->scene->durationFrames -
-                                       element->startFrame);
+                                   std::max(1, maxFrames));
                 } else if (isResizing && !isResizingOut) {
+                    int maxFrames = startElementMove[i] + startElementSizes[i];
+                    if (videoElement) {
+                        maxFrames -= videoElement->frameOffset;
+                    }
                     element->durationFrames =
                         std::clamp(startElementSizes[i] - framesMoved, 1,
-                                   startElementMove[i] + startElementSizes[i]);
+                                   std::max(1, maxFrames));
                     element->startFrame = startElementSizes[i] -
                                           element->durationFrames +
                                           startElementMove[i];
                 } else {
-                    element->startFrame =
-                        std::clamp(startElementMove[i] + framesMoved, 0,
-                                   timelineWidget->scene->durationFrames -
-                                       element->durationFrames);
+                    int newStartFrame = std::clamp(
+                        startElementMove[i] + framesMoved, 0,
+                        std::max(0, timelineWidget->scene->durationFrames -
+                                        element->durationFrames));
+                    if (videoElement) {
+                        videoElement->frameOffset +=
+                            newStartFrame - element->startFrame;
+                    }
+                    element->startFrame = newStartFrame;
                 }
             }
             timelineWidget->mainWindow

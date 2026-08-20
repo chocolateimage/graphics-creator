@@ -15,6 +15,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
 }
 
 class NewMainWindow;
@@ -80,6 +81,7 @@ class GuiRenderDrawThread : public QThread {
     explicit GuiRenderDrawThread(QObject *parent = nullptr) : QThread(parent) {}
     GuiRenderThread *guiRenderThread{nullptr};
     NewMainWindow *window{nullptr};
+    SwsContext *swsCtx{nullptr};
 
   protected:
     void run() override;

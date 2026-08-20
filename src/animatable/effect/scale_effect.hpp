@@ -10,7 +10,7 @@ class ScaleEffectRender : public EffectRender {
                 uint32_t *target) override;
     Rect getRenderBox(const Rect &lastBox) override;
 
-    PropertyRender<bool> bilinear{this};
+    PropertyRender<int> scaleType{this};
 
     PropertyRender<double> scaleX{this};
     PropertyRender<double> scaleY{this};
@@ -25,7 +25,7 @@ class ScaleEffect : public Effect {
     ~ScaleEffect() {}
     QString effectName() override { return "scale"; };
 
-    Property<bool> bilinear{this, "bilinear", true};
+    Property<int> scaleType{this, "scaleType", 1};
 
     Property<double> scaleX{this, "scaleX", 1};
     Property<double> scaleY{this, "scaleY", 1};

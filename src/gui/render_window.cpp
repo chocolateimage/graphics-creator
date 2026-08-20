@@ -275,8 +275,16 @@ void GuiRenderDrawThread::run() {
 
         FrameTask *frameTask = guiRenderThread->tasks[curFrame];
         frameTask->render(renderThread);
-        convertToAvFrame(frame, frameTask->values, frameTask->width,
-                         frameTask->height);
+
+        swsCtx = sws_getCachedContext(
+            swsCtx, frameTask->width, frameTask->height, AV_PIX_FMT_BGRA,
+            frameTask->width, frameTask->height, (AVPixelFormat)frame->format,
+            0, nullptr, nullptr, nullptr);
+
+        int strides[] = {frameTask->width * 4};
+        sws_scale(swsCtx, (const uint8_t *const *)&frameTask->values, strides,
+                  0, frameTask->height, frame->data, frame->linesize);
+
         delete[] frameTask->values;
 
         guiRenderThread->frameMutex.lock();
@@ -284,6 +292,9 @@ void GuiRenderDrawThread::run() {
         guiRenderThread->frameMutex.unlock();
     }
 
+    if (swsCtx) {
+        sws_freeContext(swsCtx);
+    }
     renderThread.close();
 }
 

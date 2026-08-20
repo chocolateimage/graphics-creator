@@ -34,7 +34,7 @@ bool ImageElementRender::render(uint32_t *target) {
         return true;
     }
 
-    auto imageData = globalImageLoader.loadImage(this->path);
+    auto imageData = globalLoader.loadImage(this->path);
     int iw = imageData->width;
     int ih = imageData->height;
     int tw = std::min(w, imageData->width);

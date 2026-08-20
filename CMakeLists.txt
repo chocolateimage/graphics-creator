@@ -12,13 +12,10 @@ find_package(ECM REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_FIND_MODULE_DIR})
 
 find_package(FFmpeg REQUIRED COMPONENTS
-    AVFORMAT
-    SWSCALE
-    AVUTIL
     AVCODEC
-    AVFILTER
-    AVDEVICE
-    SWRESAMPLE
+    AVFORMAT
+    AVUTIL
+    SWSCALE
 )
 
 find_package(HarfBuzz REQUIRED)
@@ -36,6 +33,7 @@ set(graphicscreator_SRCS
     src/variant.cpp
     src/scene.cpp
     src/brush.cpp
+    src/priority_mutex.cpp
     src/gui/gui.cpp
     src/gui/image_viewer.cpp
     src/gui/fontcombobox.cpp
@@ -62,6 +60,7 @@ set(graphicscreator_SRCS
     src/animatable/element/text_element.cpp
     src/animatable/element/image_element.cpp
     src/animatable/element/group_element.cpp
+    src/animatable/element/video_element.cpp
     src/resources/graphics-creator.rc
 )
 

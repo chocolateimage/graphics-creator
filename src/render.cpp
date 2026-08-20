@@ -6,9 +6,186 @@
 #include <QMutexLocker>
 #include <freetype/ftoutln.h>
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+}
+
 ImageData::~ImageData() { delete[] data; }
 
-std::shared_ptr<ImageData> ImageLoader::loadImage(const std::string &path) {
+VideoData::VideoData(const std::string &path) {
+    qDebug() << "Creating video";
+
+    if (avformat_open_input(&fmtCtx, path.c_str(), nullptr, nullptr) < 0) {
+        error = true;
+        return;
+    }
+    if (avformat_find_stream_info(fmtCtx, nullptr) < 0) {
+        error = true;
+        return;
+    }
+
+    streamIndex =
+        av_find_best_stream(fmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (streamIndex < 0) {
+        error = true;
+        return;
+    }
+
+    stream = fmtCtx->streams[streamIndex];
+
+    const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    if (!codec) {
+        error = true;
+        return;
+    }
+
+    decodeCtx = avcodec_alloc_context3(codec);
+    if (!decodeCtx) {
+        error = true;
+        return;
+    }
+
+    if (avcodec_parameters_to_context(decodeCtx, stream->codecpar) < 0) {
+        error = true;
+        return;
+    }
+
+    decodeCtx->thread_count = 0;
+    decodeCtx->thread_type = FF_THREAD_SLICE;
+
+    if (avcodec_open2(decodeCtx, codec, nullptr) < 0) {
+        error = true;
+        return;
+    }
+
+    packet = av_packet_alloc();
+    frame = av_frame_alloc();
+
+    streamDuration = stream->duration;
+    if (streamDuration == AV_NOPTS_VALUE) {
+        qWarning() << "Duration not found from stream";
+        streamDuration = av_rescale_q(fmtCtx->duration, {1, AV_TIME_BASE},
+                                      stream->time_base);
+    }
+
+    durationSeconds = (double)fmtCtx->duration / AV_TIME_BASE;
+
+    qDebug() << "Created video. Size:" << decodeCtx->width << "x"
+             << decodeCtx->height << "Duration:" << streamDuration;
+}
+
+AVFrame *VideoData::getFrame(double seconds, int w, int h, int scaleFlags) {
+    int64_t timestamp = av_rescale_q(seconds * AV_TIME_BASE, {1, AV_TIME_BASE},
+                                     stream->time_base);
+    if (timestamp >= streamDuration) {
+        return nullptr;
+    }
+
+    PriorityMutexLocker locker(&mutex, seconds);
+
+    swsCtx = sws_getCachedContext(swsCtx, decodeCtx->width, decodeCtx->height,
+                                  decodeCtx->pix_fmt, w, h, AV_PIX_FMT_BGRA,
+                                  scaleFlags, nullptr, nullptr, nullptr);
+    if (!swsCtx) {
+        return nullptr;
+    }
+
+    if (lastSecond == seconds) {
+        return scaleCurrentFrame();
+    }
+    av_frame_unref(frame);
+
+    bool seek =
+        lastSecond == -1 || seconds <= lastSecond || seconds - lastSecond > 1;
+
+    if (seek) {
+        if (av_seek_frame(fmtCtx, streamIndex, timestamp,
+                          AVSEEK_FLAG_BACKWARD) < 0) {
+            return nullptr;
+        }
+
+        avcodec_flush_buffers(decodeCtx);
+    }
+
+    AVFrame *vdFrame{nullptr};
+
+    while (av_read_frame(fmtCtx, packet) >= 0) {
+        if (packet->stream_index != streamIndex) {
+            av_packet_unref(packet);
+            continue;
+        }
+
+        int ret = avcodec_send_packet(decodeCtx, packet);
+        av_packet_unref(packet);
+        if (ret < 0) {
+            qWarning() << "Error submitting a packet for decoding."
+                       << av_err2str(ret);
+            continue;
+        }
+
+        while (true) {
+            ret = avcodec_receive_frame(decodeCtx, frame);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                break;
+            } else if (ret < 0) {
+                break;
+            }
+
+            if (frame->pts != AV_NOPTS_VALUE && frame->pts < timestamp) {
+                av_frame_unref(frame);
+                continue;
+            }
+
+            if (decodeCtx->codec->type == AVMEDIA_TYPE_VIDEO) {
+                lastSecond = seconds;
+                vdFrame = scaleCurrentFrame();
+            } else {
+                qWarning() << "Non video frame";
+            }
+
+            break;
+        }
+        if (vdFrame) {
+            break;
+        }
+    }
+
+    return vdFrame;
+}
+
+AVFrame *VideoData::scaleCurrentFrame() {
+    AVFrame *vdFrame = av_frame_alloc();
+    vdFrame->width = swsCtx->dst_w;
+    vdFrame->height = swsCtx->dst_h;
+    vdFrame->format = AV_PIX_FMT_BGRA;
+    av_frame_get_buffer(vdFrame, 0);
+    sws_scale_frame(swsCtx, vdFrame, frame);
+    return vdFrame;
+}
+
+VideoData::~VideoData() {
+    qDebug() << "Freeing video";
+    if (swsCtx) {
+        sws_freeContext(swsCtx);
+    }
+    if (decodeCtx) {
+        avcodec_free_context(&decodeCtx);
+    }
+    if (fmtCtx) {
+        avformat_close_input(&fmtCtx);
+    }
+    if (packet) {
+        av_packet_free(&packet);
+    }
+    if (frame) {
+        av_frame_free(&frame);
+    }
+}
+
+std::shared_ptr<ImageData> Loader::loadImage(const std::string &path) {
     QMutexLocker locker(&imageDatasMutex);
     auto it = imageDatas.find(path);
     if (it != imageDatas.end()) {
@@ -27,99 +204,25 @@ std::shared_ptr<ImageData> ImageLoader::loadImage(const std::string &path) {
     return data;
 }
 
-ImageLoader globalImageLoader;
+std::shared_ptr<VideoData> Loader::loadVideo(const std::string &path) {
+    QMutexLocker locker(&videoDatasMutex);
+    auto it = videoDatas.find(path);
+    if (it != videoDatas.end()) {
+        return it->second;
+    }
+
+    std::shared_ptr<VideoData> data = std::make_shared<VideoData>(path);
+    videoDatas.emplace(path, data);
+    return data;
+}
+
+Loader globalLoader;
 
 std::string getFontHash(const Font &font, int fontSize, bool antialiased,
                         const StrokeInfo &strokeInfo) {
     return font.path + "\n" + std::to_string(fontSize) + "\n" +
            (antialiased ? "1" : "0") + "\n" + std::to_string(font.index) +
            "\n" + strokeInfo.hash();
-}
-
-void convertToAvFrame(AVFrame *frame, uint32_t *source, int w, int h) {
-    AVPixelFormat pixelFormat = (AVPixelFormat)frame->format;
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            uint32_t value = source[y * w + x];
-
-            uint8_t blue = value & 0xff;
-            uint8_t green = value >> 8 & 0xff;
-            uint8_t red = value >> 16 & 0xff;
-            uint8_t alpha = value >> 24 & 0xff;
-
-            float Y = 0.299 * red + 0.587 * green + 0.114 * blue;
-
-            switch (pixelFormat) {
-            case AV_PIX_FMT_YUV420P: {
-                if (alpha < 255) {
-                    uint8_t transparencyPixel =
-                        (((x / 10) % 2 == ((y / 10) % 2 == 0))) ? 255 : 200;
-                    red = mix(alpha / 255.f, transparencyPixel, red);
-                    green = mix(alpha / 255.f, transparencyPixel, green);
-                    blue = mix(alpha / 255.f, transparencyPixel, blue);
-                    Y = 0.299 * red + 0.587 * green + 0.114 * blue;
-                }
-                frame->data[0][y * frame->linesize[0] + x] = Y;
-
-                if (x % 2 == 0 && y % 2 == 0) {
-                    float Cb =
-                        -0.169 * red - 0.331 * green + 0.500 * blue + 128;
-                    float Cr = 0.500 * red - 0.419 * green - 0.081 * blue + 128;
-                    frame->data[1][(y >> 1) * frame->linesize[1] + (x >> 1)] =
-                        Cb;
-                    frame->data[2][(y >> 1) * frame->linesize[2] + (x >> 1)] =
-                        Cr;
-                }
-                break;
-            }
-            case AV_PIX_FMT_YUVA420P: {
-                frame->data[0][y * frame->linesize[0] + x] = Y;
-                frame->data[3][y * frame->linesize[3] + x] = alpha;
-
-                if (x % 2 == 0 && y % 2 == 0) {
-                    float Cb =
-                        -0.169 * red - 0.331 * green + 0.500 * blue + 128;
-                    float Cr = 0.500 * red - 0.419 * green - 0.081 * blue + 128;
-                    frame->data[1][(y >> 1) * frame->linesize[1] + (x >> 1)] =
-                        Cb;
-                    frame->data[2][(y >> 1) * frame->linesize[2] + (x >> 1)] =
-                        Cr;
-                }
-                break;
-            }
-            case AV_PIX_FMT_YUVA444P10LE: {
-                float Cb = -0.169 * red - 0.331 * green + 0.500 * blue + 128;
-                float Cr = 0.500 * red - 0.419 * green - 0.081 * blue + 128;
-                ((uint16_t *)(frame->data[0] + y * frame->linesize[0]))[x] =
-                    Y * 4;
-                ((uint16_t *)(frame->data[1] + y * frame->linesize[1]))[x] =
-                    Cb * 4;
-                ((uint16_t *)(frame->data[2] + y * frame->linesize[2]))[x] =
-                    Cr * 4;
-                ((uint16_t *)(frame->data[3] + y * frame->linesize[3]))[x] =
-                    alpha * 4;
-                break;
-            }
-            case AV_PIX_FMT_GBRAP: {
-                frame->data[0][y * frame->linesize[0] + x] = green;
-                frame->data[1][y * frame->linesize[1] + x] = blue;
-                frame->data[2][y * frame->linesize[2] + x] = red;
-                frame->data[3][y * frame->linesize[3] + x] = alpha;
-                break;
-            }
-            case AV_PIX_FMT_ARGB: {
-                frame->data[0][y * frame->linesize[0] + x * 4] = alpha;
-                frame->data[0][y * frame->linesize[0] + x * 4 + 1] = red;
-                frame->data[0][y * frame->linesize[0] + x * 4 + 2] = green;
-                frame->data[0][y * frame->linesize[0] + x * 4 + 3] = blue;
-                break;
-            }
-            default: {
-                break;
-            }
-            }
-        }
-    }
 }
 
 FontInfo::FontInfo(FT_Face face, hb_font_t *hb, int pixelHeight, Font font)

@@ -99,6 +99,9 @@ class ImageViewer : public QWidget {
     QSize dropImageSize;
     bool dropImageFitted{false};
 
+    bool isDroppingVideo{false};
+    QString dropVideoPath;
+
     Element *hoverResizeElement;
     int hoverResizeMode{-1};
     int activeResizeMode{-1};
