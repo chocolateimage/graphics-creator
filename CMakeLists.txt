@@ -29,7 +29,6 @@ find_package(PkgConfig REQUIRED)
 
 set(graphicscreator_SRCS
     src/render.cpp
-    src/video.cpp
     src/variant.cpp
     src/scene.cpp
     src/brush.cpp
