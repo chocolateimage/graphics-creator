@@ -356,6 +356,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
             &NewMainWindow::saveAsSlot);
 
     fileMenu->addSeparator();
+    QAction *insertSeparator = fileMenu->addSeparator();
 
     QAction *quitAction = fileMenu->addAction("Quit");
     quitAction->setShortcut(QKeySequence::Quit);
@@ -468,7 +469,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlText = toolBar->addAction(QIcon::fromTheme("draw-text"), "Text");
     controlText->setShortcut(QKeySequence("T"));
     toolBar->addSeparator();
-    controlImport = toolBar->addAction(QIcon::fromTheme("download"), "Import");
+    controlImport = toolBar->addAction(QIcon::fromTheme("download"), "Import…");
     controlImport->setToolTip("Add media files to scene");
     controlImport->setShortcut(QKeySequence("Ctrl+I"));
 
@@ -478,7 +479,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     editMenu->addAction(controlRectangle);
     editMenu->addAction(controlEllipse);
     editMenu->addAction(controlText);
-    editMenu->addAction(controlImport);
+
+    fileMenu->insertAction(insertSeparator, controlImport);
 
     controlSelect->setActionGroup(controlsGroup);
     controlRectangle->setActionGroup(controlsGroup);
