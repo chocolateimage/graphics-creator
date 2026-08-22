@@ -329,16 +329,21 @@ void RenderThread::garbageCollect() { fontManager->garbageCollect(); }
 
 ElementSelectionSnippet
 RenderThread::getSnippet(const ElementSelection &selection) {
-    if (currentFrameTask->currentElementStack.contains(selection.elementId)) {
-        return {{0, 0, 0, 0}, nullptr};
+    if (selection.frameType == ElementSelection::Final) {
+        if (currentFrameTask->currentElementStack.contains(
+                selection.elementId)) {
+            return {{0, 0, 0, 0}, nullptr};
+        }
     }
 
     currentFrameTask->currentElementStack.append(selection.elementId);
 
     RenderedElement *renderedElement;
 
-    auto it = currentFrameTask->renderedElements.find(selection.elementId);
-    if (it == currentFrameTask->renderedElements.end()) {
+    // TODO: will probably break if rendering an element itself needs a snippet.
+    // right now only effects uses snippets
+    auto it = currentFrameTask->allRenderingElements.find(selection.elementId);
+    if (it == currentFrameTask->allRenderingElements.end()) {
         ElementRender *element{nullptr};
         for (auto renderElement : currentFrameTask->renderElements) {
             if (renderElement->id == selection.elementId) {
@@ -373,6 +378,9 @@ void RenderThread::close() {
 }
 
 RenderedElement::RenderedElement(ElementRender *element) : element(element) {
+    element->renderThread->currentFrameTask->allRenderingElements.emplace(
+        element->id, this);
+
     elementRect = element->getRenderBox();
     elementValues = new uint32_t[elementRect.w * elementRect.h];
     memset(elementValues, 0, elementRect.w * elementRect.h * 4);

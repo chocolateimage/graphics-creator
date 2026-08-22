@@ -5,6 +5,7 @@
 #include "corner_pin_effect.hpp"
 #include "crop_effect.hpp"
 #include "crt_effect.hpp"
+#include "displacement_map_effect.hpp"
 #include "drop_shadow_effect.hpp"
 #include "expand_render_box_effect.hpp"
 #include "fill_effect.hpp"
@@ -64,6 +65,8 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Style", "Corner Pin", "cornerPin", CornerPinEffect),
     DEFINE_EFFECT("Style", "Tile", "tile", TileEffect),
     DEFINE_EFFECT("Style", "Vignette", "vignette", VignetteEffect),
+    DEFINE_EFFECT("Style", "Displacement Map", "displacementMap",
+                  DisplacementMapEffect),
 
     DEFINE_EFFECT("Generate", "Grid", "grid", GridEffect),
     DEFINE_EFFECT("Generate", "Noise", "noise", NoiseEffect),

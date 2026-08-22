@@ -32,5 +32,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/rotation_effect.cpp
   src/animatable/effect/corner_pin_effect.cpp
   src/animatable/effect/vignette_effect.cpp
+  src/animatable/effect/displacement_map_effect.cpp
   PARENT_SCOPE
 )

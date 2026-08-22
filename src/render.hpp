@@ -159,6 +159,7 @@ class FrameTask {
     ~FrameTask();
     std::vector<ElementRender *> renderElements;
     std::unordered_map<QString, RenderedElement *> renderedElements;
+    std::unordered_map<QString, RenderedElement *> allRenderingElements;
     // used for detecting recursion on getSnippet
     QList<QString> currentElementStack;
 
