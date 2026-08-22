@@ -678,6 +678,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     }
 
     if (isMovingElements) {
+        shiftSelectElement = nullptr;
+
         if (moveSpacingMoving) {
             moveSpacing = std::max(
                 0, moveSpacing + (QCursor::pos() - moveSpacingCursorStart).x());
@@ -1059,6 +1061,7 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
 
             if (clickedElement) {
                 isMovingElements = true;
+                shiftSelectElement = nullptr;
                 snapElementRectPreview = {};
                 startElementPositions.clear();
                 startElementBoundPositions.clear();
@@ -1067,15 +1070,10 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                 didMove = false;
                 moveOlds.clear();
                 moveNews.clear();
-                if (event->modifiers().testFlag(Qt::ControlModifier) ||
-                    event->modifiers().testFlag(Qt::ShiftModifier)) {
-                    QList<Element *> newSelected = scene->selectedElements;
-                    if (newSelected.contains(clickedElement)) {
-                        newSelected.removeOne(clickedElement);
-                    } else {
-                        newSelected.append(clickedElement);
-                    }
-                    scene->selectElements(newSelected);
+                if ((event->modifiers().testFlag(Qt::ControlModifier) ||
+                     event->modifiers().testFlag(Qt::ShiftModifier)) &&
+                    !scene->selectedElements.isEmpty()) {
+                    shiftSelectElement = clickedElement;
                 } else {
                     if (!scene->selectedElements.contains(clickedElement)) {
                         scene->selectElements({clickedElement});
@@ -1211,8 +1209,18 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
 
     if (event->button() == Qt::LeftButton) {
         if (isMovingElements || activeResizeMode != -1) {
-            // hack to make properties panel update
-            scene->selectElements(scene->selectedElements);
+            if (shiftSelectElement) {
+                QList<Element *> newSelected = scene->selectedElements;
+                if (newSelected.contains(shiftSelectElement)) {
+                    newSelected.removeOne(shiftSelectElement);
+                } else {
+                    newSelected.append(shiftSelectElement);
+                }
+                scene->selectElements(newSelected);
+            } else {
+                // hack to make properties panel update
+                scene->selectElements(scene->selectedElements);
+            }
             if (!scene->selectedElements.isEmpty()) {
                 hoverElement = scene->selectedElements[0];
             }

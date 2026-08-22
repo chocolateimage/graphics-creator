@@ -78,6 +78,7 @@ class ImageViewer : public QWidget {
     QPoint viewportToPixel(QPointF pos);
 
     bool isMovingElements{false};
+    Element *shiftSelectElement{nullptr};
     bool didMove{false};
     QPoint startMovePosition;
     QList<QPoint> startElementPositions;
