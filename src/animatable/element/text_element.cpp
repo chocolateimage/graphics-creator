@@ -326,7 +326,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
         hb_buffer_destroy(hbBuffer);
 
-        if (width != 1 && curX >= width) {
+        if (width != 1 && curX > width) {
             curX -= item.startPoint.x();
             item.startPoint.setX(0);
             item.startPoint += {0, layout.lineHeights[line]};
