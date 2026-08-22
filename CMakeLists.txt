@@ -33,6 +33,7 @@ set(graphicscreator_SRCS
     src/scene.cpp
     src/brush.cpp
     src/priority_mutex.cpp
+    src/log.cpp
     src/gui/gui.cpp
     src/gui/image_viewer.cpp
     src/gui/fontcombobox.cpp

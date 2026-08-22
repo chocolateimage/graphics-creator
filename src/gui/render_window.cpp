@@ -1,5 +1,6 @@
 #include "render_window.hpp"
 #include "gui.hpp"
+#include "log.hpp"
 #include "render.hpp"
 #include "scene.hpp"
 #include <KMessageBox>
@@ -13,8 +14,13 @@ extern "C" {
 }
 
 void GuiRenderThread::run() {
-    qInfo() << "starting rendering";
     QString filePath = fileInfo.filePath();
+    {
+        QJsonObject obj;
+        obj["type"] = "starting";
+        obj["file"] = fileInfo.absoluteFilePath();
+        logJson(obj);
+    }
     QDir().mkpath(fileInfo.absolutePath());
 
     avformat_alloc_output_context2(&formatContext, nullptr, nullptr,
@@ -141,7 +147,14 @@ void GuiRenderThread::run() {
         frames.erase(frame);
         frameMutex.unlock();
 
-        qInfo() << i;
+        {
+            QJsonObject obj;
+            obj["type"] = "frameRendered";
+            obj["frame"] = (int)i;
+            obj["lastFrame"] = (int)lastFrameIndex;
+            obj["progress"] = ((double)i / lastFrameIndex);
+            logJson(obj);
+        }
 
         bool continueRunning = false;
 
@@ -181,7 +194,11 @@ void GuiRenderThread::run() {
         emit finishedSuccessfully();
     }
 
-    qInfo() << "finished rendering";
+    {
+        QJsonObject obj;
+        obj["type"] = "finished";
+        logJson(obj);
+    }
 }
 
 GuiRenderThread::~GuiRenderThread() {
@@ -245,6 +262,12 @@ void GuiRenderThread::doErrored(QString error) {
     isCancelling = true;
     hasErrored = true;
     errorMsg = error;
+    {
+        QJsonObject obj;
+        obj["type"] = "error";
+        obj["message"] = error;
+        logJson(obj);
+    }
     emit errored(error);
 }
 
