@@ -6,6 +6,7 @@
 #include <KColorButton>
 #include <KIconColors>
 #include <KIconLoader>
+#include <QApplication>
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QPainter>
@@ -41,11 +42,17 @@ void PropertyToggleAnimationButton::animationUpdated(
         if (completelyFlat) {
             colors.setText(palette().accent().color());
         }
-        setIcon(KDE::icon("keyframe", colors));
-        if (mode == Mode::Keyframe) {
-            setToolTip("Add/remove keyframe");
+        if (property->locked) {
+            setIcon(KDE::icon("lock", colors));
+            setToolTip("Disable lock");
         } else {
-            setToolTip("Disable animation");
+            setIcon(KDE::icon("keyframe", colors));
+            if (mode == Mode::Keyframe) {
+                setToolTip("Add/remove keyframe");
+            } else {
+                setToolTip("Disable animation. Press shift while toggling to "
+                           "temporarily lock value to current frame.");
+            }
         }
     } else {
         setIcon(QIcon::fromTheme("keyframe-disable"));
@@ -55,13 +62,20 @@ void PropertyToggleAnimationButton::animationUpdated(
 }
 
 void PropertyToggleAnimationButton::toggleAnimationClicked() {
-    if (mode == Mode::Animation || !property->isAnimating) {
-        property->toggleAnimating({scene->currentFrame});
+    bool shouldLock = (QApplication::keyboardModifiers() &
+                       Qt::KeyboardModifier::ShiftModifier) &&
+                      property->isAnimating;
+
+    FrameInfo frameInfo = {scene->currentFrame};
+    if (shouldLock || property->locked) {
+        property->toggleLock(frameInfo);
+    } else if (mode == Mode::Animation || !property->isAnimating) {
+        property->toggleAnimating(frameInfo);
     } else if (mode == Mode::Keyframe) {
         if (property->has(scene->currentFrame)) {
             property->remove(scene->currentFrame);
         } else {
-            property->addToPosition({scene->currentFrame});
+            property->addToPosition(frameInfo);
         }
     }
     clearFocus();
@@ -455,6 +469,9 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
 
     connect(property->animatable, &Animatable::propertyUpdated, this,
             &PropertyEdit::propertyUpdated);
+    connect(property->animatable, &Animatable::propertyIsAnimatingUpdated, this,
+            &PropertyEdit::animationUpdated);
+    animationUpdated(property);
 }
 
 template <typename T> void PropertyEdit::set(T newValue) {
@@ -474,6 +491,13 @@ void PropertyEdit::propertyUpdated(PropertyBase *updatedProperty) {
             inputSpinBox1->setValue(variant.get<int>());
         }
     }
+}
+
+void PropertyEdit::animationUpdated(PropertyBase *updatedProperty) {
+    if (updatedProperty != property)
+        return;
+
+    setDisabled(property->locked);
 }
 
 class PropertyEditCommand : public QUndoCommand {

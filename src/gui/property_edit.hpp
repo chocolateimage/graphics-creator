@@ -47,4 +47,5 @@ class PropertyEdit : public QWidget {
 
   private slots:
     void propertyUpdated(PropertyBase *updatedProperty);
+    void animationUpdated(PropertyBase *updatedProperty);
 };

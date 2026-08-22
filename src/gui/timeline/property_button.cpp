@@ -75,7 +75,7 @@ TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
     previousButton->setIcon(QIcon::fromTheme("arrow-left"));
     previousButton->setToolTip("Go to previous keyframe");
     previousButton->setFlat(true);
-    previousButton->setFixedWidth(24);
+    previousButton->setFixedWidth(20);
     connect(previousButton, &QPushButton::clicked, this,
             &TimelinePropertyButton::previousKeyframeClicked);
     propertyLayout->addWidget(previousButton);
@@ -83,7 +83,7 @@ TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
     keyframeButton = new QPushButton(this);
     keyframeButton->setToolTip("Toggle keyframe");
     keyframeButton->setFlat(true);
-    keyframeButton->setFixedWidth(24);
+    keyframeButton->setFixedWidth(20);
     connect(keyframeButton, &QPushButton::clicked, this,
             &TimelinePropertyButton::keyframeClicked);
     propertyLayout->addWidget(keyframeButton);
@@ -92,7 +92,7 @@ TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
     nextButton->setIcon(QIcon::fromTheme("arrow-right"));
     nextButton->setToolTip("Go to next keyframe");
     nextButton->setFlat(true);
-    nextButton->setFixedWidth(24);
+    nextButton->setFixedWidth(20);
     connect(nextButton, &QPushButton::clicked, this,
             &TimelinePropertyButton::nextKeyframeClicked);
     propertyLayout->addWidget(nextButton);
@@ -201,6 +201,7 @@ void TimelinePropertyButton::updateAnimating(PropertyBase *updatedProperty) {
 
     previousButton->setVisible(property->isAnimating);
     keyframeButton->setVisible(property->isAnimating);
+    keyframeButton->setDisabled(property->locked);
     nextButton->setVisible(property->isAnimating);
     keyframeRightSideSpacing->setVisible(!property->isAnimating);
 

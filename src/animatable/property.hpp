@@ -361,6 +361,7 @@ class PropertyBase {
     std::vector<KeyframeBase *> keyframes;
     Animatable *animatable;
     std::string name;
+    virtual void toggleLock(const FrameInfo &frameInfo) {}
     void toggleAnimating(const FrameInfo &frameInfo) {
         isAnimating = !isAnimating;
         if (isAnimating) {
@@ -476,6 +477,7 @@ class PropertyBase {
 
     bool isAnimating{false};
     bool hidden{false};
+    bool locked{false};
     QList<QString> flags;
     float stepMultiplier{1};
 };
@@ -490,6 +492,9 @@ template <typename T> class Property : public PropertyBase {
     virtual ~Property() {}
 
     T get(const FrameInfo &frameInfo) {
+        if (locked) {
+            return lockValue;
+        }
         if (!isAnimating || keyframes.size() == 1) {
             return ((Keyframe<T> *)keyframes[0])->value;
         }
@@ -545,7 +550,7 @@ template <typename T> class Property : public PropertyBase {
             return start->value;
         }
     }
-    virtual Variant toVariant(const FrameInfo &frameInfo) {
+    Variant toVariant(const FrameInfo &frameInfo) override {
         return Variant{get(frameInfo)};
     };
     void set(T value, const FrameInfo &frameInfo) {
@@ -562,7 +567,9 @@ template <typename T> class Property : public PropertyBase {
             }
         }
 
-        if (isAnimating) {
+        if (locked) {
+            lockValue = value;
+        } else if (isAnimating) {
             bool found = false;
             int insertIndex = keyframes.size();
             int index = 0;
@@ -588,7 +595,7 @@ template <typename T> class Property : public PropertyBase {
         animatable->_propertyUpdated(this);
     };
 
-    virtual void addToPosition(const FrameInfo &frameInfo) {
+    void addToPosition(const FrameInfo &frameInfo) override {
         set(get(frameInfo), frameInfo);
     }
 
@@ -607,7 +614,7 @@ template <typename T> class Property : public PropertyBase {
         setMax(enumList.size() - 1);
     }
 
-    virtual QJsonObject serialize() {
+    QJsonObject serialize() override {
         QJsonObject obj;
         QJsonArray keyframesArray;
         for (auto keyframeBase : keyframes) {
@@ -627,10 +634,13 @@ template <typename T> class Property : public PropertyBase {
         if (isAnimating) {
             obj["isAnimating"] = isAnimating;
         }
+        if (locked) {
+            obj["lock"] = serializeAnyValue(lockValue);
+        }
         return obj;
     }
 
-    virtual void deserialize(const QJsonObject &obj) {
+    void deserialize(const QJsonObject &obj) override {
         isAnimating = obj["isAnimating"].toBool(false);
         for (auto keyframe : keyframes) {
             delete keyframe;
@@ -645,12 +655,32 @@ template <typename T> class Property : public PropertyBase {
                 (QEasingCurve::Type)(keyframeObj["easing"].toInt(0)));
             keyframes.push_back(keyframe);
         }
+
+        if (obj.contains("lock")) {
+            locked = true;
+            lockValue = deserializeAnyValue<T>(obj["lock"]);
+        } else {
+            locked = false;
+        }
+    }
+
+    void toggleLock(const FrameInfo &frameInfo) override {
+        if (locked) {
+            locked = false;
+        } else {
+            lockValue = get(frameInfo);
+            locked = true;
+        }
+        animatable->_propertyIsAnimatingUpdated(this);
+        animatable->_propertyUpdated(this);
     }
 
     T min;
     bool hasMin{false};
     T max;
     bool hasMax{false};
+
+    T lockValue;
 
     // Only useful in Property<int>. When it's not empty, then a dropdown is
     // shown in the properties with the string values.
