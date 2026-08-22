@@ -7,6 +7,7 @@ class CropEffectRender : public EffectRender {
     ~CropEffectRender() {}
     bool render(const uint32_t *source, const Rect &sourceRect,
                 uint32_t *target) override;
+    Rect getRenderBox(const Rect &lastBox) override;
 
     PropertyRender<int> left{this};
     PropertyRender<int> top{this};
