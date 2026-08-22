@@ -909,6 +909,9 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
                     dynamic_cast<GroupElement *>(element);
                 if (groupElement)
                     continue;
+
+                if (scene->selectedElements.contains(element))
+                    continue;
             } else {
                 if (element->hasParent())
                     continue;
