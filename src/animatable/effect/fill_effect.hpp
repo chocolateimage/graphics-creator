@@ -9,6 +9,7 @@ class FillEffectRender : public EffectRender {
                 uint32_t *target) override;
 
     PropertyRender<Brush> fill{this};
+    PropertyRender<bool> useAlpha{this};
 };
 
 class FillEffect : public Effect {
@@ -19,4 +20,5 @@ class FillEffect : public Effect {
     AnimatableRender *createClass() override { return new FillEffectRender(); };
 
     Property<Brush> fill{this, "fill", {}};
+    Property<bool> useAlpha{this, "useAlpha", true};
 };

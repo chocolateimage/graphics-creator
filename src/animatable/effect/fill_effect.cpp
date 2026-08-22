@@ -8,11 +8,15 @@ bool FillEffectRender::render(const uint32_t *source, const Rect &sourceRect,
                               uint32_t *target) {
     Rect rect = renderBox;
     Brush &fill = this->fill;
+    bool useAlpha = this->useAlpha;
     for (int y = 0; y < sourceRect.h; y++) {
         for (int x = 0; x < sourceRect.w; x++) {
-            float alpha = (source[pixelIndex(x, y, sourceRect.w)] >> 24) / 255.;
-            if (alpha == 0)
-                continue;
+            float alpha = 1;
+            if (useAlpha) {
+                alpha = (source[pixelIndex(x, y, sourceRect.w)] >> 24) / 255.;
+                if (alpha == 0)
+                    continue;
+            }
 
             Color c = getBrushPixel(fill, x, y, sourceRect.w, sourceRect.h);
             target[pixelIndex(x, y, rect.w)] =
