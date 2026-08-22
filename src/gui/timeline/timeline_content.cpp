@@ -428,25 +428,37 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
         update();
     } else if (event->buttons() & Qt::RightButton) {
         KeyframeBase *hoveredKeyframe{nullptr};
-        selectedKeyframes.clear();
         for (auto keyframe : keyframeData) {
             QRect keyframeRect =
                 QRect(keyframe.x, keyframe.y, keyframe.w, keyframe.h);
             keyframeRect.adjust(-2, -2, 2, 2);
             if (keyframeRect.contains(event->pos())) {
                 hoveredKeyframe = keyframe.keyframe;
-                selectedKeyframes.append(hoveredKeyframe);
                 break;
             }
         }
+
+        if (hoveredKeyframe) {
+            if (!selectedKeyframes.contains(hoveredKeyframe)) {
+                selectedKeyframes.clear();
+                selectedKeyframes.append(hoveredKeyframe);
+            }
+        }
+
         update();
 
         if (hoveredKeyframe) {
+            bool multiple = selectedKeyframes.size() > 1;
             QMenu menu;
 
-            menu.addSection(hoveredKeyframe->property->getDisplayName() +
-                            QStringLiteral(" at frame ") +
-                            QString::number(hoveredKeyframe->frame));
+            if (multiple) {
+                menu.addSection(QString::number(selectedKeyframes.size()) +
+                                " keyframes");
+            } else {
+                menu.addSection(hoveredKeyframe->property->getDisplayName() +
+                                QStringLiteral(" at frame ") +
+                                QString::number(hoveredKeyframe->frame));
+            }
 
             QMenu *easingMenu = menu.addMenu("Easings");
             QList<QString> typeNames = {
@@ -523,32 +535,42 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
                     QIcon::fromTheme(i == 0 ? "linear" : "smooth"),
                     typeNames[i]);
                 action->setCheckable(true);
-                action->setChecked(hoveredKeyframe->easing.type() == type);
-                connect(
-                    action, &QAction::triggered, action,
-                    [hoveredKeyframe, type] {
-                        hoveredKeyframe->easing = type;
-                        hoveredKeyframe->property->animatable->_propertyUpdated(
-                            hoveredKeyframe->property);
-                    });
+                for (auto keyframe : selectedKeyframes) {
+                    if (keyframe->easing.type() == type) {
+                        action->setChecked(true);
+                    }
+                }
+                connect(action, &QAction::triggered, action, [this, type] {
+                    for (auto keyframe : selectedKeyframes) {
+                        keyframe->easing = type;
+                        keyframe->property->animatable->_propertyUpdated(
+                            keyframe->property);
+                    }
+                });
 
                 group->addAction(action);
             }
 
-            QAction *gotoAction = menu.addAction("Go to");
-            connect(gotoAction, &QAction::triggered, this,
-                    [this, hoveredKeyframe]() {
-                        timelineWidget->scene->setFramesChanging(true);
-                        timelineWidget->scene->setFrame(hoveredKeyframe->frame);
-                        timelineWidget->scene->setFramesChanging(false);
-                    });
+            if (!multiple) {
+                QAction *gotoAction = menu.addAction("Go to");
+                connect(gotoAction, &QAction::triggered, this,
+                        [this, hoveredKeyframe]() {
+                            timelineWidget->scene->setFramesChanging(true);
+                            timelineWidget->scene->setFrame(
+                                hoveredKeyframe->frame);
+                            timelineWidget->scene->setFramesChanging(false);
+                        });
+            }
 
             QAction *deleteAction =
                 menu.addAction(QIcon::fromTheme("delete"), "Delete");
-            connect(
-                deleteAction, &QAction::triggered, this, [hoveredKeyframe]() {
-                    hoveredKeyframe->property->remove(hoveredKeyframe->frame);
-                });
+            connect(deleteAction, &QAction::triggered, this, [this]() {
+                for (auto keyframe : selectedKeyframes) {
+                    keyframe->property->remove(keyframe->frame);
+                }
+                selectedKeyframes.clear();
+                update();
+            });
 
             menu.exec(event->globalPosition().toPoint());
         }
