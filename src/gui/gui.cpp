@@ -1665,6 +1665,11 @@ NewMainWindow::~NewMainWindow() {
 int main(int argc, char **argv) {
 #ifdef Q_OS_WIN
     CreateMutexA(nullptr, false, "GraphicsCreatorOpen");
+    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        freopen("CON", "w", stdout);
+        freopen("CON", "w", stderr);
+        freopen("CON", "r", stdin);
+    }
 #endif
     KIconTheme::initTheme();
     QApplication application(argc, argv);
