@@ -8,6 +8,7 @@
 #include "animatable/element/video_element.hpp"
 #include "effects_window.hpp"
 #include "plugin.hpp"
+#include "plugin_manager.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
@@ -358,6 +359,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     fileMenu->addSeparator();
     QAction *insertSeparator = fileMenu->addSeparator();
+    QAction *pluginsAction =
+        fileMenu->addAction(QIcon::fromTheme("plugins"), "Plugins…");
+    connect(pluginsAction, &QAction::triggered, this,
+            &NewMainWindow::openPlugins);
+
+    fileMenu->addSeparator();
 
     QAction *quitAction = fileMenu->addAction("Quit");
     quitAction->setShortcut(QKeySequence::Quit);
@@ -620,6 +627,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     playbackStateChanged(false);
 
     rerender(false);
+}
+
+void NewMainWindow::openPlugins() {
+    PluginManagerDialog *pluginManagerDialog = new PluginManagerDialog(this);
+    pluginManagerDialog->setAttribute(Qt::WA_DeleteOnClose);
+    pluginManagerDialog->show();
 }
 
 void NewMainWindow::importClicked() {
@@ -934,6 +947,7 @@ void NewMainWindow::showWelcome(bool show) {
     viewMenu->setDisabled(show);
     saveAction->setDisabled(show);
     saveAsAction->setDisabled(show);
+    controlImport->setDisabled(show);
     toolBar->setHidden(show);
     toolBar->setDisabled(show);
     statusBar->setHidden(show);

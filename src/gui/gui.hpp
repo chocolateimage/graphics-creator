@@ -141,6 +141,7 @@ class NewMainWindow : public QMainWindow {
     void aboutQt();
     void about();
     void importClicked();
+    void openPlugins();
 
     QNetworkAccessManager *networkAccessManager;
 
