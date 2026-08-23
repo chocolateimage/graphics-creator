@@ -2,7 +2,9 @@
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/effect/plugin_effect.hpp"
 #include "brush.hpp"
+#include <QDir>
 #include <QMessageBox>
+#include <QStandardPaths>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #else
@@ -145,7 +147,24 @@ void *getLibraryFunction(Library_t library, const char *functionName) {
 #endif
 }
 
+PluginManager::PluginManager() {
+    QDir appData(
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+    defaultPluginPath = appData.filePath("plugins");
+}
 PluginManager::~PluginManager() { qDeleteAll(loadedPlugins); }
+
+void PluginManager::loadDefaultPlugins() {
+    QDir dir(defaultPluginPath);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+        return;
+    }
+
+    for (const auto &file : dir.entryInfoList(QDir::Files)) {
+        loadPlugin(file.filePath());
+    }
+}
 
 bool PluginManager::loadPlugin(const QString &path) {
     Library_t library = loadLibrary(path);

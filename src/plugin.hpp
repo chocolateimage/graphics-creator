@@ -117,11 +117,13 @@ void *getLibraryFunction(Library_t library, const char *functionName);
 
 class PluginManager {
   public:
-    PluginManager() {}
+    PluginManager();
     ~PluginManager();
 
+    QString defaultPluginPath;
     QList<Plugin *> loadedPlugins;
 
+    void loadDefaultPlugins();
     bool loadPlugin(const QString &path);
 };
 

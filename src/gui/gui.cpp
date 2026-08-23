@@ -1730,6 +1730,7 @@ int main(int argc, char **argv) {
     QStringList additionalPlugins = parser.values(pluginOption);
 
     pluginManager = new PluginManager();
+    pluginManager->loadDefaultPlugins();
     for (const auto &path : additionalPlugins) {
         pluginManager->loadPlugin(path);
     }
