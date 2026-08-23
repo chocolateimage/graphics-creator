@@ -1,5 +1,4 @@
 #include "plugin_effect.hpp"
-#include "math.hpp"
 
 PluginEffectRender::PluginEffectRender(PluginEffectInfo *info) : info(info) {
     for (const auto &definition : info->properties) {
@@ -64,11 +63,27 @@ PluginEffect::~PluginEffect() { qDeleteAll(pluginProperties); }
 
 QString PluginEffect::effectName() { return info->name; }
 
-bool PluginEffectRender::render(const uint32_t *source, const Rect &sourceRect,
-                                uint32_t *target) {
+PluginEffectRenderContext PluginEffectRender::getContext() {
     PluginEffectRenderContext ctx;
     ctx.privateData = this;
     ctx.renderBox = renderBox;
+    ctx.currentFrame = currentFrame;
+    ctx.currentSeconds = currentSeconds;
+    return ctx;
+}
+
+Rect PluginEffectRender::getRenderBox(const Rect &lastBox) {
+    if (info->getRenderBoxFunc) {
+        PluginEffectRenderContext ctx = getContext();
+        info->getRenderBoxFunc(pluginInterface, &ctx, lastBox);
+        return ctx.renderBox;
+    }
+    return lastBox;
+}
+
+bool PluginEffectRender::render(const uint32_t *source, const Rect &sourceRect,
+                                uint32_t *target) {
+    PluginEffectRenderContext ctx = getContext();
 
     info->renderFunc(pluginInterface, &ctx, source, sourceRect, target);
 

@@ -14,6 +14,8 @@ void pluginError(const QString &msg) {
     abort();
 }
 
+void log_def(const char *msg) { qInfo() << "[PLUGIN LOG]" << msg; }
+
 void messageBox_def(const char *msg, const char *title, MessageBoxIcon icon) {
     QMessageBox msgBox((QMessageBox::Icon)icon, title, msg,
                        QMessageBox::NoButton, nullptr);
@@ -53,6 +55,14 @@ void setEffectRenderFunc_def(PluginEffectInfo *effect,
     effect->renderFunc = func;
 }
 
+void setEffectGetRenderBoxFunc_def(PluginEffectInfo *effect,
+                                   PluginEffectGetRenderBoxFunc_t func) {
+    if (!effect) {
+        pluginError("effect is null");
+    }
+    effect->getRenderBoxFunc = func;
+}
+
 void addEffectProperty_def(PluginEffectInfo *effect, PropertyType type,
                            const char *name) {
     if (!effect) {
@@ -80,13 +90,14 @@ int getPropertyInt_def(PropertyRenderBase *property) {
 
 PluginFunctions *createFunctions() {
     PluginFunctions *funcs = new PluginFunctions();
-    funcs->log = nullptr; // TODO: log function
+    funcs->log = log_def;
     funcs->messageBox = messageBox_def;
     funcs->createEffect = createEffect_def;
     funcs->setEffectRenderFunc = setEffectRenderFunc_def;
     funcs->addEffectProperty = addEffectProperty_def;
     funcs->getEffectProperty = getEffectProperty_def;
     funcs->getPropertyInt = getPropertyInt_def;
+    funcs->setEffectGetRenderBoxFunc = setEffectGetRenderBoxFunc_def;
     // funcs.setEffectPropertyValue = setEffectPropertyValue_def;
     return funcs;
 }

@@ -8,11 +8,14 @@ class PluginEffectRender : public EffectRender {
     PluginEffectRender(PluginEffectInfo *info);
     ~PluginEffectRender();
 
+    PluginEffectRenderContext getContext();
+
     QMap<QString, PropertyRenderBase *> pluginProperties;
     PluginEffectInfo *info;
 
     bool render(const uint32_t *source, const Rect &sourceRect,
                 uint32_t *target) override;
+    Rect getRenderBox(const Rect &lastBox) override;
 };
 
 class PluginEffect : public Effect {

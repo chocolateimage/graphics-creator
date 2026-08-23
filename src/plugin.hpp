@@ -33,12 +33,14 @@ enum PropertyType {
 struct PluginEffectRenderContext {
     PluginEffectRender *privateData;
     Rect renderBox;
+    int currentFrame;
+    double currentSeconds;
 };
 
-typedef bool PluginEffectRenderFunc_t(PluginInterface *pluginInterface,
-                                      PluginEffectRenderContext *renderContext,
-                                      const uint32_t *source,
-                                      const Rect &sourceRect, uint32_t *target);
+typedef void
+PluginEffectGetRenderBoxFunc_t(PluginInterface *pluginInterface,
+                               PluginEffectRenderContext *renderContext,
+                               const Rect &lastBox);
 
 typedef bool PluginEffectRenderFunc_t(PluginInterface *pluginInterface,
                                       PluginEffectRenderContext *renderContext,
@@ -54,7 +56,8 @@ class PluginPropertyDefinition {
 class PluginEffectInfo {
   public:
     QString name;
-    PluginEffectRenderFunc_t *renderFunc;
+    PluginEffectGetRenderBoxFunc_t *getRenderBoxFunc{nullptr};
+    PluginEffectRenderFunc_t *renderFunc{nullptr};
     QList<PluginPropertyDefinition> properties;
 };
 
@@ -71,6 +74,8 @@ struct PluginFunctions {
     PropertyRenderBase *(*getEffectProperty)(
         PluginEffectRenderContext *renderContext, const char *name);
     int (*getPropertyInt)(PropertyRenderBase *property);
+    void (*setEffectGetRenderBoxFunc)(PluginEffectInfo *effect,
+                                      PluginEffectGetRenderBoxFunc_t func);
 };
 
 struct PluginInterface {
