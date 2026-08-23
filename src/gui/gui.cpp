@@ -1722,7 +1722,7 @@ int main(int argc, char **argv) {
     QString newProject = parser.value(newProjectOption);
     QString renderFile = parser.value(renderOption);
 
-    void *handle = loadLibrary(
+    Library_t handle = loadLibrary(
         "/home/lukas/Programming/gc-test/build/libsample-plugin.so");
     if (!handle) {
         qInfo() << "error loading plugin";

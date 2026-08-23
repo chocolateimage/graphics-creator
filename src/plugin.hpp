@@ -3,6 +3,7 @@
 #include <QList>
 
 #ifdef Q_OS_WIN
+#include <windows.h>
 typedef HMODULE Library_t;
 #else
 typedef void *Library_t;
