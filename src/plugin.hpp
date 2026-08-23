@@ -14,6 +14,8 @@ struct PluginInterface;
 class PluginEffectRender;
 class PropertyRenderBase;
 
+typedef int (*gcPluginInit_t)(PluginInterface *, PluginInitData *);
+
 enum MessageBoxIcon {
     MSGBOX_NONE = 0,
     MSGBOX_INFO,
@@ -97,6 +99,15 @@ struct PluginInitData {
     const char *version;
 };
 
+class Plugin {
+  public:
+    Library_t library;
+    QString id;
+    QString name;
+    QString version;
+    QString path;
+};
+
 PluginFunctions *createFunctions();
 
 void pluginError(const QString &msg);
@@ -104,4 +115,15 @@ void pluginError(const QString &msg);
 Library_t loadLibrary(const QString &path);
 void *getLibraryFunction(Library_t library, const char *functionName);
 
+class PluginManager {
+  public:
+    PluginManager() {}
+    ~PluginManager();
+
+    QList<Plugin *> loadedPlugins;
+
+    bool loadPlugin(const QString &path);
+};
+
+extern PluginManager *pluginManager;
 extern PluginInterface *pluginInterface;

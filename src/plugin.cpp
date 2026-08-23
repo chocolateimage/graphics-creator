@@ -145,4 +145,46 @@ void *getLibraryFunction(Library_t library, const char *functionName) {
 #endif
 }
 
+PluginManager::~PluginManager() { qDeleteAll(loadedPlugins); }
+
+bool PluginManager::loadPlugin(const QString &path) {
+    Library_t library = loadLibrary(path);
+    if (!library) {
+        qWarning() << "Error loading plugin" << path;
+        return false;
+    }
+
+    gcPluginInit_t pluginInit =
+        (gcPluginInit_t)getLibraryFunction(library, "gcPluginInit");
+    if (!pluginInit) {
+        qWarning() << "Could not find gcPluginInit in plugin" << path;
+        return false;
+    }
+
+    pluginInterface = new PluginInterface();
+    pluginInterface->functions = createFunctions();
+
+    PluginInitDataPrivate priv{};
+    PluginInitData data{};
+    data.privateData = &priv;
+    data.id = nullptr;
+
+    int ret = pluginInit(pluginInterface, &data);
+    if (ret != 0) {
+        qWarning() << "Error in plugin init for" << path << "with code" << ret;
+        return false;
+    }
+
+    Plugin *plugin = new Plugin();
+    plugin->library = library;
+    plugin->id = data.id;
+    plugin->name = data.name;
+    plugin->version = data.version;
+    plugin->path = path;
+    loadedPlugins.append(plugin);
+
+    return true;
+}
+
+PluginManager *pluginManager = nullptr;
 PluginInterface *pluginInterface = nullptr;

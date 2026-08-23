@@ -1663,8 +1663,6 @@ NewMainWindow::~NewMainWindow() {
     }
 }
 
-typedef int (*gcPluginInit_t)(PluginInterface *, PluginInitData *);
-
 int main(int argc, char **argv) {
 #ifdef Q_OS_WIN
     CreateMutexA(nullptr, false, "GraphicsCreatorOpen");
@@ -1718,44 +1716,23 @@ int main(int argc, char **argv) {
         "encoder");
     parser.addOption(encoderOption);
 
+    QCommandLineOption pluginOption(
+        "load-plugin",
+        "Location of a plugin .dll or .so file to additionally load.",
+        "pluginPath");
+    parser.addOption(pluginOption);
+
     parser.process(application);
 
     const QStringList args = parser.positionalArguments();
     QString newProject = parser.value(newProjectOption);
     QString renderFile = parser.value(renderOption);
+    QStringList additionalPlugins = parser.values(pluginOption);
 
-    Library_t handle = loadLibrary(
-        "/home/lukas/Programming/gc-test/build/libsample-plugin.so");
-    if (!handle) {
-        qInfo() << "error loading plugin";
-        return 1;
+    pluginManager = new PluginManager();
+    for (const auto &path : additionalPlugins) {
+        pluginManager->loadPlugin(path);
     }
-
-    qInfo() << "loaded plugin";
-    void *gcPluginInit_raw = getLibraryFunction(handle, "gcPluginInit");
-    if (!gcPluginInit_raw) {
-        qInfo() << "could no find gcPluginInit";
-        return 1;
-    }
-
-    gcPluginInit_t pluginInit = (gcPluginInit_t)gcPluginInit_raw;
-
-    pluginInterface = new PluginInterface();
-    pluginInterface->functions = createFunctions();
-
-    PluginInitDataPrivate priv{};
-    PluginInitData data{};
-    data.privateData = &priv;
-    data.id = nullptr;
-
-    int ret = pluginInit(pluginInterface, &data);
-    if (ret != 0) {
-        qInfo() << "error initting plugin (error" << ret << ")";
-        return 1;
-    }
-
-    qInfo() << "the name of the plugin:" << data.name;
-    qInfo() << "done";
 
     NewMainWindow widget;
     if (!args.isEmpty()) {
