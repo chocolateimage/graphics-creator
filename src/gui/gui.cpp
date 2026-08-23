@@ -1736,6 +1736,11 @@ int main(int argc, char **argv) {
         "pluginPath");
     parser.addOption(pluginOption);
 
+    QCommandLineOption pluginCwdOption(
+        "load-plugins-from-cwd",
+        "Load all .dlls from the current working directory.");
+    parser.addOption(pluginCwdOption);
+
     parser.process(application);
 
     const QStringList args = parser.positionalArguments();
@@ -1747,6 +1752,14 @@ int main(int argc, char **argv) {
     pluginManager->loadDefaultPlugins();
     for (const auto &path : additionalPlugins) {
         pluginManager->loadPlugin(path);
+    }
+    if (parser.isSet(pluginCwdOption)) {
+        QDir dir = QDir::current();
+        for (auto file : dir.entryInfoList(QDir::Files)) {
+            if (file.filePath().endsWith(".dll")) {
+                pluginManager->loadPlugin(file.filePath());
+            }
+        }
     }
 
     NewMainWindow widget;
