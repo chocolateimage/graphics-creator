@@ -35,12 +35,12 @@ struct PluginEffectRenderContext {
     Rect renderBox;
 };
 
-typedef bool PluginEffectRenderFunc_t(PluginInterface *interface,
+typedef bool PluginEffectRenderFunc_t(PluginInterface *pluginInterface,
                                       PluginEffectRenderContext *renderContext,
                                       const uint32_t *source,
                                       const Rect &sourceRect, uint32_t *target);
 
-typedef bool PluginEffectRenderFunc_t(PluginInterface *interface,
+typedef bool PluginEffectRenderFunc_t(PluginInterface *pluginInterface,
                                       PluginEffectRenderContext *renderContext,
                                       const uint32_t *source,
                                       const Rect &sourceRect, uint32_t *target);

@@ -1668,10 +1668,12 @@ typedef int (*gcPluginInit_t)(PluginInterface *, PluginInitData *);
 int main(int argc, char **argv) {
 #ifdef Q_OS_WIN
     CreateMutexA(nullptr, false, "GraphicsCreatorOpen");
-    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-        freopen("CON", "w", stdout);
-        freopen("CON", "w", stderr);
-        freopen("CON", "r", stdin);
+    if (qEnvironmentVariable("MSYSTEM").isEmpty()) {
+        if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+            freopen("CON", "w", stdout);
+            freopen("CON", "w", stderr);
+            freopen("CON", "r", stdin);
+        }
     }
 #endif
 
