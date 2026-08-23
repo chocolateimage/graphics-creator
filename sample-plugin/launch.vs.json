@@ -1,0 +1,13 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "dll",
+      "exe": "${env.LOCALAPPDATA}\\Programs\\Graphics Creator\\graphics-creator.exe",
+      "args": ["--load-plugins-from-cwd"],
+      "project": "CMakeLists.txt",
+      "name": "Run Graphics Creator Plugin"
+    }
+  ]
+}
