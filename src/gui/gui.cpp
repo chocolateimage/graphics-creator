@@ -7,6 +7,7 @@
 #include "animatable/element/text_element.hpp"
 #include "animatable/element/video_element.hpp"
 #include "effects_window.hpp"
+#include "plugin.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
@@ -46,6 +47,7 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QToolBar>
+#include <dlfcn.h>
 #include <fontconfig/fontconfig.h>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -1662,6 +1664,8 @@ NewMainWindow::~NewMainWindow() {
     }
 }
 
+typedef int (*gcPluginInit_t)(PluginInterface *, PluginInitData *);
+
 int main(int argc, char **argv) {
 #ifdef Q_OS_WIN
     CreateMutexA(nullptr, false, "GraphicsCreatorOpen");
@@ -1671,6 +1675,7 @@ int main(int argc, char **argv) {
         freopen("CON", "r", stdin);
     }
 #endif
+
     KIconTheme::initTheme();
     QApplication application(argc, argv);
     application.setOrganizationName(QStringLiteral("graphics-creator"));
@@ -1717,6 +1722,39 @@ int main(int argc, char **argv) {
     const QStringList args = parser.positionalArguments();
     QString newProject = parser.value(newProjectOption);
     QString renderFile = parser.value(renderOption);
+
+    void *handle = dlopen("/home/lukas/Programming/gc-test/build/libplugin.so",
+                          RTLD_NOW | RTLD_LOCAL);
+    if (!handle) {
+        qInfo() << "error loading plugin" << dlerror();
+        return 1;
+    }
+
+    qInfo() << "loaded plugin";
+    void *gcPluginInit_raw = dlsym(handle, "gcPluginInit");
+    if (!gcPluginInit_raw) {
+        qInfo() << "could no find gcPluginInit";
+        return 1;
+    }
+
+    gcPluginInit_t pluginInit = (gcPluginInit_t)gcPluginInit_raw;
+
+    pluginInterface = new PluginInterface();
+    pluginInterface->functions = createFunctions();
+
+    PluginInitDataPrivate priv{};
+    PluginInitData data{};
+    data.privateData = &priv;
+    data.id = nullptr;
+
+    int ret = pluginInit(pluginInterface, &data);
+    if (ret != 0) {
+        qInfo() << "error initting plugin (error" << ret << ")";
+        return 1;
+    }
+
+    qInfo() << "the name of the plugin:" << data.name;
+    qInfo() << "done";
 
     NewMainWindow widget;
     if (!args.isEmpty()) {

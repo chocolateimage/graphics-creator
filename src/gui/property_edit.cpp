@@ -208,20 +208,22 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         auto inputX = new DraggableSpinBox(this);
         inputX->setMinimum(min);
         inputX->setMaximum(max);
+        inputX->setMinimumWidth(50);
         inputX->setValue(value.x);
 
         auto inputY = new DraggableSpinBox(this);
         inputY->setMinimum(min);
         inputY->setMaximum(max);
+        inputY->setMinimumWidth(50);
         inputY->setValue(value.y);
 
-        auto pickButton = new QToolButton(this);
-        pickButton->setToolTip("Pick position from preview");
-        pickButton->setIcon(QIcon::fromTheme("select"));
+        // auto pickButton = new QToolButton(this);
+        // pickButton->setToolTip("Pick position from preview");
+        // pickButton->setIcon(QIcon::fromTheme("select"));
 
         layout->addWidget(inputX);
         layout->addWidget(inputY);
-        layout->addWidget(pickButton);
+        // layout->addWidget(pickButton);
 
         connect(inputX, &DraggableSpinBox::valueChanged, this,
                 [this, inputY](int value) {

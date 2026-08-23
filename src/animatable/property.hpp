@@ -198,6 +198,11 @@ template <> inline std::string deserializeAnyValue(const QJsonValue &value) {
     return value.toString().toStdString();
 }
 
+template <> inline Vector2DInt deserializeAnyValue(const QJsonValue &value) {
+    QJsonArray array = value.toArray();
+    return {array[0].toInt(), array[1].toInt()};
+}
+
 template <> inline Vector2DFloat deserializeAnyValue(const QJsonValue &value) {
     QJsonArray array = value.toArray();
     return {(float)array[0].toDouble(), (float)array[1].toDouble()};
