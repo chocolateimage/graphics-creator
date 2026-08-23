@@ -22,6 +22,11 @@ PluginManagerDialog::PluginManagerDialog(QWidget *parent) : QDialog(parent) {
     treeWidget->header()->setSectionsMovable(false);
     for (auto plugin : pluginManager->loadedPlugins) {
         QTreeWidgetItem *item = new QTreeWidgetItem();
+        if (plugin->isDebug) {
+            item->setIcon(0, QIcon::fromTheme("data-warning"));
+            item->setToolTip(0,
+                             "Running in debug mode. Performance may suffer.");
+        }
         item->setText(0, plugin->name);
         item->setText(1, plugin->version);
         item->setText(2, plugin->path);

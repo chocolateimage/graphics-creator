@@ -200,7 +200,13 @@ bool PluginManager::loadPlugin(const QString &path) {
     plugin->name = data.name;
     plugin->version = data.version;
     plugin->path = path;
+    plugin->isDebug =
+        getLibraryFunction(library, "exportedDebugFunction") != nullptr;
     loadedPlugins.append(plugin);
+
+    if (plugin->isDebug) {
+        qWarning() << "Plugin" << plugin->name << "is running in debug mode";
+    }
 
     return true;
 }

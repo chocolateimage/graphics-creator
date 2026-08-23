@@ -106,6 +106,7 @@ class Plugin {
     QString name;
     QString version;
     QString path;
+    bool isDebug;
 };
 
 PluginFunctions *createFunctions();
