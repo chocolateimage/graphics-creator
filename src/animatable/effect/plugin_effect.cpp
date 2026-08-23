@@ -10,7 +10,7 @@ PluginEffectRender::PluginEffectRender(PluginEffectInfo *info) : info(info) {
         case PROPERTY_TYPE_DOUBLE:
             property = new PropertyRender<double>(this);
             break;
-        case PROPERTY_TYPE_COLOLR:
+        case PROPERTY_TYPE_COLOR:
             property = new PropertyRender<Color>(this);
             break;
         case PROPERTY_TYPE_VECTOR2DINT:
@@ -41,7 +41,7 @@ PluginEffect::PluginEffect(PluginEffectInfo *info) : info(info) {
         case PROPERTY_TYPE_DOUBLE:
             property = new Property<double>(this, name, 0);
             break;
-        case PROPERTY_TYPE_COLOLR:
+        case PROPERTY_TYPE_COLOR:
             property = new Property<Color>(this, name, {});
             break;
         case PROPERTY_TYPE_VECTOR2DINT:

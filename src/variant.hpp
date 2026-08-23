@@ -10,8 +10,7 @@
 
 class StrokeInfo;
 
-class Color {
-  public:
+struct Color {
     int r{255}, g{255}, b{255}, a{255};
 
     Color operator+(const Color &other) const {

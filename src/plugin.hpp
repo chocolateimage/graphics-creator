@@ -24,7 +24,7 @@ enum MessageBoxIcon {
 enum PropertyType {
     PROPERTY_TYPE_INT = 0,
     PROPERTY_TYPE_DOUBLE,
-    PROPERTY_TYPE_COLOLR,
+    PROPERTY_TYPE_COLOR,
     PROPERTY_TYPE_VECTOR2DINT,
     PROPERTY_TYPE_BOOL,
     PROPERTY_TYPE_BRUSH,
@@ -67,6 +67,8 @@ struct PluginFunctions {
     PluginEffectInfo *(*createEffect)(PluginInitData *initData,
                                       const char *category, const char *name,
                                       const char *displayName);
+    void (*setEffectGetRenderBoxFunc)(PluginEffectInfo *effect,
+                                      PluginEffectGetRenderBoxFunc_t func);
     void (*setEffectRenderFunc)(PluginEffectInfo *effect,
                                 PluginEffectRenderFunc_t func);
     void (*addEffectProperty)(PluginEffectInfo *effect, PropertyType type,
@@ -74,8 +76,12 @@ struct PluginFunctions {
     PropertyRenderBase *(*getEffectProperty)(
         PluginEffectRenderContext *renderContext, const char *name);
     int (*getPropertyInt)(PropertyRenderBase *property);
-    void (*setEffectGetRenderBoxFunc)(PluginEffectInfo *effect,
-                                      PluginEffectGetRenderBoxFunc_t func);
+    double (*getPropertyDouble)(PropertyRenderBase *property);
+    Color (*getPropertyColor)(PropertyRenderBase *property);
+    Vector2DInt (*getPropertyVector2DInt)(PropertyRenderBase *property);
+    bool (*getPropertyBool)(PropertyRenderBase *property);
+    void *(*getPropertyBrush)(PropertyRenderBase *property);
+    Color (*getBrushPixel)(const Brush &brush, int x, int y, int w, int h);
 };
 
 struct PluginInterface {

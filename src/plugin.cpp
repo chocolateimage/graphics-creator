@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/effect/plugin_effect.hpp"
+#include "brush.hpp"
 #include <QMessageBox>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -88,16 +89,42 @@ int getPropertyInt_def(PropertyRenderBase *property) {
     return ((PropertyRender<int> *)property)->get();
 }
 
+double getPropertyDouble_def(PropertyRenderBase *property) {
+    return ((PropertyRender<double> *)property)->get();
+}
+
+Color getPropertyColor_def(PropertyRenderBase *property) {
+    return ((PropertyRender<Color> *)property)->get();
+}
+
+Vector2DInt getPropertyVector2DInt_def(PropertyRenderBase *property) {
+    return ((PropertyRender<Vector2DInt> *)property)->get();
+}
+
+bool getPropertyBool_def(PropertyRenderBase *property) {
+    return ((PropertyRender<bool> *)property)->get();
+}
+
+void *getPropertyBrush_def(PropertyRenderBase *property) {
+    return &((PropertyRender<Brush> *)property)->value;
+}
+
 PluginFunctions *createFunctions() {
     PluginFunctions *funcs = new PluginFunctions();
     funcs->log = log_def;
     funcs->messageBox = messageBox_def;
     funcs->createEffect = createEffect_def;
     funcs->setEffectRenderFunc = setEffectRenderFunc_def;
+    funcs->setEffectGetRenderBoxFunc = setEffectGetRenderBoxFunc_def;
     funcs->addEffectProperty = addEffectProperty_def;
     funcs->getEffectProperty = getEffectProperty_def;
     funcs->getPropertyInt = getPropertyInt_def;
-    funcs->setEffectGetRenderBoxFunc = setEffectGetRenderBoxFunc_def;
+    funcs->getPropertyDouble = getPropertyDouble_def;
+    funcs->getPropertyColor = getPropertyColor_def;
+    funcs->getPropertyVector2DInt = getPropertyVector2DInt_def;
+    funcs->getPropertyBool = getPropertyBool_def;
+    funcs->getPropertyBrush = getPropertyBrush_def;
+    funcs->getBrushPixel = getBrushPixel;
     // funcs.setEffectPropertyValue = setEffectPropertyValue_def;
     return funcs;
 }
