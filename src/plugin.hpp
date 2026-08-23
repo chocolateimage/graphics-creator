@@ -2,6 +2,12 @@
 #include "variant.hpp"
 #include <QList>
 
+#ifdef Q_OS_WIN
+typedef HMODULE Library_t;
+#else
+typedef void *Library_t;
+#endif
+
 struct PluginInitData;
 struct PluginInterface;
 class PluginEffectRender;
@@ -82,5 +88,8 @@ struct PluginInitData {
 PluginFunctions *createFunctions();
 
 void pluginError(const QString &msg);
+
+Library_t loadLibrary(const QString &path);
+void *getLibraryFunction(Library_t library, const char *functionName);
 
 extern PluginInterface *pluginInterface;

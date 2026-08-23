@@ -2,6 +2,11 @@
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/effect/plugin_effect.hpp"
 #include <QMessageBox>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
 
 void pluginError(const QString &msg) {
     qCritical() << "Plugin error" << qPrintable(msg);
@@ -84,6 +89,22 @@ PluginFunctions *createFunctions() {
     funcs->getPropertyInt = getPropertyInt_def;
     // funcs.setEffectPropertyValue = setEffectPropertyValue_def;
     return funcs;
+}
+
+Library_t loadLibrary(const QString &path) {
+#ifdef Q_OS_WIN
+    return LoadLibrary(qUtf16Printable(path));
+#else
+    return dlopen(qUtf8Printable(path), RTLD_NOW | RTLD_LOCAL);
+#endif
+}
+
+void *getLibraryFunction(Library_t library, const char *functionName) {
+#ifdef Q_OS_WIN
+    return (void *)GetProcAddress(library, functionName);
+#else
+    return dlsym(library, functionName);
+#endif
 }
 
 PluginInterface *pluginInterface = nullptr;

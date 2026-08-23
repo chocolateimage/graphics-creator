@@ -47,7 +47,6 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QToolBar>
-#include <dlfcn.h>
 #include <fontconfig/fontconfig.h>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -1723,15 +1722,15 @@ int main(int argc, char **argv) {
     QString newProject = parser.value(newProjectOption);
     QString renderFile = parser.value(renderOption);
 
-    void *handle = dlopen("/home/lukas/Programming/gc-test/build/libplugin.so",
-                          RTLD_NOW | RTLD_LOCAL);
+    void *handle = loadLibrary(
+        "/home/lukas/Programming/gc-test/build/libsample-plugin.so");
     if (!handle) {
-        qInfo() << "error loading plugin" << dlerror();
+        qInfo() << "error loading plugin";
         return 1;
     }
 
     qInfo() << "loaded plugin";
-    void *gcPluginInit_raw = dlsym(handle, "gcPluginInit");
+    void *gcPluginInit_raw = getLibraryFunction(handle, "gcPluginInit");
     if (!gcPluginInit_raw) {
         qInfo() << "could no find gcPluginInit";
         return 1;
