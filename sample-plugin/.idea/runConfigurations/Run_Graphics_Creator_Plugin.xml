@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run Graphics Creator Plugin" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="run me.chocolateimage.graphics-creator --load-plugin $CMakeCurrentProductFile$" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" CONFIG_NAME="x64-debug" RUN_PATH="/usr/bin/flatpak" EXPLICIT_BUILD_TARGET_NAME="all">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

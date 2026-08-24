@@ -4,6 +4,9 @@ Output/
 .vs/
 out/
 
+.idea/*
+!.idea/runConfigurations/
+
 __cmake_systeminformation/
 CMakeLists.txt.user
 CMakeCache.txt

@@ -29,7 +29,5 @@ modules:
       - -DCMAKE_BUILD_TYPE=Release
       - -DUPDATE_CHECK=OFF
     sources:
-      - type: git
-        url: https://github.com/chocolateimage/graphics-creator.git
-        tag: v0.4.0
-        commit: 4f3d151a4442c2d9a76f3ed2c197ecffd99269c7
+      - type: dir
+        path: .
