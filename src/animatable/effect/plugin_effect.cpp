@@ -31,7 +31,7 @@ PluginEffectRender::PluginEffectRender(PluginEffectInfo *info) : info(info) {
 PluginEffectRender::~PluginEffectRender() { qDeleteAll(pluginProperties); }
 
 template <typename T>
-PropertyBase *
+Property<T> *
 PluginEffect::createProperty(PluginPropertyDefinition *definition) {
     auto property = new Property<T>(this, definition->name.toStdString(),
                                     std::get<T>(definition->defaultValue));
@@ -50,9 +50,17 @@ PluginEffect::PluginEffect(PluginEffectInfo *info) : info(info) {
     for (const auto &definition : info->properties) {
         PropertyBase *property = nullptr;
         switch (definition->type) {
-        case PROPERTY_TYPE_INT:
-            property = createProperty<int>(definition);
+        case PROPERTY_TYPE_INT: {
+            auto p = createProperty<int>(definition);
+            if (!definition->menuItems.isEmpty()) {
+                for (const auto &item : definition->menuItems) {
+                    p->enumList.push_back(item.toStdString());
+                }
+                p->updateBoundsToEnumList();
+            }
+            property = p;
             break;
+        }
         case PROPERTY_TYPE_DOUBLE:
             property = createProperty<double>(definition);
             break;

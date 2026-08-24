@@ -117,6 +117,8 @@ struct PluginFunctions {
                                    Vector2DInt value);
     void (*setPropertyBool)(Property *property, SetPropertyType type,
                             bool value);
+
+    void (*addPropertyMenuItem)(Property *property, const char *label);
 };
 
 struct PluginInterface {

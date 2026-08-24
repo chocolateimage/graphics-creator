@@ -59,6 +59,7 @@ class PluginPropertyDefinition {
   public:
     QString name;
     PropertyType type;
+    QList<QString> menuItems;
 
     void setValue(VariantType val, SetPropertyType setType) {
         switch (setType) {
@@ -133,6 +134,9 @@ struct PluginFunctions {
                                    SetPropertyType type, Vector2DInt value);
     void (*setPropertyBool)(PluginPropertyDefinition *property,
                             SetPropertyType type, bool value);
+
+    void (*addPropertyMenuItem)(PluginPropertyDefinition *property,
+                                const char *label);
 };
 
 struct PluginInterface {

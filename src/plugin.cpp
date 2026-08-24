@@ -161,6 +161,11 @@ void setPropertyBool_def(PluginPropertyDefinition *property,
     property->setValue(value, type);
 }
 
+void addPropertyMenuItem_def(PluginPropertyDefinition *property,
+                             const char *label) {
+    property->menuItems.append(label);
+}
+
 PluginFunctions *createFunctions() {
     PluginFunctions *funcs = new PluginFunctions();
     funcs->log = log_def;
@@ -187,6 +192,8 @@ PluginFunctions *createFunctions() {
     funcs->setPropertyColor = setPropertyColor_def;
     funcs->setPropertyVector2DInt = setPropertyVector2DInt_def;
     funcs->setPropertyBool = setPropertyBool_def;
+
+    funcs->addPropertyMenuItem = addPropertyMenuItem_def;
 
     return funcs;
 }
