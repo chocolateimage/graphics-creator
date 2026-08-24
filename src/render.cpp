@@ -86,6 +86,8 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h, int scaleFlags) {
 
     PriorityMutexLocker locker(&mutex, seconds);
 
+    lastWidth = w;
+    lastHeight = h;
     swsCtx = sws_getCachedContext(swsCtx, decodeCtx->width, decodeCtx->height,
                                   decodeCtx->pix_fmt, w, h, AV_PIX_FMT_BGRA,
                                   scaleFlags, nullptr, nullptr, nullptr);
@@ -158,8 +160,8 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h, int scaleFlags) {
 
 AVFrame *VideoData::scaleCurrentFrame() {
     AVFrame *vdFrame = av_frame_alloc();
-    vdFrame->width = swsCtx->dst_w;
-    vdFrame->height = swsCtx->dst_h;
+    vdFrame->width = lastWidth;
+    vdFrame->height = lastHeight;
     vdFrame->format = AV_PIX_FMT_BGRA;
     av_frame_get_buffer(vdFrame, 0);
     sws_scale_frame(swsCtx, vdFrame, frame);

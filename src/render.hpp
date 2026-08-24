@@ -41,6 +41,8 @@ class VideoData {
 
     bool error{false};
     double lastSecond{-1};
+    int lastWidth;
+    int lastHeight;
 
     int streamIndex;
     int64_t streamDuration;
