@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <qmessagebox.h>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #else
@@ -170,6 +171,8 @@ bool PluginManager::loadPlugin(const QString &path) {
     Library_t library = loadLibrary(path);
     if (!library) {
         qWarning() << "Error loading plugin" << path;
+        QMessageBox::warning(nullptr, "Plugin error",
+                             "Error loading plugin " + path);
         return false;
     }
 

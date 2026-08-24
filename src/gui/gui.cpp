@@ -1732,7 +1732,8 @@ int main(int argc, char **argv) {
 
     QCommandLineOption pluginOption(
         "load-plugin",
-        "Location of a plugin .dll or .so file to additionally load.",
+        "Location of a plugin .dll or .so file to additionally load. Can be a "
+        "directory, then it loads all plugins in that directory.",
         "pluginPath");
     parser.addOption(pluginOption);
 
@@ -1751,7 +1752,16 @@ int main(int argc, char **argv) {
     pluginManager = new PluginManager();
     pluginManager->loadDefaultPlugins();
     for (const auto &path : additionalPlugins) {
-        pluginManager->loadPlugin(path);
+        if (QFileInfo(path).isDir()) {
+            for (auto file : QDir(path).entryInfoList(QDir::Files)) {
+                if (file.filePath().endsWith(".dll") ||
+                    file.filePath().endsWith(".so")) {
+                    pluginManager->loadPlugin(file.filePath());
+                }
+            }
+        } else {
+            pluginManager->loadPlugin(path);
+        }
     }
     if (parser.isSet(pluginCwdOption)) {
         QDir dir = QDir::current();
