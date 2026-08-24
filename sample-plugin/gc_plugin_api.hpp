@@ -15,6 +15,7 @@
 #endif
 
 typedef void Effect;
+typedef void Property;
 typedef void ComputedProperty;
 typedef void Brush;
 
@@ -49,6 +50,12 @@ enum PropertyType {
     PROPERTY_TYPE_BRUSH,
 };
 
+enum SetPropertyType {
+    SET_DEFAULT = 0,
+    SET_MIN,
+    SET_MAX,
+};
+
 #if NDEBUG
 #else
 // NOLINTBEGIN
@@ -77,23 +84,39 @@ typedef bool PluginEffectRenderFunc_t(PluginInterface *pluginInterface,
 
 struct PluginFunctions {
     void (*log)(const char *msg);
-    void (*messageBox)(const char *msg, const char *title, MessageBoxIcon icon);
+    int (*messageBox)(const char *msg, const char *title, MessageBoxIcon icon,
+                      int reserved);
+
     Effect *(*createEffect)(PluginInitData *initData, const char *category,
                             const char *name, const char *displayName);
+
     void (*setEffectGetRenderBoxFunc)(Effect *effect,
                                       PluginEffectGetRenderBoxFunc_t func);
-    void *(*setEffectRenderFunc)(Effect *effect, PluginEffectRenderFunc_t func);
-    void *(*addEffectProperty)(Effect *effect, PropertyType type,
-                               const char *name);
+    void (*setEffectRenderFunc)(Effect *effect, PluginEffectRenderFunc_t func);
+
+    Property *(*addEffectProperty)(Effect *effect, PropertyType type,
+                                   const char *name);
     ComputedProperty *(*getEffectProperty)(
         PluginEffectRenderContext *renderContext, const char *name);
+
     int (*getPropertyInt)(ComputedProperty *property);
     double (*getPropertyDouble)(ComputedProperty *property);
     Color (*getPropertyColor)(ComputedProperty *property);
     Vector2DInt (*getPropertyVector2DInt)(ComputedProperty *property);
     bool (*getPropertyBool)(ComputedProperty *property);
     Brush *(*getPropertyBrush)(ComputedProperty *property);
+
     Color (*getBrushPixel)(Brush *brush, int x, int y, int w, int h);
+
+    void (*setPropertyInt)(Property *property, SetPropertyType type, int value);
+    void (*setPropertyDouble)(Property *property, SetPropertyType type,
+                              double value);
+    void (*setPropertyColor)(Property *property, SetPropertyType type,
+                             Color color);
+    void (*setPropertyVector2DInt)(Property *property, SetPropertyType type,
+                                   Vector2DInt value);
+    void (*setPropertyBool)(Property *property, SetPropertyType type,
+                            bool value);
 };
 
 struct PluginInterface {

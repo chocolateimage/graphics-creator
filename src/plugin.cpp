@@ -20,10 +20,12 @@ void pluginError(const QString &msg) {
 
 void log_def(const char *msg) { qInfo() << "[PLUGIN LOG]" << msg; }
 
-void messageBox_def(const char *msg, const char *title, MessageBoxIcon icon) {
+int messageBox_def(const char *msg, const char *title, MessageBoxIcon icon,
+                   int reserved) {
     QMessageBox msgBox((QMessageBox::Icon)icon, title, msg,
                        QMessageBox::NoButton, nullptr);
     msgBox.exec();
+    return 0;
 }
 
 PluginEffectInfo *createEffect_def(PluginInitData *initData,
@@ -67,15 +69,37 @@ void setEffectGetRenderBoxFunc_def(PluginEffectInfo *effect,
     effect->getRenderBoxFunc = func;
 }
 
-void addEffectProperty_def(PluginEffectInfo *effect, PropertyType type,
-                           const char *name) {
+PluginPropertyDefinition *addEffectProperty_def(PluginEffectInfo *effect,
+                                                PropertyType type,
+                                                const char *name) {
     if (!effect) {
         pluginError("effect is null");
     }
-    PluginPropertyDefinition definition;
-    definition.type = type;
-    definition.name = name;
+    PluginPropertyDefinition *definition = new PluginPropertyDefinition();
+    definition->type = type;
+    definition->name = name;
+    switch (type) {
+    case PROPERTY_TYPE_INT:
+        definition->defaultValue = 0;
+        break;
+    case PROPERTY_TYPE_DOUBLE:
+        definition->defaultValue = 0.0;
+        break;
+    case PROPERTY_TYPE_COLOR:
+        definition->defaultValue = Color{};
+        break;
+    case PROPERTY_TYPE_VECTOR2DINT:
+        definition->defaultValue = Vector2DInt{0, 0};
+        break;
+    case PROPERTY_TYPE_BRUSH:
+        definition->defaultValue = Brush{};
+        break;
+    case PROPERTY_TYPE_BOOL:
+        definition->defaultValue = false;
+        break;
+    }
     effect->properties.append(definition);
+    return definition;
 }
 
 PropertyRenderBase *
@@ -112,23 +136,58 @@ void *getPropertyBrush_def(PropertyRenderBase *property) {
     return &((PropertyRender<Brush> *)property)->value;
 }
 
+void setPropertyInt_def(PluginPropertyDefinition *property,
+                        SetPropertyType type, int value) {
+    property->setValue(value, type);
+}
+
+void setPropertyDouble_def(PluginPropertyDefinition *property,
+                           SetPropertyType type, double value) {
+    property->setValue(value, type);
+}
+
+void setPropertyColor_def(PluginPropertyDefinition *property,
+                          SetPropertyType type, Color value) {
+    property->setValue(value, type);
+}
+
+void setPropertyVector2DInt_def(PluginPropertyDefinition *property,
+                                SetPropertyType type, Vector2DInt value) {
+    property->setValue(value, type);
+}
+
+void setPropertyBool_def(PluginPropertyDefinition *property,
+                         SetPropertyType type, bool value) {
+    property->setValue(value, type);
+}
+
 PluginFunctions *createFunctions() {
     PluginFunctions *funcs = new PluginFunctions();
     funcs->log = log_def;
     funcs->messageBox = messageBox_def;
+
     funcs->createEffect = createEffect_def;
     funcs->setEffectRenderFunc = setEffectRenderFunc_def;
     funcs->setEffectGetRenderBoxFunc = setEffectGetRenderBoxFunc_def;
+
     funcs->addEffectProperty = addEffectProperty_def;
     funcs->getEffectProperty = getEffectProperty_def;
+
     funcs->getPropertyInt = getPropertyInt_def;
     funcs->getPropertyDouble = getPropertyDouble_def;
     funcs->getPropertyColor = getPropertyColor_def;
     funcs->getPropertyVector2DInt = getPropertyVector2DInt_def;
     funcs->getPropertyBool = getPropertyBool_def;
     funcs->getPropertyBrush = getPropertyBrush_def;
+
     funcs->getBrushPixel = getBrushPixel;
-    // funcs.setEffectPropertyValue = setEffectPropertyValue_def;
+
+    funcs->setPropertyInt = setPropertyInt_def;
+    funcs->setPropertyDouble = setPropertyDouble_def;
+    funcs->setPropertyColor = setPropertyColor_def;
+    funcs->setPropertyVector2DInt = setPropertyVector2DInt_def;
+    funcs->setPropertyBool = setPropertyBool_def;
+
     return funcs;
 }
 

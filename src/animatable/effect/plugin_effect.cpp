@@ -3,7 +3,7 @@
 PluginEffectRender::PluginEffectRender(PluginEffectInfo *info) : info(info) {
     for (const auto &definition : info->properties) {
         PropertyRenderBase *property = nullptr;
-        switch (definition.type) {
+        switch (definition->type) {
         case PROPERTY_TYPE_INT:
             property = new PropertyRender<int>(this);
             break;
@@ -24,34 +24,49 @@ PluginEffectRender::PluginEffectRender(PluginEffectInfo *info) : info(info) {
             break;
         }
 
-        pluginProperties[definition.name] = property;
+        pluginProperties[definition->name] = property;
     }
 }
 
 PluginEffectRender::~PluginEffectRender() { qDeleteAll(pluginProperties); }
 
+template <typename T>
+PropertyBase *
+PluginEffect::createProperty(PluginPropertyDefinition *definition) {
+    auto property = new Property<T>(this, definition->name.toStdString(),
+                                    std::get<T>(definition->defaultValue));
+    if (definition->hasMin) {
+        property->hasMin = true;
+        property->min = std::get<T>(definition->min);
+    }
+    if (definition->hasMax) {
+        property->hasMax = true;
+        property->max = std::get<T>(definition->max);
+    }
+    return property;
+}
+
 PluginEffect::PluginEffect(PluginEffectInfo *info) : info(info) {
     for (const auto &definition : info->properties) {
         PropertyBase *property = nullptr;
-        std::string name = definition.name.toStdString();
-        switch (definition.type) {
+        switch (definition->type) {
         case PROPERTY_TYPE_INT:
-            property = new Property<int>(this, name, 0);
+            property = createProperty<int>(definition);
             break;
         case PROPERTY_TYPE_DOUBLE:
-            property = new Property<double>(this, name, 0);
+            property = createProperty<double>(definition);
             break;
         case PROPERTY_TYPE_COLOR:
-            property = new Property<Color>(this, name, {});
+            property = createProperty<Color>(definition);
             break;
         case PROPERTY_TYPE_VECTOR2DINT:
-            property = new Property<Vector2DInt>(this, name, {});
+            property = createProperty<Vector2DInt>(definition);
             break;
         case PROPERTY_TYPE_BOOL:
-            property = new Property<bool>(this, name, false);
+            property = createProperty<bool>(definition);
             break;
         case PROPERTY_TYPE_BRUSH:
-            property = new Property<Brush>(this, name, {});
+            property = createProperty<Brush>(definition);
             break;
         }
 

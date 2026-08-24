@@ -23,6 +23,9 @@ class PluginEffect : public Effect {
     PluginEffect(PluginEffectInfo *info);
     ~PluginEffect();
 
+    template <typename T>
+    PropertyBase *createProperty(PluginPropertyDefinition *definition);
+
     QList<PropertyBase *> pluginProperties;
     PluginEffectInfo *info;
 

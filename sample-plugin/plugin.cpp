@@ -17,8 +17,6 @@ bool render(PluginInterface *intf, PluginEffectRenderContext *renderContext,
         intf->functions->getEffectProperty(renderContext, "strength"));
     auto foregroundBrush = intf->functions->getPropertyBrush(
         intf->functions->getEffectProperty(renderContext, "foreground"));
-    if (strength < 1)
-        strength = 1;
 
     for (int y = 0; y < sourceRect.h; y++) {
         for (int x = 0; x < sourceRect.w; x++) {
@@ -42,15 +40,31 @@ int gcPluginInit(PluginInterface *intf, PluginInitData *data) {
         data, "Sample Plugin", "sampleEffect", "Sample Effect");
     intf->functions->setEffectGetRenderBoxFunc(effect, getRenderBox);
     intf->functions->setEffectRenderFunc(effect, render);
-    intf->functions->addEffectProperty(effect, PROPERTY_TYPE_INT, "strength");
-    intf->functions->addEffectProperty(effect, PROPERTY_TYPE_DOUBLE,
-                                       "multiplier");
-    intf->functions->addEffectProperty(effect, PROPERTY_TYPE_BOOL, "isSmooth");
-    intf->functions->addEffectProperty(effect, PROPERTY_TYPE_COLOR,
-                                       "background");
+    Property *strength = intf->functions->addEffectProperty(
+        effect, PROPERTY_TYPE_INT, "strength");
+    intf->functions->setPropertyInt(strength, SET_MIN, 0);
+    intf->functions->setPropertyInt(strength, SET_MAX, 100);
+    intf->functions->setPropertyInt(strength, SET_DEFAULT, 20);
+
+    Property *multiplier = intf->functions->addEffectProperty(
+        effect, PROPERTY_TYPE_DOUBLE, "multiplier");
+    intf->functions->setPropertyDouble(multiplier, SET_DEFAULT, 20);
+
+    Property *isSmooth = intf->functions->addEffectProperty(
+        effect, PROPERTY_TYPE_BOOL, "isSmooth");
+    intf->functions->setPropertyBool(isSmooth, SET_DEFAULT, true);
+
+    Property *background = intf->functions->addEffectProperty(
+        effect, PROPERTY_TYPE_COLOR, "background");
+    intf->functions->setPropertyColor(background, SET_DEFAULT,
+                                      {23, 111, 227, 255});
+
     intf->functions->addEffectProperty(effect, PROPERTY_TYPE_BRUSH,
                                        "foreground");
-    intf->functions->addEffectProperty(effect, PROPERTY_TYPE_VECTOR2DINT,
-                                       "location");
+
+    Property *location = intf->functions->addEffectProperty(
+        effect, PROPERTY_TYPE_VECTOR2DINT, "location");
+    intf->functions->setPropertyVector2DInt(location, SET_DEFAULT, {300, 400});
+
     return 0;
 }

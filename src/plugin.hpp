@@ -32,6 +32,12 @@ enum PropertyType {
     PROPERTY_TYPE_BRUSH,
 };
 
+enum SetPropertyType {
+    SET_DEFAULT = 0,
+    SET_MIN,
+    SET_MAX,
+};
+
 struct PluginEffectRenderContext {
     PluginEffectRender *privateData;
     Rect renderBox;
@@ -53,6 +59,31 @@ class PluginPropertyDefinition {
   public:
     QString name;
     PropertyType type;
+
+    void setValue(VariantType val, SetPropertyType setType) {
+        switch (setType) {
+        case SET_DEFAULT: {
+            defaultValue = std::move(val);
+            break;
+        }
+        case SET_MIN: {
+            hasMin = true;
+            min = std::move(val);
+            break;
+        }
+        case SET_MAX: {
+            hasMax = true;
+            max = std::move(val);
+            break;
+        }
+        }
+    }
+
+    bool hasMin{false};
+    VariantType min;
+    bool hasMax{false};
+    VariantType max;
+    VariantType defaultValue;
 };
 
 class PluginEffectInfo {
@@ -60,30 +91,48 @@ class PluginEffectInfo {
     QString name;
     PluginEffectGetRenderBoxFunc_t *getRenderBoxFunc{nullptr};
     PluginEffectRenderFunc_t *renderFunc{nullptr};
-    QList<PluginPropertyDefinition> properties;
+    QList<PluginPropertyDefinition *> properties;
 };
 
 struct PluginFunctions {
     void (*log)(const char *msg);
-    void (*messageBox)(const char *msg, const char *title, MessageBoxIcon icon);
+    int (*messageBox)(const char *msg, const char *title, MessageBoxIcon icon,
+                      int reserved);
+
     PluginEffectInfo *(*createEffect)(PluginInitData *initData,
                                       const char *category, const char *name,
                                       const char *displayName);
+
     void (*setEffectGetRenderBoxFunc)(PluginEffectInfo *effect,
                                       PluginEffectGetRenderBoxFunc_t func);
     void (*setEffectRenderFunc)(PluginEffectInfo *effect,
                                 PluginEffectRenderFunc_t func);
-    void (*addEffectProperty)(PluginEffectInfo *effect, PropertyType type,
-                              const char *name);
+
+    PluginPropertyDefinition *(*addEffectProperty)(PluginEffectInfo *effect,
+                                                   PropertyType type,
+                                                   const char *name);
     PropertyRenderBase *(*getEffectProperty)(
         PluginEffectRenderContext *renderContext, const char *name);
+
     int (*getPropertyInt)(PropertyRenderBase *property);
     double (*getPropertyDouble)(PropertyRenderBase *property);
     Color (*getPropertyColor)(PropertyRenderBase *property);
     Vector2DInt (*getPropertyVector2DInt)(PropertyRenderBase *property);
     bool (*getPropertyBool)(PropertyRenderBase *property);
     void *(*getPropertyBrush)(PropertyRenderBase *property);
+
     Color (*getBrushPixel)(const Brush &brush, int x, int y, int w, int h);
+
+    void (*setPropertyInt)(PluginPropertyDefinition *property,
+                           SetPropertyType type, int value);
+    void (*setPropertyDouble)(PluginPropertyDefinition *property,
+                              SetPropertyType type, double value);
+    void (*setPropertyColor)(PluginPropertyDefinition *property,
+                             SetPropertyType type, Color color);
+    void (*setPropertyVector2DInt)(PluginPropertyDefinition *property,
+                                   SetPropertyType type, Vector2DInt value);
+    void (*setPropertyBool)(PluginPropertyDefinition *property,
+                            SetPropertyType type, bool value);
 };
 
 struct PluginInterface {
