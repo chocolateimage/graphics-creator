@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "LINUX: Run Graphics Creator Plugin",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/flatpak",
+            "args": ["run", "me.chocolateimage.graphics-creator", "--load-plugin", "${command:cmake.buildDirectory}"],
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "preLaunchTask": "Build Graphics Creator Plugin",
+        }
+    ]
+}
