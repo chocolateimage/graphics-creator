@@ -1,6 +1,6 @@
 # Plugin Development
 
-Plugins allow you to extend the functionality Graphics Creator with your own features. Currently, only custom effects are possible with the plugin API, but more is planned.
+Plugins allow you to extend the functionality of Graphics Creator with your own features. Currently, only custom effects are possible with the plugin API, but more is planned.
 
 Development of plugins is currently only supported on Windows and Linux.
 
@@ -92,7 +92,7 @@ sudo dnf install libstdc++-static
 
 #### 2. Load CMake
 
-Right click on CMakeLists.txt, then click on "Load CMake Project".
+In CLion with the project open, right click on CMakeLists.txt, then click on "Load CMake Project".
 
 ![](assets/clion-load-cmake.png)
 
