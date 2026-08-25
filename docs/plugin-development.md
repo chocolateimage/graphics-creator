@@ -136,14 +136,14 @@ In these locations you have to change the name:
 
 ### Defining Effects
 
-Effects must be defined in `gcPluginInit()` with the `intf->functions->createEffect()` function:
+Effects are defined in `gcPluginInit()` with the `intf->functions->createEffect()` function:
 
 | Parameter     | Type               | Description                                                                                                                                                |
 | ------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `initData`    | `PluginInitData *` | The init data from `gcPluginInit()`                                                                                                                        |
-| `category`    | `const char *`     | A string of the category to separate effects in the effects menu. If multiple effects have the same category, they will be joined together.                |
+| `category`    | `const char *`     | A string of the category display name to group effects in the effects menu. If multiple effects have the same category, they will be joined together.      |
 | `name`        | `const char *`     | A string of the effect ID. This will be used for identifying the effect in project files. If you change this, then the old effect can no longer be opened. |
-| `displayName` | `const char *`     | A string of what will be displayed when the effect is mentioned.                                                                                           |
+| `displayName` | `const char *`     | A string of what will be displayed in the UI for the effect.                                                                                               |
 | ---           | ---                | ---                                                                                                                                                        |
 | **Returns**   | `Effect *`         | A pointer to an object containing the effect definition.                                                                                                   |
 
@@ -157,10 +157,10 @@ Effect *effect = intf->functions->createEffect(data, "Style", "texturize", "Text
 
 You can add properties to the effect with the `intf->functions->addEffectProperty()` function:
 
-| Parameter   | Type           | Description                                                                                                                                                                                   |
-| ----------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `effect`    | `Effect *`     | An effect definition                                                                                                                                                                          |
-| `category`  | `PropertyType` | Enum of the type of the property. Can be one of `PROPERTY_TYPE_INT`, `PROPERTY_TYPE_DOUBLE`, `PROPERTY_TYPE_COLOR`, `PROPERTY_TYPE_VECTOR2DINT`, `PROPERTY_TYPE_BOOL`, `PROPERTY_TYPE_BRUSH`. |
-| `name`      | `const char *` | The ID of the property in camelCase. The display name will automatically be created from the ID.                                                                                              |
-| ---         | ---            | ---                                                                                                                                                                                           |
-| **Returns** | `Property *`   | Returns a pointer to an object containing the property definition. .                                                                                                                          |
+| Parameter   | Type           | Description                                                                                                                                                                                                                                   |
+| ----------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effect`    | `Effect *`     | An effect definition                                                                                                                                                                                                                          |
+| `type`      | `PropertyType` | Enum of the type of the property. Types are:<ul><li>`PROPERTY_TYPE_INT`</li><li>`PROPERTY_TYPE_DOUBLE`</li><li>`PROPERTY_TYPE_COLOR`</li><li>`PROPERTY_TYPE_VECTOR2DINT`</li><li>`PROPERTY_TYPE_BOOL`</li><li>`PROPERTY_TYPE_BRUSH`</li></ul> |
+| `name`      | `const char *` | The ID of the property in camelCase. The display name will automatically be created from the ID.                                                                                                                                              |
+| ---         | ---            | ---                                                                                                                                                                                                                                           |
+| **Returns** | `Property *`   | Returns a pointer to an object containing the property definition. .                                                                                                                                                                          |
