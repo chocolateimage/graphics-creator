@@ -131,3 +131,36 @@ In these locations you have to change the name:
 - plugin.cpp:
   - `data->id = "<name>";` in camelCase. Changing this will cause old effects saved in a project file to no longer work, as the plugin ID will be used to identify the effects.
   - `data->name = "<name>";` This will be the display name. No issues will happen when changing this. You can name it however you like.
+
+## Effects API
+
+### Defining Effects
+
+Effects must be defined in `gcPluginInit()` with the `intf->functions->createEffect()` function:
+
+| Parameter     | Type               | Description                                                                                                                                                |
+| ------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initData`    | `PluginInitData *` | The init data from `gcPluginInit()`                                                                                                                        |
+| `category`    | `const char *`     | A string of the category to separate effects in the effects menu. If multiple effects have the same category, they will be joined together.                |
+| `name`        | `const char *`     | A string of the effect ID. This will be used for identifying the effect in project files. If you change this, then the old effect can no longer be opened. |
+| `displayName` | `const char *`     | A string of what will be displayed when the effect is mentioned.                                                                                           |
+| ---           | ---                | ---                                                                                                                                                        |
+| **Returns**   | `Effect *`         | A pointer to an object containing the effect definition.                                                                                                   |
+
+Example:
+
+```cpp
+Effect *effect = intf->functions->createEffect(data, "Style", "texturize", "Texturize");
+```
+
+#### Properties
+
+You can add properties to the effect with the `intf->functions->addEffectProperty()` function:
+
+| Parameter   | Type           | Description                                                                                                                                                                                   |
+| ----------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effect`    | `Effect *`     | An effect definition                                                                                                                                                                          |
+| `category`  | `PropertyType` | Enum of the type of the property. Can be one of `PROPERTY_TYPE_INT`, `PROPERTY_TYPE_DOUBLE`, `PROPERTY_TYPE_COLOR`, `PROPERTY_TYPE_VECTOR2DINT`, `PROPERTY_TYPE_BOOL`, `PROPERTY_TYPE_BRUSH`. |
+| `name`      | `const char *` | The ID of the property in camelCase. The display name will automatically be created from the ID.                                                                                              |
+| ---         | ---            | ---                                                                                                                                                                                           |
+| **Returns** | `Property *`   | Returns a pointer to an object containing the property definition. .                                                                                                                          |
