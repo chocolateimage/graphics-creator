@@ -80,3 +80,40 @@ To do this, open the CMake tab on the navigation bar, then under "Configure" und
 ![](assets/code-target.png)
 
 ### Linux: CLion
+
+#### 1. Install libraries
+
+To be able to build, you may have to install certain libraries:
+
+```bash
+# Fedora
+sudo dnf install libstdc++-static
+```
+
+#### 2. Load CMake
+
+Right click on CMakeLists.txt, then click on "Load CMake Project".
+
+![](assets/clion-load-cmake.png)
+
+#### 3. Select CMake Profiles
+
+By default, CLion doesn't use the project profile presets, so you have to enable them manually.
+
+To do this, on the top right corner select "Debug | GDB" and then "Edit CMake Profiles...":
+
+![](assets/clion-edit-profiles.png)
+
+Then delete the default "Debug" profile:
+
+![](assets/clion-delete-default.png)
+
+And enable the preset profiles:
+
+![](assets/clion-enable-profiles.png)
+
+#### 5. Test in release
+
+In case you want to test or build in release mode, which is recommended for distribution, switch the target next to the run button.
+
+![](assets/clion-target.png)
