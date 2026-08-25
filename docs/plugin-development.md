@@ -112,7 +112,7 @@ And enable the preset profiles:
 
 ![](assets/clion-enable-profiles.png)
 
-#### 5. Test in release
+#### 4. Test in release
 
 In case you want to test or build in release mode, which is recommended for distribution, switch the target next to the run button.
 
