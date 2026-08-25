@@ -117,3 +117,17 @@ And enable the preset profiles:
 In case you want to test or build in release mode, which is recommended for distribution, switch the target next to the run button.
 
 ![](assets/clion-target.png)
+
+## Rename Plugin
+
+By default, the plugin sample is called "Sample Plugin". Most likely you would want to change the name.
+
+In these locations you have to change the name:
+
+- CMakeLists.txt:
+  - `project(<name>` in PascalCase
+  - `add_library(<name>` in kebab-case
+  - `target_link_options(<name>` in kebab-case
+- plugin.cpp:
+  - `data->id = "<name>";` in camelCase. Changing this will cause old effects saved in a project file to no longer work, as the plugin ID will be used to identify the effects.
+  - `data->name = "<name>";` This will be the display name. No issues will happen when changing this. You can name it however you like.

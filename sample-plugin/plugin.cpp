@@ -44,7 +44,7 @@ int gcPluginInit(PluginInterface *intf, PluginInitData *data) {
     data->version = "1.0.0";
 
     Effect *effect =
-        intf->functions->createEffect(data, "Sample Plugin", "demo", "Demo");
+        intf->functions->createEffect(data, data->name, "demo", "Demo");
     intf->functions->setEffectGetRenderBoxFunc(effect, getRenderBox);
     intf->functions->setEffectRenderFunc(effect, render);
 
