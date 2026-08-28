@@ -1255,10 +1255,16 @@ void NewMainWindow::newSlot() {
     tempScene->frameRate = settings.value("scene/frameRate", 30).toDouble();
     tempScene->durationFrames =
         settings.value("scene/durationFrames", 150).toInt();
-    VideoSettingsDialog *dialog = new VideoSettingsDialog(tempScene, this);
-    if (!dialog->exec()) {
-        delete tempScene;
-        return;
+
+    bool showDialog =
+        !QApplication::keyboardModifiers().testFlag(Qt::ShiftModifier);
+
+    if (showDialog) {
+        VideoSettingsDialog *dialog = new VideoSettingsDialog(tempScene, this);
+        if (!dialog->exec()) {
+            delete tempScene;
+            return;
+        }
     }
 
     settings.setValue("scene/width", tempScene->width);
