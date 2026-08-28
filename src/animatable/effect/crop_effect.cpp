@@ -9,12 +9,18 @@ CropEffect::CropEffect() {
 }
 
 Rect CropEffectRender::getRenderBox(const Rect &lastBox) {
-    return {lastBox.x + left, lastBox.y + top, lastBox.w - right - left,
-            lastBox.h - bottom - top};
+    return {lastBox.x + std::min(left.get(), lastBox.w),
+            lastBox.y + std::min(top.get(), lastBox.h),
+            std::max(lastBox.w - right - left, 1),
+            std::max(lastBox.h - bottom - top, 1)};
 }
 
 bool CropEffectRender::render(const uint32_t *source, const Rect &sourceRect,
                               uint32_t *target) {
+    if (sourceRect.w - right - left < 1 || sourceRect.h - bottom - top < 1) {
+        return true;
+    }
+
     Rect rect = renderBox;
     int finalX = left;
     int finalY = top;
