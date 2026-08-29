@@ -169,6 +169,8 @@ Font Font::fromPattern(const std::string &str) {
     std::string family((char *)rawFamily);
     std::string fileName((char *)rawFileName);
     std::string style((char *)rawStyle);
+    FcPatternDestroy(pattern);
+    FcPatternDestroy(font);
     return Font{
         .path = fileName,
         .index = fontIndex,
