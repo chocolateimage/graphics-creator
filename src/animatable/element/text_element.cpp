@@ -271,6 +271,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
                 lerp(item.opacity, animator->opacity.get() / 100., percent), 0.,
                 1.);
             item.strokeWidth += animator->strokeWidth * percent;
+            item.fontSizeOffset += animator->fontSize * percent;
             curX += animator->letterSpacing * percent;
         }
         item.line = line;
@@ -308,6 +309,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
         hb_glyph_position_t *positions =
             hb_buffer_get_glyph_positions(hbBuffer, &glyphCount);
 
+        int advanced = 0;
         for (unsigned int i = 0; i < glyphCount; i++) {
             auto glyphPos = positions[i];
             int xOffset = glyphPos.x_offset >> 6;
@@ -320,9 +322,11 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             maxX = std::max(maxX, curX + xAdvance);
             maxY = std::max(maxY, curY + yAdvance + span.fontSize);
 
+            advanced += xAdvance;
             curX += xAdvance;
             curY += yAdvance;
         }
+        item.advanced = advanced;
 
         hb_buffer_destroy(hbBuffer);
 
@@ -494,8 +498,13 @@ void TextElementRender::prepare() {
 
         hb_buffer_guess_segment_properties(hbBuffer);
 
+        int fontSize = std::max(1, span.fontSize + item.fontSizeOffset);
+        double multiplier = 1 - ((double)fontSize / span.fontSize);
+        item.startPoint.setX(item.startPoint.x() +
+                             item.advanced * multiplier / 2);
+
         FontInfo *fontInfo = renderThread->fontManager->getFont(
-            span.font, std::max(1, span.fontSize), span.antialiased, {});
+            span.font, fontSize, span.antialiased, {});
         if (!fontInfo)
             continue;
         fontInfos.push_back(fontInfo);
@@ -504,8 +513,7 @@ void TextElementRender::prepare() {
 
         if (span.strokeWidth > 0) {
             FontInfo *strokeFontInfo = renderThread->fontManager->getFont(
-                span.font, std::max(1, span.fontSize), span.antialiased,
-                span.strokeInfo());
+                span.font, fontSize, span.antialiased, span.strokeInfo());
             if (strokeFontInfo) {
                 strokeFontInfos.push_back(strokeFontInfo);
             }
@@ -643,6 +651,8 @@ bool TextElementRender::render(uint32_t *target) {
             FontInfo *strokeFontInfo = strokeFontInfos[si];
             if (!strokeFontInfo)
                 continue;
+            if (strokeFontInfo->pixelHeight <= 1)
+                continue;
 
             int xOffset = (glyphPos.x_offset >> 6);
             int yOffset = (glyphPos.y_offset >> 6);
@@ -666,7 +676,11 @@ bool TextElementRender::render(uint32_t *target) {
         for (unsigned int i = 0; i < glyphCounts[si]; i++) {
             auto glyphPos = positions[si][i];
             auto codepoint = infos[si][i].codepoint;
-            auto glyph = fontInfos[si]->getGlyph(infos[si][i].codepoint);
+            FontInfo *fontInfo = fontInfos[si];
+            if (fontInfo->pixelHeight <= 1)
+                continue;
+
+            auto glyph = fontInfo->getGlyph(infos[si][i].codepoint);
 
             int xOffset = (glyphPos.x_offset >> 6);
             int yOffset = (glyphPos.y_offset >> 6);
