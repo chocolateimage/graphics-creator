@@ -237,8 +237,8 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
     // 0x0 is actually not top left corner of the rendered box, but instead it's
     // the bottom left of the first line
-    int curX = 0;
-    int curY = 0;
+    double curX = 0;
+    double curY = 0;
 
     int minX = INT32_MAX;
     int minY = INT32_MAX;
@@ -251,8 +251,8 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
     QList<int> lineWidths;
     for (auto &span : spans.spans) {
         TextLayoutItem item;
-        int offsetX = 0;
-        int offsetY = 0;
+        double offsetX = 0;
+        double offsetY = 0;
         for (auto animator : textAnimators) {
             double percent = 0;
             for (auto selector : animator->selectors) {
@@ -275,7 +275,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             curX += animator->letterSpacing * percent;
         }
         item.line = line;
-        item.startPoint = {curX + offsetX, curY + offsetY};
+        item.startPoint = {(int)(curX + offsetX), (int)(curY + offsetY)};
         item.height = span.fontSize;
 
         if (span.text == " ")
@@ -283,10 +283,11 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
 
         if (span.newLine) {
             lineWidths.append(curX);
-            item.selectionEndPoint = {curX + (int)(span.fontSize * .3), curY};
+            item.selectionEndPoint = {(int)(curX + (span.fontSize * .3)),
+                                      (int)curY};
             curX = 0;
             curY += layout.lineHeights[line + 1];
-            item.endPoint = {curX, curY};
+            item.endPoint = {(int)curX, (int)curY};
             line++;
             character++;
             layout.items.append(item);
@@ -312,15 +313,14 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
         int advanced = 0;
         for (unsigned int i = 0; i < glyphCount; i++) {
             auto glyphPos = positions[i];
-            int xOffset = glyphPos.x_offset >> 6;
-            int yOffset = glyphPos.y_offset >> 6;
-            int xAdvance = glyphPos.x_advance >> 6;
-            int yAdvance = glyphPos.y_advance >> 6;
+            double xAdvance = glyphPos.x_advance / 64.;
+            double yAdvance = glyphPos.y_advance / 64.;
 
-            minX = std::min(minX, curX);
-            minY = std::min(minY, curY);
-            maxX = std::max(maxX, curX + xAdvance);
-            maxY = std::max(maxY, curY + yAdvance + span.fontSize);
+            minX = std::min(minX, (int)curX);
+            minY = std::min(minY, (int)curY);
+            maxX = std::max(maxX, (int)std::ceil(curX + xAdvance));
+            maxY =
+                std::max(maxY, (int)std::ceil(curY + yAdvance + span.fontSize));
 
             advanced += xAdvance;
             curX += xAdvance;
@@ -337,7 +337,7 @@ TextLayout layoutText(FontManager *fontManager, const TextSpans &spans,
             curY += layout.lineHeights[line];
         }
 
-        item.endPoint = {curX + offsetX, curY + offsetY};
+        item.endPoint = {(int)(curX + offsetX), (int)(curY + offsetY)};
         item.selectionEndPoint = item.endPoint;
         layout.items.append(item);
         character++;
