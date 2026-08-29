@@ -18,6 +18,7 @@ typedef void Effect;
 typedef void Property;
 typedef void ComputedProperty;
 typedef void Brush;
+typedef void ElementSelection;
 
 struct PluginInitData;
 struct PluginInterface;
@@ -34,6 +35,11 @@ struct Vector2DInt {
     int x, y;
 };
 
+struct ElementSelectionSnippet {
+    Rect rect;
+    const uint32_t *__restrict__ values;
+};
+
 enum MessageBoxIcon {
     MSGBOX_NONE = 0,
     MSGBOX_INFO,
@@ -48,6 +54,7 @@ enum PropertyType {
     PROPERTY_TYPE_VECTOR2DINT,
     PROPERTY_TYPE_BOOL,
     PROPERTY_TYPE_BRUSH,
+    PROPERTY_TYPE_ELEMENT_SELECTION,
 };
 
 enum SetPropertyType {
@@ -119,6 +126,12 @@ struct PluginFunctions {
                             bool value);
 
     void (*addPropertyMenuItem)(Property *property, const char *label);
+
+    ElementSelection *(*getPropertyElementSelection)(
+        ComputedProperty *property);
+    ElementSelectionSnippet (*getSnippet)(
+        PluginEffectRenderContext *renderContext,
+        ElementSelection *elementSelection);
 };
 
 struct PluginInterface {

@@ -11,6 +11,7 @@ typedef void *Library_t;
 
 struct PluginInitData;
 struct PluginInterface;
+struct ElementSelectionSnippet;
 class PluginEffectRender;
 class PropertyRenderBase;
 
@@ -30,6 +31,7 @@ enum PropertyType {
     PROPERTY_TYPE_VECTOR2DINT,
     PROPERTY_TYPE_BOOL,
     PROPERTY_TYPE_BRUSH,
+    PROPERTY_TYPE_ELEMENT_SELECTION,
 };
 
 enum SetPropertyType {
@@ -137,6 +139,11 @@ struct PluginFunctions {
 
     void (*addPropertyMenuItem)(PluginPropertyDefinition *property,
                                 const char *label);
+
+    void *(*getPropertyElementSelection)(PropertyRenderBase *property);
+    ElementSelectionSnippet (*getSnippet)(
+        PluginEffectRenderContext *renderContext,
+        ElementSelection *elementSelection);
 };
 
 struct PluginInterface {

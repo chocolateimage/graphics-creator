@@ -22,6 +22,9 @@ PluginEffectRender::PluginEffectRender(PluginEffectInfo *info) : info(info) {
         case PROPERTY_TYPE_BRUSH:
             property = new PropertyRender<Brush>(this);
             break;
+        case PROPERTY_TYPE_ELEMENT_SELECTION:
+            property = new PropertyRender<ElementSelection>(this);
+            break;
         }
 
         pluginProperties[definition->name] = property;
@@ -75,6 +78,9 @@ PluginEffect::PluginEffect(PluginEffectInfo *info) : info(info) {
             break;
         case PROPERTY_TYPE_BRUSH:
             property = createProperty<Brush>(definition);
+            break;
+        case PROPERTY_TYPE_ELEMENT_SELECTION:
+            property = createProperty<ElementSelection>(definition);
             break;
         }
 

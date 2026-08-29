@@ -6,8 +6,9 @@ void getRenderBox(PluginInterface *intf,
                   const Rect &lastBox) {
     int strength = intf->functions->getPropertyInt(
         intf->functions->getEffectProperty(renderContext, "strength"));
-    renderContext->renderBox = {lastBox.x - strength, lastBox.y - 30, lastBox.w,
-                                lastBox.h};
+    renderContext->renderBox = {lastBox.x - strength, lastBox.y - strength,
+                                lastBox.w + strength * 2,
+                                lastBox.h + strength * 2};
 }
 
 bool render(PluginInterface *intf, PluginEffectRenderContext *renderContext,
@@ -21,18 +22,57 @@ bool render(PluginInterface *intf, PluginEffectRenderContext *renderContext,
         intf->functions->getEffectProperty(renderContext, "background"));
     auto foregroundBrush = intf->functions->getPropertyBrush(
         intf->functions->getEffectProperty(renderContext, "foreground"));
+    auto transparency = intf->functions->getPropertyElementSelection(
+        intf->functions->getEffectProperty(renderContext, "transparency"));
+    auto transparencySnippet =
+        intf->functions->getSnippet(renderContext, transparency);
 
-    for (int y = 0; y < sourceRect.h; y++) {
-        for (int x = 0; x < sourceRect.w; x++) {
-            auto [r, g, b, a] =
-                extractRGBA(source[pixelIndex(x, y, sourceRect.w)]);
-            Color c = type == 0
-                          ? background
-                          : intf->functions->getBrushPixel(foregroundBrush, x,
-                                                           y, sourceRect.w,
-                                                           sourceRect.h);
+    for (int y = 0; y < rect.h; y++) {
+        for (int x = 0; x < rect.w; x++) {
+
+            uint8_t finalR = 0;
+            uint8_t finalG = 0;
+            uint8_t finalB = 0;
+            uint8_t finalA = 255;
+
+            if (x < strength || y < strength || x >= rect.w - strength ||
+                y >= rect.h - strength) {
+                Color c = type == 0
+                              ? background
+                              : intf->functions->getBrushPixel(
+                                    foregroundBrush, x, y, rect.w, rect.h);
+                finalR = c.r;
+                finalG = c.g;
+                finalB = c.b;
+                finalA = c.a;
+            } else {
+                auto [r, g, b, a] = extractRGBA(source[pixelIndex(
+                    x - strength, y - strength, sourceRect.w)]);
+                finalR = r;
+                finalG = g;
+                finalB = b;
+                finalA = a;
+            }
+
+            float alphaMultiplier = 1;
+            if (transparencySnippet.values) {
+                int snippetX = x - transparencySnippet.rect.x + rect.x;
+                int snippetY = y - transparencySnippet.rect.y + rect.y;
+                if (snippetX >= 0 && snippetY >= 0 &&
+                    snippetX < transparencySnippet.rect.w &&
+                    snippetY < transparencySnippet.rect.h) {
+                    uint8_t alphaValue =
+                        transparencySnippet.values[pixelIndex(
+                            snippetX, snippetY, transparencySnippet.rect.w)] >>
+                        24;
+                    alphaMultiplier = alphaValue / 255.;
+                } else {
+                    alphaMultiplier = 0;
+                }
+            }
+
             target[pixelIndex(x, y, renderContext->renderBox.w)] =
-                makePixel(c.r, c.g, c.b, c.a);
+                makePixel(finalR, finalG, finalB, finalA * alphaMultiplier);
         }
     }
     return true;
@@ -78,6 +118,9 @@ int gcPluginInit(PluginInterface *intf, PluginInitData *data) {
     Property *location = intf->functions->addEffectProperty(
         effect, PROPERTY_TYPE_VECTOR2DINT, "location");
     intf->functions->setPropertyVector2DInt(location, SET_DEFAULT, {300, 400});
+
+    intf->functions->addEffectProperty(effect, PROPERTY_TYPE_ELEMENT_SELECTION,
+                                       "transparency");
 
     return 0;
 }

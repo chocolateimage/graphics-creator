@@ -2,6 +2,7 @@
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/effect/plugin_effect.hpp"
 #include "brush.hpp"
+#include "render.hpp"
 #include <QDir>
 #include <QMessageBox>
 #include <QStandardPaths>
@@ -97,6 +98,9 @@ PluginPropertyDefinition *addEffectProperty_def(PluginEffectInfo *effect,
     case PROPERTY_TYPE_BOOL:
         definition->defaultValue = false;
         break;
+    case PROPERTY_TYPE_ELEMENT_SELECTION:
+        definition->defaultValue = ElementSelection{};
+        break;
     }
     effect->properties.append(definition);
     return definition;
@@ -136,6 +140,10 @@ void *getPropertyBrush_def(PropertyRenderBase *property) {
     return &((PropertyRender<Brush> *)property)->value;
 }
 
+void *getPropertyElementSelection_def(PropertyRenderBase *property) {
+    return &((PropertyRender<ElementSelection> *)property)->value;
+}
+
 void setPropertyInt_def(PluginPropertyDefinition *property,
                         SetPropertyType type, int value) {
     property->setValue(value, type);
@@ -166,6 +174,12 @@ void addPropertyMenuItem_def(PluginPropertyDefinition *property,
     property->menuItems.append(label);
 }
 
+ElementSelectionSnippet getSnippet_def(PluginEffectRenderContext *renderContext,
+                                       ElementSelection *elementSelection) {
+    return renderContext->privateData->renderThread->getSnippet(
+        *elementSelection);
+}
+
 PluginFunctions *createFunctions() {
     PluginFunctions *funcs = new PluginFunctions();
     funcs->log = log_def;
@@ -184,8 +198,10 @@ PluginFunctions *createFunctions() {
     funcs->getPropertyVector2DInt = getPropertyVector2DInt_def;
     funcs->getPropertyBool = getPropertyBool_def;
     funcs->getPropertyBrush = getPropertyBrush_def;
+    funcs->getPropertyElementSelection = getPropertyElementSelection_def;
 
     funcs->getBrushPixel = getBrushPixel;
+    funcs->getSnippet = getSnippet_def;
 
     funcs->setPropertyInt = setPropertyInt_def;
     funcs->setPropertyDouble = setPropertyDouble_def;
