@@ -648,12 +648,20 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     FrameInfo frameInfo{scene->currentFrame};
 
     if (activeResizeMode != -1) {
+        bool proportional =
+            QApplication::keyboardModifiers().testFlag(Qt::ShiftModifier);
+        bool centered =
+            QApplication::keyboardModifiers().testFlag(Qt::ControlModifier);
         ResizeMode &resizeMode = resizeModes[activeResizeMode];
         int resizeX = pixelPos.x() - startResizePosition.x();
         int resizeY = pixelPos.y() - startResizePosition.y();
+        if (centered) {
+            resizeX *= 2;
+            resizeY *= 2;
+        }
 
         if (resizeMode.sizeX != 0 && resizeMode.sizeY != 0) {
-            if (QApplication::keyboardModifiers().testFlag(Qt::ShiftModifier)) {
+            if (proportional) {
                 float aspectRatio =
                     (float)startResizeRect.width() / startResizeRect.height();
                 if (startResizeRect.width() > startResizeRect.height()) {
@@ -684,6 +692,10 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         }
         int targetX = resizeX * resizeMode.moveX + startResizeRect.x();
         int targetY = resizeY * resizeMode.moveY + startResizeRect.y();
+        if (centered) {
+            targetX = startResizeRect.x() - resizeX / 2;
+            targetY = startResizeRect.y() - resizeY / 2;
+        }
 
         if (resizeElement->x.get(frameInfo) != targetX) {
             resizeElement->x.set(targetX, frameInfo);
