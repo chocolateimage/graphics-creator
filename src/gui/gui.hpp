@@ -72,6 +72,7 @@ class NewMainWindow : public QMainWindow {
     QAction *controlRectangle;
     QAction *controlEllipse;
     QAction *controlText;
+    QAction *controlPen;
     QAction *controlImport;
 
     QStatusBar *statusBar;

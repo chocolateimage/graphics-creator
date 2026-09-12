@@ -40,6 +40,7 @@ class ImageViewer : public QWidget {
     enum PickType {
         Point,
         Rect,
+        Pen,
     };
 
     explicit ImageViewer(Scene *scene, QWidget *parent = nullptr);
@@ -71,6 +72,7 @@ class ImageViewer : public QWidget {
     QRect getPickRect();
     void updateCursor();
     Scene *scene;
+    Path newPath;
 
     std::vector<ResizeMode> resizeModes;
 

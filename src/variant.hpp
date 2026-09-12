@@ -110,6 +110,18 @@ struct Brush {
     bool operator!=(const Brush &other) const { return !operator==(other); }
 };
 
+struct PathPoint {
+    int x{0};
+    int y{0};
+    int curveX{0};
+    int curveY{0};
+};
+
+struct Path {
+    QList<PathPoint> points;
+    bool closed = false;
+};
+
 class TextSpan {
   public:
     TextSpan() {}

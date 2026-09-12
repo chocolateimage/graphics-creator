@@ -16,6 +16,7 @@
 #include <QMimeDatabase>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QToolButton>
 #include <QToolTip>
 
@@ -462,6 +463,30 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
                              bottomRight.y() - topLeft.y());
         }
     }
+
+    if (isPicking && pickType == PickType::Pen) {
+        painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
+        painter.setPen(QPen(QColor(255, 255, 255), 2));
+        painter.setBrush(Qt::NoBrush);
+        QPainterPath painterPath;
+        if (!newPath.points.isEmpty()) {
+            QPointF actualPoint = pixelToViewport(
+                {(qreal)newPath.points[0].x, (qreal)newPath.points[0].y});
+            painterPath.moveTo(actualPoint);
+        }
+        for (int i = 1; i < newPath.points.length(); i++) {
+            auto point = newPath.points[i];
+            auto lastPoint = newPath.points[i - 1];
+            QPointF actualPoint =
+                pixelToViewport({(qreal)point.x, (qreal)point.y});
+            QPointF actualPointLast =
+                pixelToViewport({(qreal)lastPoint.x, (qreal)lastPoint.y});
+            painterPath.quadTo(((actualPointLast + actualPoint) / 2) +
+                                   QPointF(point.curveX, point.curveY),
+                               actualPoint);
+        }
+        painter.drawPath(painterPath);
+    }
 }
 
 void ImageViewer::paintSnapVisualRect(QPainter &painter,
@@ -634,6 +659,14 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
 
     if (isPicking) {
         pickPosition = pixelPos;
+
+        if (pickType == PickType::Pen) {
+            if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
+                PathPoint &point = newPath.points.last();
+                point.curveX = pixelPos.x() - point.x;
+                point.curveY = pixelPos.y() - point.y;
+            }
+        }
 
         update();
 
@@ -1057,6 +1090,10 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
             } else if (pickType == PickType::Rect) {
                 startPickPosition = pickPosition;
                 update();
+            } else if (pickType == PickType::Pen) {
+                newPath.points.append(
+                    PathPoint{pickPosition.x(), pickPosition.y()});
+                update();
             }
 
             return;
@@ -1343,6 +1380,9 @@ void ImageViewer::beginPicking(const QString &id, const QString &infoText,
     this->pickType = pickType;
     pickId = id;
     pickText = infoText;
+    if (pickType == PickType::Pen) {
+        newPath = {};
+    }
     updateCursor();
     update();
 }
@@ -1355,7 +1395,14 @@ void ImageViewer::stopPicking() {
 
 void ImageViewer::updateCursor() {
     if (isPicking) {
-        setCursor(Qt::CursorShape::CrossCursor);
+        if (pickType == PickType::Pen) {
+            QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");
+            pix.setDevicePixelRatio(3);
+            QCursor cursor(pix, 4, 4);
+            setCursor(cursor);
+        } else {
+            setCursor(Qt::CursorShape::CrossCursor);
+        }
         return;
     }
 

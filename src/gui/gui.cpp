@@ -476,6 +476,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlEllipse->setShortcut(QKeySequence("E"));
     controlText = toolBar->addAction(QIcon::fromTheme("draw-text"), "Text");
     controlText->setShortcut(QKeySequence("T"));
+    controlPen = toolBar->addAction(QIcon::fromTheme("draw-path"), "Pen");
+    controlPen->setShortcut(QKeySequence("G"));
     toolBar->addSeparator();
     controlImport = toolBar->addAction(QIcon::fromTheme("download"), "Import…");
     controlImport->setToolTip("Add media files to scene");
@@ -487,6 +489,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     editMenu->addAction(controlRectangle);
     editMenu->addAction(controlEllipse);
     editMenu->addAction(controlText);
+    editMenu->addAction(controlPen);
 
     fileMenu->insertAction(insertSeparator, controlImport);
 
@@ -494,11 +497,13 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlRectangle->setActionGroup(controlsGroup);
     controlEllipse->setActionGroup(controlsGroup);
     controlText->setActionGroup(controlsGroup);
+    controlPen->setActionGroup(controlsGroup);
 
     controlSelect->setCheckable(true);
     controlRectangle->setCheckable(true);
     controlEllipse->setCheckable(true);
     controlText->setCheckable(true);
+    controlPen->setCheckable(true);
 
     controlSelect->setChecked(true);
 
@@ -509,6 +514,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(controlEllipse, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
     connect(controlText, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlPen, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
     connect(controlImport, &QAction::triggered, this,
             &NewMainWindow::importClicked);
@@ -1507,6 +1514,8 @@ void NewMainWindow::taskCompleted(FrameTask *task) {
 void NewMainWindow::controlsUpdated() {
     if (controlSelect->isChecked()) {
         scenePreviewWidget->stopPicking();
+    } else if (controlPen->isChecked()) {
+        scenePreviewWidget->beginPicking("", "", ImageViewer::Pen);
     } else {
         scenePreviewWidget->beginPicking("", "", ImageViewer::Rect);
     }
