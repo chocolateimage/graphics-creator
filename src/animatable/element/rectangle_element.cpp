@@ -32,6 +32,7 @@ bool RectangleElementRender::render(uint32_t *target) {
     int roundness = std::min(this->roundness.get(), std::min(h / 2, w / 2));
     auto fill = this->fill;
     auto stroke = this->stroke;
+    bool hasStroke = strokeWidth > 0;
 
     for (int y = 0; y < rect.h; y++) {
         for (int x = 0; x < rect.w; x++) {
@@ -43,23 +44,20 @@ bool RectangleElementRender::render(uint32_t *target) {
                             : roundedRect(sx - w * 0.5f, sy - h * 0.5f,
                                           w * 0.5f, h * 0.5f, roundness);
             Color fc = getBrushPixel(fill, sx, sy, w, h);
-            float fv = 1 - linearstep(-.5, .5, sdf);
-            // TODO: there's a gap between the stroke and fill
-            float sv = strokeWidth > 0
-                           ? ((1 - linearstep(-.5 + strokeWidth,
-                                              .5 + strokeWidth, sdf)) -
-                              fv)
-                           : 0;
+            float fillValue = 1 - linearstep(-.5, .5, sdf);
+            float totalValue = hasStroke ? 1 - linearstep(-.5 + strokeWidth,
+                                                          .5 + strokeWidth, sdf)
+                                         : 0;
+            float strokeValue = hasStroke ? totalValue - fillValue : 0;
 
-            fc.a *= fv;
-
-            if (sv > 0) {
+            if (strokeValue > 0) {
                 Color sc = getBrushPixel(stroke, x, y, rect.w, rect.h);
-                sc.a *= sv;
-                target[pixelIndex(x, y, rect.w)] =
-                    makePixel(mix(sv, fc.r, sc.r), mix(sv, fc.g, sc.g),
-                              mix(sv, fc.b, sc.b), mix(sv, fc.a, sc.a));
+                target[pixelIndex(x, y, rect.w)] = makePixel(
+                    mix(strokeValue, fc.r, sc.r), mix(strokeValue, fc.g, sc.g),
+                    mix(strokeValue, fc.b, sc.b),
+                    mix(strokeValue, fc.a, sc.a) * totalValue);
             } else {
+                fc.a *= fillValue;
                 target[pixelIndex(x, y, rect.w)] = makePixel(fc);
             }
         }
