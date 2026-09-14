@@ -475,17 +475,28 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             painterPath.moveTo(actualPoint);
         }
         for (int i = 1; i < newPath.points.length(); i++) {
-            auto point = newPath.points[i];
-            auto lastPoint = newPath.points[i - 1];
+            auto &point = newPath.points[i];
+            auto &lastPoint = newPath.points[i - 1];
             QPointF actualPoint =
                 pixelToViewport({(qreal)point.x, (qreal)point.y});
-            QPointF actualPointLast =
-                pixelToViewport({(qreal)lastPoint.x, (qreal)lastPoint.y});
-            painterPath.quadTo(((actualPointLast + actualPoint) / 2) +
-                                   QPointF(point.curveX, point.curveY),
-                               actualPoint);
+            QPointF c1 =
+                pixelToViewport(QPointF(lastPoint.x + lastPoint.curveX,
+                                        lastPoint.y + lastPoint.curveY));
+            QPointF c2 = pixelToViewport(
+                QPointF(point.x - point.curveX, point.y - point.curveY));
+            painterPath.cubicTo(c1, c2, actualPoint);
         }
         painter.drawPath(painterPath);
+
+        if (!newPath.points.isEmpty()) {
+            painter.setPen(QPen(palette().accent(), 2));
+            painter.setBrush(Qt::NoBrush);
+            auto &point = newPath.points.last();
+            painter.drawLine(pixelToViewport(QPointF(point.x - point.curveX,
+                                                     point.y - point.curveY)),
+                             pixelToViewport(QPointF(point.x + point.curveX,
+                                                     point.y + point.curveY)));
+        }
     }
 }
 
