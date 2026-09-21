@@ -178,6 +178,12 @@ template <> inline QJsonValue serializeAnyValue(const ElementSelection &value) {
     return obj;
 }
 
+template <> inline QJsonValue serializeAnyValue(const Path &value) {
+    QJsonObject obj;
+    // TODO: save
+    return obj;
+}
+
 template <typename T> inline T deserializeAnyValue(const QJsonValue &value) {
     return value;
 }
@@ -301,6 +307,10 @@ inline ElementSelection deserializeAnyValue(const QJsonValue &value) {
     elementSelection.frameType =
         (ElementSelection::FrameType)obj["frameType"].toInt();
     return elementSelection;
+}
+
+template <> inline Path deserializeAnyValue(const QJsonValue &value) {
+    return {}; // TODO: save
 }
 
 class KeyframeBase {

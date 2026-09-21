@@ -162,9 +162,10 @@ class ElementSelection {
 
 Brush::Type getBrushTypeFromString(const std::string &str);
 
-using VariantType = std::variant<std::monostate, std::string, int, double,
-                                 Color, Vector2DInt, Font, bool, Easing, Brush,
-                                 TextSpans, Vector2DFloat, ElementSelection>;
+using VariantType =
+    std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,
+                 Font, bool, Easing, Brush, TextSpans, Vector2DFloat,
+                 ElementSelection, Path>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -180,7 +181,8 @@ struct VariantTypeEnum {
         Brush,
         TextSpans,
         Vector2DFloat,
-        ElementSelection
+        ElementSelection,
+        Path,
     };
 };
 

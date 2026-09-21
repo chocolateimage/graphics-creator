@@ -63,6 +63,7 @@ set(graphicscreator_SRCS
     src/animatable/element/image_element.cpp
     src/animatable/element/group_element.cpp
     src/animatable/element/video_element.cpp
+    src/animatable/element/path_element.cpp
     src/resources/graphics-creator.rc
 )
 

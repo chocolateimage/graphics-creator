@@ -20,6 +20,7 @@ class TransparentCornerFrame : public QFrame {
 };
 
 class NewMainWindow;
+class PathElement;
 
 struct ResizeMode {
     // resizing itself
@@ -73,6 +74,8 @@ class ImageViewer : public QWidget {
     void updateCursor();
     Scene *scene;
     Path newPath;
+    QList<int> selectedPathPoints;
+    PathElement *pathElement{nullptr};
 
     std::vector<ResizeMode> resizeModes;
 

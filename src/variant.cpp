@@ -62,6 +62,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Vector2DFloat;
     } else if (type == "elementSelection") {
         return VariantTypeEnum::ElementSelection;
+    } else if (type == "path") {
+        return VariantTypeEnum::Path;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -95,6 +97,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(Vector2DFloat{0, 0});
     case VariantTypeEnum::ElementSelection:
         return Variant(ElementSelection{});
+    case VariantTypeEnum::Path:
+        return Variant(Path{});
     }
     Q_UNREACHABLE();
 }

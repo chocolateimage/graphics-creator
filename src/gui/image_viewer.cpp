@@ -1,6 +1,7 @@
 #include "image_viewer.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
+#include "animatable/element/path_element.hpp"
 #include "animatable/element/video_element.hpp"
 #include "gui.hpp"
 #include <KMessageBox>
@@ -468,30 +469,27 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
         painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
         painter.setPen(QPen(QColor(255, 255, 255), 2));
         painter.setBrush(Qt::NoBrush);
-        QPainterPath painterPath;
-        if (!newPath.points.isEmpty()) {
-            QPointF actualPoint = pixelToViewport(
-                {(qreal)newPath.points[0].x, (qreal)newPath.points[0].y});
-            painterPath.moveTo(actualPoint);
-        }
-        for (int i = 1; i < newPath.points.length(); i++) {
+
+        for (int i = 0; i < newPath.points.length(); i++) {
             auto &point = newPath.points[i];
-            auto &lastPoint = newPath.points[i - 1];
+
+            if (selectedPathPoints.contains(i)) {
+                painter.setPen(Qt::NoBrush);
+                painter.setBrush(palette().accent());
+            } else {
+                painter.setPen(QPen(QColor(128, 128, 128, 200), 2));
+                painter.setBrush(Qt::NoBrush);
+            }
+
             QPointF actualPoint =
                 pixelToViewport({(qreal)point.x, (qreal)point.y});
-            QPointF c1 =
-                pixelToViewport(QPointF(lastPoint.x + lastPoint.curveX,
-                                        lastPoint.y + lastPoint.curveY));
-            QPointF c2 = pixelToViewport(
-                QPointF(point.x - point.curveX, point.y - point.curveY));
-            painterPath.cubicTo(c1, c2, actualPoint);
+            painter.drawRect(actualPoint.x() - 4, actualPoint.y() - 4, 8, 8);
         }
-        painter.drawPath(painterPath);
 
-        if (!newPath.points.isEmpty()) {
-            painter.setPen(QPen(palette().accent(), 2));
-            painter.setBrush(Qt::NoBrush);
-            auto &point = newPath.points.last();
+        painter.setPen(QPen(palette().accent(), 2));
+        painter.setBrush(Qt::NoBrush);
+        for (auto pointIndex : selectedPathPoints) {
+            auto &point = newPath.points[pointIndex];
             painter.drawLine(pixelToViewport(QPointF(point.x - point.curveX,
                                                      point.y - point.curveY)),
                              pixelToViewport(QPointF(point.x + point.curveX,
@@ -676,6 +674,7 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
                 PathPoint &point = newPath.points.last();
                 point.curveX = pixelPos.x() - point.x;
                 point.curveY = pixelPos.y() - point.y;
+                pathElement->path.set(newPath, {0});
             }
         }
 
@@ -1102,8 +1101,19 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
                 startPickPosition = pickPosition;
                 update();
             } else if (pickType == PickType::Pen) {
+                if (!pathElement) {
+                    pathElement = new PathElement();
+                    pathElement->x.set(0, {0});
+                    pathElement->y.set(0, {0});
+                    pathElement->w.set(0, {0});
+                    pathElement->h.set(0, {0});
+                    mainWindow->addElementUndoable(pathElement);
+                }
                 newPath.points.append(
                     PathPoint{pickPosition.x(), pickPosition.y()});
+                selectedPathPoints.clear();
+                selectedPathPoints.append(newPath.points.length() - 1);
+                pathElement->path.set(newPath, {0});
                 update();
             }
 
@@ -1393,6 +1403,7 @@ void ImageViewer::beginPicking(const QString &id, const QString &infoText,
     pickText = infoText;
     if (pickType == PickType::Pen) {
         newPath = {};
+        selectedPathPoints.clear();
     }
     updateCursor();
     update();
