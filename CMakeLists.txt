@@ -44,7 +44,6 @@ set(graphicscreator_SRCS
     src/gui/property_window.cpp
     src/gui/property_edit.cpp
     src/gui/effects_window.cpp
-    src/gui/text_element_editor.cpp
     src/gui/render_window.cpp
     src/gui/push_button.cpp
     src/gui/welcome_screen.cpp
@@ -55,6 +54,9 @@ set(graphicscreator_SRCS
     src/gui/timeline/timeline_content.cpp
     src/gui/timeline/property_button.cpp
     src/gui/timeline/element_button.cpp
+    src/gui/editors/editor.cpp
+    src/gui/editors/text_element_editor.cpp
+    src/gui/editors/path_element_editor.cpp
     src/animatable/animatable.cpp
     src/animatable/element/element.cpp
     src/animatable/element/rectangle_element.cpp

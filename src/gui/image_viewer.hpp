@@ -1,6 +1,6 @@
 #pragma once
+#include "editors/editor.hpp"
 #include "scene.hpp"
-#include "text_element_editor.hpp"
 #include <DockManager.h>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
@@ -52,6 +52,9 @@ class ImageViewer : public QWidget {
     QRectF fittedRect();
     QImage image;
 
+    QPointF pixelToViewport(QPointF pos);
+    QPoint viewportToPixel(QPointF pos);
+
     NewMainWindow *mainWindow{nullptr};
 
   protected:
@@ -78,9 +81,6 @@ class ImageViewer : public QWidget {
     PathElement *pathElement{nullptr};
 
     std::vector<ResizeMode> resizeModes;
-
-    QPointF pixelToViewport(QPointF pos);
-    QPoint viewportToPixel(QPointF pos);
 
     bool isMovingElements{false};
     Element *shiftSelectElement{nullptr};
@@ -139,7 +139,7 @@ class ImageViewer : public QWidget {
 
     void paintSnapVisualRect(QPainter &painter, const QRect &snapVisualRect);
 
-    TextElementEditor *textElementEditor{nullptr};
+    Editor *editor{nullptr};
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);

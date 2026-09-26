@@ -3,6 +3,8 @@
 #include "animatable/element/image_element.hpp"
 #include "animatable/element/path_element.hpp"
 #include "animatable/element/video_element.hpp"
+#include "editors/path_element_editor.hpp"
+#include "editors/text_element_editor.hpp"
 #include "gui.hpp"
 #include <KMessageBox>
 #include <QApplication>
@@ -187,17 +189,21 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
 }
 
 void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
-    if (textElementEditor != nullptr) {
-        delete textElementEditor;
-        textElementEditor = nullptr;
+    if (editor != nullptr) {
+        delete editor;
+        editor = nullptr;
     }
 
     if (editMode) {
         TextElement *textElement = dynamic_cast<TextElement *>(element);
+        PathElement *pathElement = dynamic_cast<PathElement *>(element);
         if (textElement != nullptr) {
-            textElementEditor =
+            editor =
                 new TextElementEditor(mainWindow, scene, textElement, this);
             setFocus();
+        } else if (pathElement != nullptr) {
+            editor =
+                new PathElementEditor(mainWindow, scene, pathElement, this);
         }
     }
 
@@ -417,9 +423,11 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
 
             if (element->editMode) {
                 painter.save();
-                painter.translate(pos);
-                painter.scale(zoomElement, zoomElement);
-                textElementEditor->paint(painter);
+                if (editor->shouldTransformPainter()) {
+                    painter.translate(pos);
+                    painter.scale(zoomElement, zoomElement);
+                }
+                editor->paint(painter);
                 painter.restore();
             }
         }
@@ -462,38 +470,6 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             painter.drawRect(topLeft.x(), topLeft.y(),
                              bottomRight.x() - topLeft.x(),
                              bottomRight.y() - topLeft.y());
-        }
-    }
-
-    if (isPicking && pickType == PickType::Pen) {
-        painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
-        painter.setPen(QPen(QColor(255, 255, 255), 2));
-        painter.setBrush(Qt::NoBrush);
-
-        for (int i = 0; i < newPath.points.length(); i++) {
-            auto &point = newPath.points[i];
-
-            if (selectedPathPoints.contains(i)) {
-                painter.setPen(Qt::NoBrush);
-                painter.setBrush(palette().accent());
-            } else {
-                painter.setPen(QPen(QColor(128, 128, 128, 200), 2));
-                painter.setBrush(Qt::NoBrush);
-            }
-
-            QPointF actualPoint =
-                pixelToViewport({(qreal)point.x, (qreal)point.y});
-            painter.drawRect(actualPoint.x() - 4, actualPoint.y() - 4, 8, 8);
-        }
-
-        painter.setPen(QPen(palette().accent(), 2));
-        painter.setBrush(Qt::NoBrush);
-        for (auto pointIndex : selectedPathPoints) {
-            auto &point = newPath.points[pointIndex];
-            painter.drawLine(pixelToViewport(QPointF(point.x - point.curveX,
-                                                     point.y - point.curveY)),
-                             pixelToViewport(QPointF(point.x + point.curveX,
-                                                     point.y + point.curveY)));
         }
     }
 }
@@ -1442,24 +1418,24 @@ void ImageViewer::updateCursor() {
 }
 
 void ImageViewer::keyPressEvent(QKeyEvent *event) {
-    if (textElementEditor) {
-        textElementEditor->passKeyEvent(event);
+    if (editor) {
+        editor->passKeyEvent(event);
     }
 }
 
 void ImageViewer::inputMethodEvent(QInputMethodEvent *event) {
-    if (textElementEditor) {
+    if (editor) {
         QKeyEvent *keyEvent =
             new QKeyEvent(QEvent::KeyPress, 0, Qt::KeyboardModifier::NoModifier,
                           event->commitString());
-        textElementEditor->passKeyEvent(keyEvent);
+        // editor->passKeyEvent(keyEvent);
         delete keyEvent;
     }
 }
 
 bool ImageViewer::event(QEvent *event) {
     if (event->type() == QEvent::ShortcutOverride) {
-        if (textElementEditor) {
+        if (editor) {
             event->accept();
             return true;
         }

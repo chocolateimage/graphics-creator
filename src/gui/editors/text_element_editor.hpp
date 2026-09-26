@@ -1,8 +1,8 @@
 #pragma once
 #include "animatable/element/text_element.hpp"
-#include "brush_input.hpp"
-#include "fontcombobox.hpp"
-#include "scene.hpp"
+#include "editor.hpp"
+#include "gui/brush_input.hpp"
+#include "gui/fontcombobox.hpp"
 #include <DockWidget.h>
 #include <QCheckBox>
 #include <QKeyEvent>
@@ -12,23 +12,21 @@
 
 class NewMainWindow;
 
-class TextElementEditor : public QObject {
+class TextElementEditor : public Editor {
+    Q_OBJECT
   public:
     TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
-                      TextElement *textElement, QObject *parent);
+                      TextElement *textElement, ImageViewer *parent);
     ~TextElementEditor();
 
     void relayout();
-    void passKeyEvent(QKeyEvent *keyEvent);
-    void paint(QPainter &painter);
-
-    void repaintParent();
+    void passKeyEvent(QKeyEvent *keyEvent) override;
+    void paint(QPainter &painter) override;
+    bool shouldTransformPainter() override { return true; };
 
     TextLayout layout;
 
     TextElement *textElement;
-    Scene *scene;
-    NewMainWindow *mainWindow;
     int selectionStart{0};
     int selectionLength{0};
     bool selectionAnchorLeft = false;

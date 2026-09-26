@@ -1,5 +1,6 @@
 #pragma once
 #include "image_viewer.hpp"
+#include "render.hpp"
 #include "scene.hpp"
 #include "timeline/timeline.hpp"
 #include <DockManager.h>

@@ -1,6 +1,4 @@
 #include "path_element.hpp"
-#include "math.hpp"
-#include "render.hpp"
 #include <QImage>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -11,6 +9,16 @@ PathElement::PathElement() : Element() {
 }
 
 AnimatableRender *PathElement::createClass() { return new PathElementRender(); }
+
+QRect PathElement::getRawBoundingBox(const FrameInfo &frameInfo) {
+    PathElementRender *renderElement = (PathElementRender *)toRender(frameInfo);
+    renderElement->prepare();
+    QRect renderBox = renderElement->rect;
+    renderBox.translate(renderElement->x, renderElement->y);
+    delete renderElement;
+
+    return renderBox;
+}
 
 void PathElementRender::prepare() {
     Path &path = this->path;
@@ -31,7 +39,9 @@ void PathElementRender::prepare() {
     rect = painterPath.boundingRect().toRect().adjusted(-8, -8, 16, 16);
 }
 
-Rect PathElementRender::getRenderBox() { return Rect::fromQRect(rect); }
+Rect PathElementRender::getRenderBox() {
+    return Rect::fromQRect(rect.translated(x, y));
+}
 
 bool PathElementRender::render(uint32_t *target) {
     QImage img(rect.width(), rect.height(), QImage::Format_ARGB32);

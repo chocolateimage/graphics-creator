@@ -1,6 +1,6 @@
 #include "text_element_editor.hpp"
-#include "draggable_spinbox.hpp"
-#include "gui.hpp"
+#include "gui/draggable_spinbox.hpp"
+#include "gui/gui.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QMessageBox>
@@ -11,9 +11,9 @@
 #include <fontconfig/fontconfig.h>
 
 TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
-                                     TextElement *textElement, QObject *parent)
-    : QObject(parent), textElement(textElement), scene(scene),
-      mainWindow(mainWindow) {
+                                     TextElement *textElement,
+                                     ImageViewer *parent)
+    : Editor(mainWindow, scene, parent), textElement(textElement) {
     tempSpan = textElement->createDefaultTextSpan();
     selectionLength =
         textElement->text.get({scene->currentFrame}).spans.length();
@@ -75,8 +75,6 @@ TextElementEditor::TextElementEditor(NewMainWindow *mainWindow, Scene *scene,
         dockWidget, mainWindow->propertiesDockWidget->dockAreaWidget());
     relayout();
 }
-
-void TextElementEditor::repaintParent() { ((QWidget *)parent())->update(); }
 
 void TextElementEditor::loadValues() {
     TextSpans spans = textElement->text.get({scene->currentFrame});
@@ -213,7 +211,6 @@ void TextElementEditor::relayout() {
 }
 
 void TextElementEditor::paint(QPainter &painter) {
-    QWidget *parentWidget = ((QWidget *)parent());
     float scale = painter.transform().m11();
     FrameInfo frameInfo = {scene->currentFrame};
     TextSpans spans = textElement->text.get(frameInfo);
@@ -266,7 +263,7 @@ void TextElementEditor::paint(QPainter &painter) {
                           item.selectionEndPoint.x() - selectionStartRect.x(),
                           item.height};
             painter.setPen(Qt::NoPen);
-            QColor color = parentWidget->palette().highlight().color();
+            QColor color = imageViewer->palette().highlight().color();
             color.setAlpha(120);
             painter.setBrush(color);
             painter.drawRect(rect);

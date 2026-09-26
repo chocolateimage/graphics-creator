@@ -8,6 +8,7 @@ class PathElement : public Element {
     virtual ~PathElement() {}
 
     AnimatableRender *createClass() override;
+    QRect getRawBoundingBox(const FrameInfo &frameInfo) override;
 
     Property<Path> path{this, "path", {}};
 
