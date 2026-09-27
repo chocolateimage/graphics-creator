@@ -89,8 +89,10 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         selectedPathPoints.clear();
         selectedPathPoints.append(path.points.length() - 1);
         pathElement->path.set(path, frameInfo);
+        return true;
     }
-    return true;
+
+    return false;
 }
 
 bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
@@ -98,19 +100,21 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
     QPoint pos = pixelPosition - offset();
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
         Path path = pathElement->path.get({scene->currentFrame});
-        PathPoint &point = path.points.last();
-        point.curveX = pos.x() - point.x;
-        point.curveY = pos.y() - point.y;
+        for (auto pointIndex : selectedPathPoints) {
+            PathPoint &point = path.points[pointIndex];
+            point.curveX = pos.x() - point.x;
+            point.curveY = pos.y() - point.y;
+        }
         pathElement->path.set(path, {scene->currentFrame});
         return true;
     }
 
-    return true;
+    return false;
 }
 
 bool PathElementEditor::mouseReleaseEvent(const QPoint &pixelPosition,
                                           QMouseEvent *event) {
-    return true;
+    return false;
 }
 
 PathElementEditor::~PathElementEditor() {}

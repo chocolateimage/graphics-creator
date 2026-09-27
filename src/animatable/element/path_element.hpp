@@ -11,7 +11,9 @@ class PathElement : public Element {
     QRect getRawBoundingBox(const FrameInfo &frameInfo) override;
     bool isResizable() const override { return false; }
 
+    Property<Brush> fill{this, "fill", Brush::fromColor(Color{0, 0, 0, 0})};
     Property<int> strokeWidth{this, "strokeWidth", 8};
+    Property<Brush> stroke{this, "stroke", {}};
     Property<Path> path{this, "path", {}};
 
     QString const typeName() override { return "path"; }
@@ -22,7 +24,9 @@ class PathElementRender : public ElementRender {
     PathElementRender() : ElementRender() {}
     virtual ~PathElementRender() {}
 
+    PropertyRender<Brush> fill{this};
     PropertyRender<int> strokeWidth{this};
+    PropertyRender<Brush> stroke{this};
     PropertyRender<Path> path{this};
 
     QPainterPath painterPath;

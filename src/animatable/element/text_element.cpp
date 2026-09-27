@@ -78,7 +78,7 @@ double TextAnimatorSelectorRender::percent(int character, int totalCharacters,
     }
     }
 
-    finalValue = easing.value.toFunction()(finalValue);
+    finalValue = easing.get().toFunction()(finalValue);
 
     return finalValue;
 }

@@ -7,7 +7,7 @@ PathElement::PathElement() : Element() {
     w.hidden = true;
     h.hidden = true;
 
-    strokeWidth.setMin(1);
+    strokeWidth.setMin(0);
 }
 
 AnimatableRender *PathElement::createClass() { return new PathElementRender(); }
@@ -61,7 +61,18 @@ bool PathElementRender::render(uint32_t *target) {
     img.fill(Qt::transparent);
     QPainter painter(&img);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(QPen(QColor(255, 255, 255), strokeWidth));
+    if (strokeWidth > 0) {
+        painter.setPen(QPen(stroke.get().toQBrush(rect), strokeWidth));
+    } else {
+        painter.setPen(Qt::NoPen);
+    }
+    Brush fill = this->fill;
+    if (fill.brushType != Brush::SingleColor || fill.color1.a != 0) {
+        painter.setBrush(fill.toQBrush(rect));
+    } else {
+        painter.setBrush(Qt::NoBrush);
+    }
+
     painter.translate(-rect.x(), -rect.y());
     painter.drawPath(painterPath);
 

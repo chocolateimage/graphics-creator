@@ -726,5 +726,6 @@ template <typename T> class PropertyRender : public PropertyRenderBase {
         value = propertyTyped->get(frameInfo);
     }
 
+  private:
     T value;
 };
