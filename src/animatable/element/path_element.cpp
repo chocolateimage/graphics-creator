@@ -6,6 +6,8 @@
 PathElement::PathElement() : Element() {
     w.hidden = true;
     h.hidden = true;
+
+    strokeWidth.setMin(1);
 }
 
 AnimatableRender *PathElement::createClass() { return new PathElementRender(); }
@@ -36,7 +38,18 @@ void PathElementRender::prepare() {
         painterPath.cubicTo(c1, c2, actualPoint);
     }
 
-    rect = painterPath.boundingRect().toRect().adjusted(-8, -8, 16, 16);
+    if (path.closed) {
+        auto &firstPoint = path.points.first();
+        auto &lastPoint = path.points.last();
+        painterPath.cubicTo(
+            lastPoint.x + lastPoint.curveX, lastPoint.y + lastPoint.curveY,
+            firstPoint.x - firstPoint.curveX, firstPoint.y - firstPoint.curveY,
+            firstPoint.x, firstPoint.y);
+    }
+
+    rect = painterPath.boundingRect().toRect().adjusted(
+        -strokeWidth / 2 - 1, -strokeWidth / 2 - 1, strokeWidth / 2 + 1,
+        strokeWidth / 2 + 1);
 }
 
 Rect PathElementRender::getRenderBox() {
@@ -48,7 +61,7 @@ bool PathElementRender::render(uint32_t *target) {
     img.fill(Qt::transparent);
     QPainter painter(&img);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(QPen(QColor(255, 255, 255), 8));
+    painter.setPen(QPen(QColor(255, 255, 255), strokeWidth));
     painter.translate(-rect.x(), -rect.y());
     painter.drawPath(painterPath);
 

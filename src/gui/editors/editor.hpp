@@ -36,4 +36,7 @@ class Editor : public QObject {
 
     virtual bool shouldTransformPainter() = 0;
     virtual bool shouldShowElementBorder() { return true; };
+
+  signals:
+    void closeEditor();
 };

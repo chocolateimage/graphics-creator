@@ -205,10 +205,16 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
             editor =
                 new PathElementEditor(mainWindow, scene, pathElement, this);
         }
+
+        connect(editor, &Editor::closeEditor, this, &ImageViewer::closeEditor);
     }
 
     update();
     updateCursor();
+}
+
+void ImageViewer::closeEditor() {
+    scene->selectedElements[0]->setEditMode(false);
 }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
@@ -1426,6 +1432,10 @@ void ImageViewer::updateCursor() {
 
 void ImageViewer::keyPressEvent(QKeyEvent *event) {
     if (editor) {
+        if (event->key() == Qt::Key_Escape) {
+            closeEditor();
+            return;
+        }
         editor->passKeyEvent(event);
     }
 }

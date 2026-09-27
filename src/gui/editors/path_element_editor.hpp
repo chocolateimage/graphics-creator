@@ -9,6 +9,8 @@ class PathElementEditor : public Editor {
                       PathElement *pathElement, ImageViewer *parent);
     ~PathElementEditor();
 
+    QPoint offset();
+
     void passKeyEvent(QKeyEvent *keyEvent) override;
     void paint(QPainter &painter) override;
     bool shouldTransformPainter() override { return false; }
