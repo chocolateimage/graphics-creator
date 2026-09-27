@@ -4,7 +4,7 @@
 
 Editor::Editor(NewMainWindow *mainWindow, Scene *scene, ImageViewer *parent)
     : QObject(parent), mainWindow(mainWindow), scene(scene),
-      imageViewer(parent) {}
+      imageViewer(parent), cursor(Qt::BlankCursor) {}
 
 void Editor::repaintParent() { imageViewer->update(); }
 

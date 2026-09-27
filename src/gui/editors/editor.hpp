@@ -1,5 +1,6 @@
 #pragma once
 #include "scene.hpp"
+#include <QCursor>
 #include <QKeyEvent>
 #include <QObject>
 #include <QPainter>
@@ -16,6 +17,7 @@ class Editor : public QObject {
     NewMainWindow *mainWindow;
     Scene *scene;
     ImageViewer *imageViewer;
+    QCursor cursor;
 
     void repaintParent();
 
@@ -39,4 +41,5 @@ class Editor : public QObject {
 
   signals:
     void closeEditor();
+    void cursorChanged();
 };

@@ -61,28 +61,28 @@ void PathElementEditor::paint(QPainter &painter) {
 bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
                                         QMouseEvent *event) {
     FrameInfo frameInfo{scene->currentFrame};
-    QPoint pos = pixelPosition - offset();
+    QPoint offset = this->offset();
+    QPoint pos = pixelPosition - offset;
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
         Path path = pathElement->path.get(frameInfo);
 
-        if (selectedPathPoints.length() == 1 &&
-            (selectedPathPoints[0] == 0 ||
-             selectedPathPoints[0] == path.points.length() - 1)) {
-            bool shouldClose = false;
-            const auto &point = path.points[selectedPathPoints[0] == 0
-                                                ? path.points.length() - 1
-                                                : 0];
-            if (sqrt(pow((point.x - pos.x()), 2) +
-                     pow((point.y - pos.y()), 2)) < 30) {
-                shouldClose = true;
+        if (hoveringPointIndex != -1) {
+            if (!path.closed && selectedPathPoints.length() == 1) {
+                if ((selectedPathPoints[0] == 0 &&
+                     hoveringPointIndex == path.points.length() - 1) ||
+                    (selectedPathPoints[0] == path.points.length() - 1 &&
+                     hoveringPointIndex == 0)) {
+                    path.closed = true;
+                    pathElement->path.set(path, frameInfo);
+                    emit closeEditor();
+                    return true;
+                }
             }
 
-            if (shouldClose) {
-                path.closed = true;
-                pathElement->path.set(path, frameInfo);
-                emit closeEditor();
-                return true;
-            }
+            selectedPathPoints.clear();
+            selectedPathPoints.append(hoveringPointIndex);
+            repaintParent();
+            return true;
         }
 
         path.points.append(PathPoint{pos.x(), pos.y()});
@@ -97,17 +97,43 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
 
 bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
                                        QMouseEvent *event) {
-    QPoint pos = pixelPosition - offset();
+    FrameInfo frameInfo{scene->currentFrame};
+    QPoint offset = this->offset();
+    QPoint pos = pixelPosition - offset;
+    QPoint viewportPos = event->position().toPoint();
+
+    Path path = pathElement->path.get(frameInfo);
+
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
-        Path path = pathElement->path.get({scene->currentFrame});
         for (auto pointIndex : selectedPathPoints) {
             PathPoint &point = path.points[pointIndex];
             point.curveX = pos.x() - point.x;
             point.curveY = pos.y() - point.y;
         }
-        pathElement->path.set(path, {scene->currentFrame});
+        pathElement->path.set(path, frameInfo);
         return true;
     }
+
+    hoveringPointIndex = -1;
+
+    int index = 0;
+    for (const auto &point : path.points) {
+        if ((imageViewer->pixelToViewport(QPoint(point.x, point.y) + offset) -
+             viewportPos)
+                .manhattanLength() < 12) {
+
+            hoveringPointIndex = index;
+            break;
+        }
+        index++;
+    }
+
+    if (hoveringPointIndex != -1) {
+        cursor = Qt::ArrowCursor;
+    } else {
+        cursor = Qt::BlankCursor;
+    }
+    emit cursorChanged();
 
     return false;
 }

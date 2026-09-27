@@ -25,4 +25,5 @@ class PathElementEditor : public Editor {
 
     PathElement *pathElement;
     QList<int> selectedPathPoints;
+    int hoveringPointIndex = -1;
 };

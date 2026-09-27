@@ -30,7 +30,8 @@ QBrush Brush::toQBrush(const QRect &rect) const {
         QRadialGradient radialGradient;
         radialGradient.setColorAt(0, color1.toQColor());
         radialGradient.setColorAt(1, color2.toQColor());
-        radialGradient.setCenter(rect.x() / 2., rect.y() / 2.);
+        radialGradient.setCenter(rect.x() + rect.width() / 2.,
+                                 rect.y() + rect.height() / 2.);
         radialGradient.setRadius(rect.width());
         return radialGradient;
     }

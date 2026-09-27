@@ -207,6 +207,8 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
         }
 
         connect(editor, &Editor::closeEditor, this, &ImageViewer::closeEditor);
+        connect(editor, &Editor::cursorChanged, this,
+                &ImageViewer::editorCursorChanged);
     }
 
     update();
@@ -216,6 +218,8 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
 void ImageViewer::closeEditor() {
     scene->selectedElements[0]->setEditMode(false);
 }
+
+void ImageViewer::editorCursorChanged() { updateCursor(); }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
     hoverElement = nullptr;
@@ -1403,6 +1407,11 @@ void ImageViewer::stopPicking() {
 }
 
 void ImageViewer::updateCursor() {
+    if (editor && editor->cursor.shape() != Qt::BlankCursor) {
+        setCursor(editor->cursor);
+        return;
+    }
+
     if ((isPicking && pickType == PickType::Pen) ||
         dynamic_cast<PathElementEditor *>(editor) != nullptr) {
         QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");

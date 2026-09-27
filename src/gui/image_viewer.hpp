@@ -143,6 +143,7 @@ class ImageViewer : public QWidget {
     void elementEditModeChanged(Element *element, bool editMode);
     void playbackStateChanged(bool playing);
     void closeEditor();
+    void editorCursorChanged();
 
   signals:
     void pixelPicked(QString id, QPoint position);
