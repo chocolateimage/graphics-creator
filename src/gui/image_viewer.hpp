@@ -76,9 +76,6 @@ class ImageViewer : public QWidget {
     QRect getPickRect();
     void updateCursor();
     Scene *scene;
-    Path newPath;
-    QList<int> selectedPathPoints;
-    PathElement *pathElement{nullptr};
 
     std::vector<ResizeMode> resizeModes;
 

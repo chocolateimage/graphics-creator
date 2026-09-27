@@ -9,6 +9,7 @@ class PathElement : public Element {
 
     AnimatableRender *createClass() override;
     QRect getRawBoundingBox(const FrameInfo &frameInfo) override;
+    bool isResizable() const override { return false; }
 
     Property<Path> path{this, "path", {}};
 

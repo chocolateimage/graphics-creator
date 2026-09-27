@@ -19,7 +19,21 @@ class Editor : public QObject {
 
     void repaintParent();
 
-    virtual void passKeyEvent(QKeyEvent *keyEvent) = 0;
-    virtual void paint(QPainter &painter) = 0;
+    virtual void passKeyEvent(QKeyEvent *keyEvent) {}
+    virtual void paint(QPainter &painter) {}
+    virtual bool mousePressEvent(const QPoint &pixelPosition,
+                                 QMouseEvent *event) {
+        return false;
+    }
+    virtual bool mouseMoveEvent(const QPoint &pixelPosition,
+                                QMouseEvent *event) {
+        return false;
+    }
+    virtual bool mouseReleaseEvent(const QPoint &pixelPosition,
+                                   QMouseEvent *event) {
+        return false;
+    }
+
     virtual bool shouldTransformPainter() = 0;
+    virtual bool shouldShowElementBorder() { return true; };
 };

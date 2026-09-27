@@ -3,6 +3,7 @@
 #include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
+#include "animatable/element/path_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
 #include "animatable/element/video_element.hpp"
@@ -1370,6 +1371,8 @@ Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
         element = new GroupElement();
     } else if (elementType == "video") {
         element = new VideoElement();
+    } else if (elementType == "path") {
+        element = new PathElement();
     }
 
     if (!element) {
@@ -1552,6 +1555,11 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
             textElement->setObjectName("New Text");
             element = textElement;
         }
+    } else if (controlPen->isChecked()) {
+        controlSelect->setChecked(true);
+        PathElement *pathElement = new PathElement();
+        pathElement->setObjectName("New Path");
+        element = pathElement;
     }
     if (element) {
         element->x.set(rect.x(), {0});

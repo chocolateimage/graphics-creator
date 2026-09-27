@@ -208,6 +208,7 @@ void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
     }
 
     update();
+    updateCursor();
 }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
@@ -405,7 +406,11 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
             pos = pixelToViewport(pos);
             QPointF size = pixelToViewport(bottomRight) - pos;
-            painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+            if (element->editMode && editor &&
+                !editor->shouldShowElementBorder()) {
+            } else {
+                painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+            }
 
             if (element->isResizable()) {
                 painter.setPen(QPen(palette().accent().color().darker(), 1));
@@ -642,17 +647,12 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     QPointF current = event->position();
     QPoint pixelPos = viewportToPixel(current);
 
+    if (editor) {
+        editor->mouseMoveEvent(pixelPos, event);
+    }
+
     if (isPicking) {
         pickPosition = pixelPos;
-
-        if (pickType == PickType::Pen) {
-            if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
-                PathPoint &point = newPath.points.last();
-                point.curveX = pixelPos.x() - point.x;
-                point.curveY = pixelPos.y() - point.y;
-                pathElement->path.set(newPath, {0});
-            }
-        }
 
         update();
 
@@ -1073,33 +1073,34 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
             if (pickType == PickType::Point) {
                 stopPicking();
                 emit pixelPicked(pickId, getActualPickPosition());
+                return;
             } else if (pickType == PickType::Rect) {
                 startPickPosition = pickPosition;
                 update();
+                return;
             } else if (pickType == PickType::Pen) {
-                if (!pathElement) {
-                    pathElement = new PathElement();
-                    pathElement->x.set(0, {0});
-                    pathElement->y.set(0, {0});
-                    pathElement->w.set(0, {0});
-                    pathElement->h.set(0, {0});
-                    mainWindow->addElementUndoable(pathElement);
-                }
-                newPath.points.append(
-                    PathPoint{pickPosition.x(), pickPosition.y()});
-                selectedPathPoints.clear();
-                selectedPathPoints.append(newPath.points.length() - 1);
-                pathElement->path.set(newPath, {0});
-                update();
+                emit rectPicked(pickId, {0, 0, 0, 0});
+                PathElement *pathElement = dynamic_cast<PathElement *>(
+                    scene->selectedElements.first());
+                Q_ASSERT(pathElement != nullptr);
+
+                pathElement->setEditMode(true);
+                stopPicking();
             }
 
-            return;
         } else if (event->button() == Qt::RightButton) {
             if (pickId.isEmpty())
                 return;
 
             stopPicking();
 
+            return;
+        }
+    }
+
+    if (editor) {
+        if (editor->mousePressEvent(viewportToPixel(event->position()),
+                                    event)) {
             return;
         }
     }
@@ -1268,6 +1269,13 @@ class MoveResizeElementCommand : public QUndoCommand {
 };
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
+    if (editor) {
+        if (editor->mouseReleaseEvent(viewportToPixel(event->position()),
+                                      event)) {
+            return;
+        }
+    }
+
     if (isPicking && pickType == PickType::Rect) {
         if (event->button() == Qt::LeftButton) {
             stopPicking();
@@ -1341,7 +1349,8 @@ void ImageViewer::mouseDoubleClickEvent(QMouseEvent *event) {
 
     Element *element = scene->selectedElements.first();
     // TODO: not check in imageviewer
-    if (dynamic_cast<TextElement *>(element) != nullptr) {
+    if (dynamic_cast<TextElement *>(element) != nullptr ||
+        dynamic_cast<PathElement *>(element) != nullptr) {
         scene->selectedElements.first()->setEditMode(true);
     }
 }
@@ -1377,10 +1386,6 @@ void ImageViewer::beginPicking(const QString &id, const QString &infoText,
     this->pickType = pickType;
     pickId = id;
     pickText = infoText;
-    if (pickType == PickType::Pen) {
-        newPath = {};
-        selectedPathPoints.clear();
-    }
     updateCursor();
     update();
 }
@@ -1392,15 +1397,17 @@ void ImageViewer::stopPicking() {
 }
 
 void ImageViewer::updateCursor() {
+    if ((isPicking && pickType == PickType::Pen) ||
+        dynamic_cast<PathElementEditor *>(editor) != nullptr) {
+        QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");
+        pix.setDevicePixelRatio(3);
+        QCursor cursor(pix, 4, 4);
+        setCursor(cursor);
+        return;
+    }
+
     if (isPicking) {
-        if (pickType == PickType::Pen) {
-            QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");
-            pix.setDevicePixelRatio(3);
-            QCursor cursor(pix, 4, 4);
-            setCursor(cursor);
-        } else {
-            setCursor(Qt::CursorShape::CrossCursor);
-        }
+        setCursor(Qt::CursorShape::CrossCursor);
         return;
     }
 
@@ -1428,7 +1435,7 @@ void ImageViewer::inputMethodEvent(QInputMethodEvent *event) {
         QKeyEvent *keyEvent =
             new QKeyEvent(QEvent::KeyPress, 0, Qt::KeyboardModifier::NoModifier,
                           event->commitString());
-        // editor->passKeyEvent(keyEvent);
+        editor->passKeyEvent(keyEvent);
         delete keyEvent;
     }
 }

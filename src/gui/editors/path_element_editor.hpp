@@ -11,7 +11,16 @@ class PathElementEditor : public Editor {
 
     void passKeyEvent(QKeyEvent *keyEvent) override;
     void paint(QPainter &painter) override;
-    bool shouldTransformPainter() override { return false; };
+    bool shouldTransformPainter() override { return false; }
+    bool shouldShowElementBorder() override { return false; };
+
+    bool mousePressEvent(const QPoint &pixelPosition,
+                         QMouseEvent *event) override;
+    bool mouseMoveEvent(const QPoint &pixelPosition,
+                        QMouseEvent *event) override;
+    bool mouseReleaseEvent(const QPoint &pixelPosition,
+                           QMouseEvent *event) override;
 
     PathElement *pathElement;
+    QList<int> selectedPathPoints;
 };
