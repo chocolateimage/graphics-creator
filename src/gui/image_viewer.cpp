@@ -1414,10 +1414,12 @@ void ImageViewer::updateCursor() {
 
     if ((isPicking && pickType == PickType::Pen) ||
         dynamic_cast<PathElementEditor *>(editor) != nullptr) {
-        QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");
-        pix.setDevicePixelRatio(3);
-        QCursor cursor(pix, 4, 4);
-        setCursor(cursor);
+        if (penCursor.shape() != Qt::BitmapCursor) {
+            QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");
+            pix.setDevicePixelRatio(3);
+            penCursor = QCursor(pix, 4, 4);
+        }
+        setCursor(penCursor);
         return;
     }
 

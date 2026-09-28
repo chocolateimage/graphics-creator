@@ -1,4 +1,5 @@
 #include "path_element_editor.hpp"
+#include "gui/gui.hpp"
 #include "gui/image_viewer.hpp"
 #include <QPalette>
 #include <QWidget>
@@ -6,7 +7,11 @@
 PathElementEditor::PathElementEditor(NewMainWindow *mainWindow, Scene *scene,
                                      PathElement *pathElement,
                                      ImageViewer *parent)
-    : Editor(mainWindow, scene, parent), pathElement(pathElement) {}
+    : Editor(mainWindow, scene, parent), pathElement(pathElement) {
+    QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor-closed.png");
+    pix.setDevicePixelRatio(3);
+    closedCursor = QCursor(pix, 4, 4);
+}
 
 QPoint PathElementEditor::offset() {
     FrameInfo frameInfo{scene->currentFrame};
@@ -67,16 +72,11 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         Path path = pathElement->path.get(frameInfo);
 
         if (hoveringPointIndex != -1) {
-            if (!path.closed && selectedPathPoints.length() == 1) {
-                if ((selectedPathPoints[0] == 0 &&
-                     hoveringPointIndex == path.points.length() - 1) ||
-                    (selectedPathPoints[0] == path.points.length() - 1 &&
-                     hoveringPointIndex == 0)) {
-                    path.closed = true;
-                    pathElement->path.set(path, frameInfo);
-                    emit closeEditor();
-                    return true;
-                }
+            if (isClosingPath) {
+                path.closed = true;
+                pathElement->path.set(path, frameInfo);
+                emit closeEditor();
+                return true;
             }
 
             selectedPathPoints.clear();
@@ -115,6 +115,7 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
     }
 
     hoveringPointIndex = -1;
+    isClosingPath = false;
 
     int index = 0;
     for (const auto &point : path.points) {
@@ -129,7 +130,21 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
     }
 
     if (hoveringPointIndex != -1) {
-        cursor = Qt::ArrowCursor;
+        if (!path.closed && selectedPathPoints.length() == 1 &&
+            path.points.length() > 1) {
+            if ((selectedPathPoints[0] == 0 &&
+                 hoveringPointIndex == path.points.length() - 1) ||
+                (selectedPathPoints[0] == path.points.length() - 1 &&
+                 hoveringPointIndex == 0)) {
+                isClosingPath = true;
+            }
+        }
+
+        if (isClosingPath) {
+            cursor = closedCursor;
+        } else {
+            cursor = Qt::ArrowCursor;
+        }
     } else {
         cursor = Qt::BlankCursor;
     }

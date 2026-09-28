@@ -137,6 +137,7 @@ class ImageViewer : public QWidget {
     void paintSnapVisualRect(QPainter &painter, const QRect &snapVisualRect);
 
     Editor *editor{nullptr};
+    QCursor penCursor;
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
