@@ -72,6 +72,9 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
         Path path = pathElement->path.get(frameInfo);
 
+        Qt::KeyboardModifiers keyboardModifiers =
+            QApplication::keyboardModifiers();
+
         if (hoveringPointIndex != -1) {
             if (isClosingPath) {
                 path.closed = true;
@@ -80,10 +83,20 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
                 return true;
             }
 
-            selectedPathPoints.clear();
-            selectedPathPoints.append(hoveringPointIndex);
+            if (keyboardModifiers.testFlag(Qt::ShiftModifier)) {
+                if (selectedPathPoints.contains(hoveringPointIndex)) {
+                    selectedPathPoints.removeOne(hoveringPointIndex);
+                } else {
+                    selectedPathPoints.append(hoveringPointIndex);
+                }
+            } else {
+                if (!selectedPathPoints.contains(hoveringPointIndex)) {
+                    selectedPathPoints.clear();
+                    selectedPathPoints.append(hoveringPointIndex);
+                }
+            }
 
-            if (QApplication::keyboardModifiers().testFlag(Qt::AltModifier)) {
+            if (keyboardModifiers.testFlag(Qt::AltModifier)) {
                 currentHold = HoldType::ControlPoint;
             } else {
                 currentHold = HoldType::Move;
