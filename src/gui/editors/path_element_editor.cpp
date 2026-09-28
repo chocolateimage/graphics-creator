@@ -146,6 +146,13 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
         int index = 0;
 
         QPoint moved = pos - startHoldCursorPosition;
+        if (QApplication::keyboardModifiers().testFlag(Qt::ShiftModifier)) {
+            if (qAbs(moved.x()) > qAbs(moved.y())) {
+                moved = {moved.x(), 0};
+            } else {
+                moved = {0, moved.y()};
+            }
+        }
 
         for (auto pointIndex : selectedPathPoints) {
             QPoint &startPosition = startHoldPositions[index];
