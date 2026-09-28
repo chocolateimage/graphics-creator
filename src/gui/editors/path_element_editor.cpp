@@ -1,6 +1,7 @@
 #include "path_element_editor.hpp"
 #include "gui/gui.hpp"
 #include "gui/image_viewer.hpp"
+#include <QApplication>
 #include <QPalette>
 #include <QWidget>
 
@@ -81,6 +82,15 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
 
             selectedPathPoints.clear();
             selectedPathPoints.append(hoveringPointIndex);
+
+            if (QApplication::keyboardModifiers().testFlag(Qt::AltModifier)) {
+                currentHold = HoldType::ControlPoint;
+            } else {
+                currentHold = HoldType::Move;
+            }
+
+            beginHold(pos);
+
             repaintParent();
             return true;
         }
@@ -89,10 +99,38 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         selectedPathPoints.clear();
         selectedPathPoints.append(path.points.length() - 1);
         pathElement->path.set(path, frameInfo);
+
+        currentHold = HoldType::ControlPoint;
+        beginHold(pos);
         return true;
     }
 
     return false;
+}
+
+void PathElementEditor::beginHold(const QPoint &pos) {
+    FrameInfo frameInfo{scene->currentFrame};
+    Path path = pathElement->path.get(frameInfo);
+
+    startHoldCursorPosition = pos;
+    startHoldPositions.clear();
+
+    switch (currentHold) {
+    case HoldType::Move: {
+        for (int pointIndex : selectedPathPoints) {
+            const auto &point = path.points[pointIndex];
+            startHoldPositions.append(QPoint(point.x, point.y));
+        }
+        break;
+    }
+    case HoldType::ControlPoint: {
+        for (int pointIndex : selectedPathPoints) {
+            const auto &point = path.points[pointIndex];
+            startHoldPositions.append(QPoint(point.curveX, point.curveY));
+        }
+        break;
+    }
+    }
 }
 
 bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
@@ -105,10 +143,23 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
     Path path = pathElement->path.get(frameInfo);
 
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
+        int index = 0;
+
+        QPoint moved = pos - startHoldCursorPosition;
+
         for (auto pointIndex : selectedPathPoints) {
+            QPoint &startPosition = startHoldPositions[index];
             PathPoint &point = path.points[pointIndex];
-            point.curveX = pos.x() - point.x;
-            point.curveY = pos.y() - point.y;
+
+            if (currentHold == HoldType::Move) {
+                point.x = startPosition.x() + moved.x();
+                point.y = startPosition.y() + moved.y();
+            } else if (currentHold == HoldType::ControlPoint) {
+                point.curveX = startPosition.x() + moved.x();
+                point.curveY = startPosition.y() + moved.y();
+            }
+
+            index++;
         }
         pathElement->path.set(path, frameInfo);
         return true;

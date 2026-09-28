@@ -4,6 +4,12 @@
 
 class PathElementEditor : public Editor {
     Q_OBJECT
+
+    enum HoldType {
+        Move,
+        ControlPoint,
+    };
+
   public:
     PathElementEditor(NewMainWindow *mainWindow, Scene *scene,
                       PathElement *pathElement, ImageViewer *parent);
@@ -23,10 +29,15 @@ class PathElementEditor : public Editor {
     bool mouseReleaseEvent(const QPoint &pixelPosition,
                            QMouseEvent *event) override;
 
+    void beginHold(const QPoint &pos);
+
     PathElement *pathElement;
     QList<int> selectedPathPoints;
     int hoveringPointIndex = -1;
     bool isClosingPath = false;
+    HoldType currentHold;
+    QList<QPoint> startHoldPositions;
+    QPoint startHoldCursorPosition;
 
     QCursor closedCursor;
 };
