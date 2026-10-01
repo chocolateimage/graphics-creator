@@ -21,7 +21,27 @@ QPoint PathElementEditor::offset() {
            QPoint(pathElement->x.get(frameInfo), pathElement->y.get(frameInfo));
 }
 
-void PathElementEditor::passKeyEvent(QKeyEvent *keyEvent) {}
+void PathElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
+    FrameInfo frameInfo{scene->currentFrame};
+    if (keyEvent->matches(QKeySequence::Delete)) {
+        Path path = pathElement->path.get(frameInfo);
+        std::sort(selectedPathPoints.begin(), selectedPathPoints.end(),
+                  [](int a, int b) { return a > b; });
+        for (auto pointIndex : selectedPathPoints) {
+            path.points.removeAt(pointIndex);
+        }
+        selectedPathPoints.clear();
+        pathElement->path.set(path, frameInfo);
+        repaintParent();
+    } else if (keyEvent->matches(QKeySequence::SelectAll)) {
+        Path path = pathElement->path.get(frameInfo);
+        selectedPathPoints.clear();
+        for (int i = 0; i < path.points.length(); i++) {
+            selectedPathPoints.append(i);
+        }
+        repaintParent();
+    }
+}
 
 void PathElementEditor::paint(QPainter &painter) {
     QPalette palette = imageViewer->palette();
@@ -69,7 +89,7 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
     FrameInfo frameInfo{scene->currentFrame};
     QPoint offset = this->offset();
     QPoint pos = pixelPosition - offset;
-    if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
+    if (event->button() == Qt::MouseButton::LeftButton) {
         Path path = pathElement->path.get(frameInfo);
 
         Qt::KeyboardModifiers keyboardModifiers =
@@ -115,6 +135,9 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
 
         currentHold = HoldType::ControlPoint;
         beginHold(pos);
+        return true;
+    } else if (event->button() == Qt::MouseButton::RightButton) {
+        emit closeEditor();
         return true;
     }
 

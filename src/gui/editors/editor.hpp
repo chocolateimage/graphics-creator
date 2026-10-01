@@ -22,6 +22,7 @@ class Editor : public QObject {
     void repaintParent();
 
     virtual void passKeyEvent(QKeyEvent *keyEvent) {}
+    virtual void passKeyReleaseEvent(QKeyEvent *keyEvent) {}
     virtual void paint(QPainter &painter) {}
     virtual bool mousePressEvent(const QPoint &pixelPosition,
                                  QMouseEvent *event) {

@@ -1451,6 +1451,12 @@ void ImageViewer::keyPressEvent(QKeyEvent *event) {
     }
 }
 
+void ImageViewer::keyReleaseEvent(QKeyEvent *event) {
+    if (editor) {
+        editor->passKeyReleaseEvent(event);
+    }
+}
+
 void ImageViewer::inputMethodEvent(QInputMethodEvent *event) {
     if (editor) {
         QKeyEvent *keyEvent =
