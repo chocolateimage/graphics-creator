@@ -7,7 +7,8 @@ class PathElementEditor : public Editor {
 
     enum HoldType {
         Move,
-        ControlPoint,
+        ControlPointFrom,
+        ControlPointTo,
     };
 
   public:
@@ -34,6 +35,8 @@ class PathElementEditor : public Editor {
     PathElement *pathElement;
     QList<int> selectedPathPoints;
     int hoveringPointIndex = -1;
+    int hoveringControlPointIndex = -1;
+    bool hoveringControlPointIsFrom = false;
     bool isClosingPath = false;
     HoldType currentHold;
     QList<QPoint> startHoldPositions;
