@@ -180,7 +180,17 @@ template <> inline QJsonValue serializeAnyValue(const ElementSelection &value) {
 
 template <> inline QJsonValue serializeAnyValue(const Path &value) {
     QJsonObject obj;
-    // TODO: save
+    obj["closed"] = value.closed;
+    QJsonArray pointsArray;
+    for (const auto &point : value.points) {
+        QJsonObject pointObj;
+        pointObj["x"] = point.x;
+        pointObj["y"] = point.y;
+        pointObj["curveX"] = point.curveX;
+        pointObj["curveY"] = point.curveY;
+        pointsArray.append(pointObj);
+    }
+    obj["points"] = pointsArray;
     return obj;
 }
 
@@ -310,7 +320,18 @@ inline ElementSelection deserializeAnyValue(const QJsonValue &value) {
 }
 
 template <> inline Path deserializeAnyValue(const QJsonValue &value) {
-    return {}; // TODO: save
+    Path path;
+    path.closed = value["closed"].toBool();
+    for (const auto &pointValue : value["points"].toArray()) {
+        QJsonObject pointObj = pointValue.toObject();
+        PathPoint pathPoint;
+        pathPoint.x = pointObj["x"].toInt();
+        pathPoint.y = pointObj["y"].toInt();
+        pathPoint.curveX = pointObj["curveX"].toInt();
+        pathPoint.curveY = pointObj["curveY"].toInt();
+        path.points.append(pathPoint);
+    }
+    return path;
 }
 
 class KeyframeBase {
