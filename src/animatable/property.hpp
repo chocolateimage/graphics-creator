@@ -20,18 +20,43 @@ struct is_lerpable<
     : std::true_type {};
 
 template <> struct is_lerpable<Brush> : std::true_type {};
+template <> struct is_lerpable<PathPoint> : std::true_type {};
+template <> struct is_lerpable<Path> : std::true_type {};
 
-template <typename T> inline T lerp(T a, T b, float value) {
+template <typename T> inline T lerp(const T &a, const T &b, float value) {
     return a * (1.f - value) + (b * value);
 }
 
-template <> inline Brush lerp(Brush a, Brush b, float value) {
+template <> inline Brush lerp(const Brush &a, const Brush &b, float value) {
     return {
         .brushType = a.brushType,
         .color1 = lerp(a.color1, b.color1, value),
         .color2 = lerp(a.color2, b.color2, value),
         .angle = lerp(a.angle, b.angle, value),
     };
+}
+
+template <>
+inline PathPoint lerp(const PathPoint &a, const PathPoint &b, float value) {
+    return {
+        .x = lerp(a.x, b.x, value),
+        .y = lerp(a.y, b.y, value),
+        .curveX = lerp(a.curveX, b.curveX, value),
+        .curveY = lerp(a.curveY, b.curveY, value),
+    };
+}
+
+template <> inline Path lerp(const Path &a, const Path &b, float value) {
+    Path final;
+    final.closed = a.closed;
+    if (a.points.length() == b.points.length()) {
+        for (int i = 0; i < a.points.length(); i++) {
+            final.points.append(lerp(a.points[i], b.points[i], value));
+        }
+    } else {
+        final.points = a.points;
+    }
+    return final;
 }
 
 template <typename T> inline QJsonValue serializeAnyValue(const T &value) {
