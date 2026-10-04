@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QBrush>
 #include <QEasingCurve>
 #include <QList>
 #include <QRect>
@@ -12,6 +13,8 @@ class StrokeInfo;
 
 struct Color {
     int r{255}, g{255}, b{255}, a{255};
+
+    QColor toQColor() const;
 
     Color operator+(const Color &other) const {
         return {std::min(r + other.r, 255), std::min(g + other.g, 255),
@@ -103,11 +106,27 @@ struct Brush {
     Color color2;
     double angle{0};
 
+    QBrush toQBrush(const QRect &rect) const;
+
     bool operator==(const Brush &other) const {
         return brushType == other.brushType && color1 == other.color1 &&
                color2 == other.color2 && angle == other.angle;
     }
     bool operator!=(const Brush &other) const { return !operator==(other); }
+
+    static Brush fromColor(const Color &color);
+};
+
+struct PathPoint {
+    int x{0};
+    int y{0};
+    int curveX{0};
+    int curveY{0};
+};
+
+struct Path {
+    QList<PathPoint> points;
+    bool closed = false;
 };
 
 class TextSpan {
@@ -150,9 +169,10 @@ class ElementSelection {
 
 Brush::Type getBrushTypeFromString(const std::string &str);
 
-using VariantType = std::variant<std::monostate, std::string, int, double,
-                                 Color, Vector2DInt, Font, bool, Easing, Brush,
-                                 TextSpans, Vector2DFloat, ElementSelection>;
+using VariantType =
+    std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,
+                 Font, bool, Easing, Brush, TextSpans, Vector2DFloat,
+                 ElementSelection, Path>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -168,7 +188,8 @@ struct VariantTypeEnum {
         Brush,
         TextSpans,
         Vector2DFloat,
-        ElementSelection
+        ElementSelection,
+        Path,
     };
 };
 

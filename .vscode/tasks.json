@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build and launch",
+            "command": "bash",
+            "args": ["-c", "clear && cd build && ninja && ./graphics-creator --new 1280:720:150:30"],
+            "problemMatcher": []
+        }
+    ]
+}

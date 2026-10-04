@@ -1,0 +1,82 @@
+#include "path_element.hpp"
+#include <QImage>
+#include <QPainter>
+#include <QSvgRenderer>
+
+PathElement::PathElement() : Element() {
+    w.hidden = true;
+    h.hidden = true;
+
+    strokeWidth.setMin(0);
+}
+
+AnimatableRender *PathElement::createClass() { return new PathElementRender(); }
+
+QRect PathElement::getRawBoundingBox(const FrameInfo &frameInfo) {
+    PathElementRender *renderElement = (PathElementRender *)toRender(frameInfo);
+    renderElement->prepare();
+    QRect renderBox = renderElement->rect;
+    renderBox.translate(renderElement->x, renderElement->y);
+    delete renderElement;
+
+    return renderBox;
+}
+
+void PathElementRender::prepare() {
+    Path &path = this->path;
+    if (!path.points.isEmpty()) {
+        painterPath.moveTo(path.points[0].x, path.points[0].y);
+    }
+
+    for (int i = 1; i < path.points.length(); i++) {
+        auto &point = path.points[i];
+        auto &lastPoint = path.points[i - 1];
+        QPoint actualPoint = QPoint(point.x, point.y);
+        QPoint c1 = QPoint(lastPoint.x + lastPoint.curveX,
+                           lastPoint.y + lastPoint.curveY);
+        QPoint c2 = QPoint(point.x - point.curveX, point.y - point.curveY);
+        painterPath.cubicTo(c1, c2, actualPoint);
+    }
+
+    if (path.closed) {
+        auto &firstPoint = path.points.first();
+        auto &lastPoint = path.points.last();
+        painterPath.cubicTo(
+            lastPoint.x + lastPoint.curveX, lastPoint.y + lastPoint.curveY,
+            firstPoint.x - firstPoint.curveX, firstPoint.y - firstPoint.curveY,
+            firstPoint.x, firstPoint.y);
+    }
+
+    rect = painterPath.boundingRect().toRect().adjusted(
+        -strokeWidth / 2 - 1, -strokeWidth / 2 - 1, strokeWidth / 2 + 1,
+        strokeWidth / 2 + 1);
+}
+
+Rect PathElementRender::getRenderBox() {
+    return Rect::fromQRect(rect.translated(x, y));
+}
+
+bool PathElementRender::render(uint32_t *target) {
+    QImage img(rect.width(), rect.height(), QImage::Format_ARGB32);
+    img.fill(Qt::transparent);
+    QPainter painter(&img);
+    painter.setRenderHint(QPainter::Antialiasing);
+    if (strokeWidth > 0) {
+        painter.setPen(QPen(stroke.get().toQBrush(rect), strokeWidth));
+    } else {
+        painter.setPen(Qt::NoPen);
+    }
+    Brush fill = this->fill;
+    if (fill.brushType != Brush::SingleColor || fill.color1.a != 0) {
+        painter.setBrush(fill.toQBrush(rect));
+    } else {
+        painter.setBrush(Qt::NoBrush);
+    }
+
+    painter.translate(-rect.x(), -rect.y());
+    painter.drawPath(painterPath);
+
+    memcpy(target, img.bits(), rect.width() * rect.height() * 4);
+
+    return true;
+}

@@ -1,7 +1,10 @@
 #include "image_viewer.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
+#include "animatable/element/path_element.hpp"
 #include "animatable/element/video_element.hpp"
+#include "editors/path_element_editor.hpp"
+#include "editors/text_element_editor.hpp"
 #include "gui.hpp"
 #include <KMessageBox>
 #include <QApplication>
@@ -16,6 +19,7 @@
 #include <QMimeDatabase>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QToolButton>
 #include <QToolTip>
 
@@ -185,22 +189,37 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
 }
 
 void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
-    if (textElementEditor != nullptr) {
-        delete textElementEditor;
-        textElementEditor = nullptr;
+    if (editor != nullptr) {
+        delete editor;
+        editor = nullptr;
     }
 
     if (editMode) {
         TextElement *textElement = dynamic_cast<TextElement *>(element);
+        PathElement *pathElement = dynamic_cast<PathElement *>(element);
         if (textElement != nullptr) {
-            textElementEditor =
+            editor =
                 new TextElementEditor(mainWindow, scene, textElement, this);
             setFocus();
+        } else if (pathElement != nullptr) {
+            editor =
+                new PathElementEditor(mainWindow, scene, pathElement, this);
         }
+
+        connect(editor, &Editor::closeEditor, this, &ImageViewer::closeEditor);
+        connect(editor, &Editor::cursorChanged, this,
+                &ImageViewer::editorCursorChanged);
     }
 
     update();
+    updateCursor();
 }
+
+void ImageViewer::closeEditor() {
+    scene->selectedElements[0]->setEditMode(false);
+}
+
+void ImageViewer::editorCursorChanged() { updateCursor(); }
 
 void ImageViewer::elementSelectionChanged(QList<Element *> elements) {
     hoverElement = nullptr;
@@ -397,7 +416,11 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
             QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
             pos = pixelToViewport(pos);
             QPointF size = pixelToViewport(bottomRight) - pos;
-            painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+            if (element->editMode && editor &&
+                !editor->shouldShowElementBorder()) {
+            } else {
+                painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+            }
 
             if (element->isResizable()) {
                 painter.setPen(QPen(palette().accent().color().darker(), 1));
@@ -415,9 +438,11 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
 
             if (element->editMode) {
                 painter.save();
-                painter.translate(pos);
-                painter.scale(zoomElement, zoomElement);
-                textElementEditor->paint(painter);
+                if (editor->shouldTransformPainter()) {
+                    painter.translate(pos);
+                    painter.scale(zoomElement, zoomElement);
+                }
+                editor->paint(painter);
                 painter.restore();
             }
         }
@@ -631,6 +656,10 @@ QRectF ImageViewer::fittedRect() {
 void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
     QPointF current = event->position();
     QPoint pixelPos = viewportToPixel(current);
+
+    if (editor) {
+        editor->mouseMoveEvent(pixelPos, event);
+    }
 
     if (isPicking) {
         pickPosition = pixelPos;
@@ -1054,18 +1083,34 @@ void ImageViewer::mousePressEvent(QMouseEvent *event) {
             if (pickType == PickType::Point) {
                 stopPicking();
                 emit pixelPicked(pickId, getActualPickPosition());
+                return;
             } else if (pickType == PickType::Rect) {
                 startPickPosition = pickPosition;
                 update();
+                return;
+            } else if (pickType == PickType::Pen) {
+                emit rectPicked(pickId, {0, 0, 0, 0});
+                PathElement *pathElement = dynamic_cast<PathElement *>(
+                    scene->selectedElements.first());
+                Q_ASSERT(pathElement != nullptr);
+
+                pathElement->setEditMode(true);
+                stopPicking();
             }
 
-            return;
         } else if (event->button() == Qt::RightButton) {
             if (pickId.isEmpty())
                 return;
 
             stopPicking();
 
+            return;
+        }
+    }
+
+    if (editor) {
+        if (editor->mousePressEvent(viewportToPixel(event->position()),
+                                    event)) {
             return;
         }
     }
@@ -1234,6 +1279,13 @@ class MoveResizeElementCommand : public QUndoCommand {
 };
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
+    if (editor) {
+        if (editor->mouseReleaseEvent(viewportToPixel(event->position()),
+                                      event)) {
+            return;
+        }
+    }
+
     if (isPicking && pickType == PickType::Rect) {
         if (event->button() == Qt::LeftButton) {
             stopPicking();
@@ -1307,7 +1359,8 @@ void ImageViewer::mouseDoubleClickEvent(QMouseEvent *event) {
 
     Element *element = scene->selectedElements.first();
     // TODO: not check in imageviewer
-    if (dynamic_cast<TextElement *>(element) != nullptr) {
+    if (dynamic_cast<TextElement *>(element) != nullptr ||
+        dynamic_cast<PathElement *>(element) != nullptr) {
         scene->selectedElements.first()->setEditMode(true);
     }
 }
@@ -1354,6 +1407,22 @@ void ImageViewer::stopPicking() {
 }
 
 void ImageViewer::updateCursor() {
+    if (editor && editor->cursor.shape() != Qt::BlankCursor) {
+        setCursor(editor->cursor);
+        return;
+    }
+
+    if ((isPicking && pickType == PickType::Pen) ||
+        dynamic_cast<PathElementEditor *>(editor) != nullptr) {
+        if (penCursor.shape() != Qt::BitmapCursor) {
+            QPixmap pix(mainWindow->dataPath + "/assets/pen-cursor.png");
+            pix.setDevicePixelRatio(3);
+            penCursor = QCursor(pix, 4, 4);
+        }
+        setCursor(penCursor);
+        return;
+    }
+
     if (isPicking) {
         setCursor(Qt::CursorShape::CrossCursor);
         return;
@@ -1373,24 +1442,34 @@ void ImageViewer::updateCursor() {
 }
 
 void ImageViewer::keyPressEvent(QKeyEvent *event) {
-    if (textElementEditor) {
-        textElementEditor->passKeyEvent(event);
+    if (editor) {
+        if (event->key() == Qt::Key_Escape) {
+            closeEditor();
+            return;
+        }
+        editor->passKeyEvent(event);
+    }
+}
+
+void ImageViewer::keyReleaseEvent(QKeyEvent *event) {
+    if (editor) {
+        editor->passKeyReleaseEvent(event);
     }
 }
 
 void ImageViewer::inputMethodEvent(QInputMethodEvent *event) {
-    if (textElementEditor) {
+    if (editor) {
         QKeyEvent *keyEvent =
             new QKeyEvent(QEvent::KeyPress, 0, Qt::KeyboardModifier::NoModifier,
                           event->commitString());
-        textElementEditor->passKeyEvent(keyEvent);
+        editor->passKeyEvent(keyEvent);
         delete keyEvent;
     }
 }
 
 bool ImageViewer::event(QEvent *event) {
     if (event->type() == QEvent::ShortcutOverride) {
-        if (textElementEditor) {
+        if (editor) {
             event->accept();
             return true;
         }

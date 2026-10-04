@@ -414,7 +414,8 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         connect(input, &BrushInput::editingFinished, this,
                 [this]() { finishEditing(); });
         widget = input;
-    } else if (variantType == VariantTypeEnum::TextSpans) {
+    } else if (variantType == VariantTypeEnum::TextSpans ||
+               variantType == VariantTypeEnum::Path) {
         auto button = new QPushButton(this);
         button->setText("Edit");
         button->setIcon(QIcon::fromTheme("document-edit"));

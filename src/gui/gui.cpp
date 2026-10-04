@@ -3,6 +3,7 @@
 #include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
+#include "animatable/element/path_element.hpp"
 #include "animatable/element/rectangle_element.hpp"
 #include "animatable/element/text_element.hpp"
 #include "animatable/element/video_element.hpp"
@@ -476,6 +477,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlEllipse->setShortcut(QKeySequence("E"));
     controlText = toolBar->addAction(QIcon::fromTheme("draw-text"), "Text");
     controlText->setShortcut(QKeySequence("T"));
+    controlPen = toolBar->addAction(QIcon::fromTheme("draw-path"), "Pen");
+    controlPen->setShortcut(QKeySequence("G"));
     toolBar->addSeparator();
     controlImport = toolBar->addAction(QIcon::fromTheme("download"), "Import…");
     controlImport->setToolTip("Add media files to scene");
@@ -487,6 +490,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     editMenu->addAction(controlRectangle);
     editMenu->addAction(controlEllipse);
     editMenu->addAction(controlText);
+    editMenu->addAction(controlPen);
 
     fileMenu->insertAction(insertSeparator, controlImport);
 
@@ -494,11 +498,13 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     controlRectangle->setActionGroup(controlsGroup);
     controlEllipse->setActionGroup(controlsGroup);
     controlText->setActionGroup(controlsGroup);
+    controlPen->setActionGroup(controlsGroup);
 
     controlSelect->setCheckable(true);
     controlRectangle->setCheckable(true);
     controlEllipse->setCheckable(true);
     controlText->setCheckable(true);
+    controlPen->setCheckable(true);
 
     controlSelect->setChecked(true);
 
@@ -509,6 +515,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(controlEllipse, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
     connect(controlText, &QAction::triggered, this,
+            &NewMainWindow::controlsUpdated);
+    connect(controlPen, &QAction::triggered, this,
             &NewMainWindow::controlsUpdated);
     connect(controlImport, &QAction::triggered, this,
             &NewMainWindow::importClicked);
@@ -1363,6 +1371,8 @@ Element *NewMainWindow::loadElementFromJson(const QJsonObject &obj) {
         element = new GroupElement();
     } else if (elementType == "video") {
         element = new VideoElement();
+    } else if (elementType == "path") {
+        element = new PathElement();
     }
 
     if (!element) {
@@ -1507,6 +1517,8 @@ void NewMainWindow::taskCompleted(FrameTask *task) {
 void NewMainWindow::controlsUpdated() {
     if (controlSelect->isChecked()) {
         scenePreviewWidget->stopPicking();
+    } else if (controlPen->isChecked()) {
+        scenePreviewWidget->beginPicking("", "", ImageViewer::Pen);
     } else {
         scenePreviewWidget->beginPicking("", "", ImageViewer::Rect);
     }
@@ -1543,6 +1555,11 @@ void NewMainWindow::sceneRectPicked(QString id, QRect rect) {
             textElement->setObjectName("New Text");
             element = textElement;
         }
+    } else if (controlPen->isChecked()) {
+        controlSelect->setChecked(true);
+        PathElement *pathElement = new PathElement();
+        pathElement->setObjectName("New Path");
+        element = pathElement;
     }
     if (element) {
         element->x.set(rect.x(), {0});

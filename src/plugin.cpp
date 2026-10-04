@@ -137,11 +137,11 @@ bool getPropertyBool_def(PropertyRenderBase *property) {
 }
 
 void *getPropertyBrush_def(PropertyRenderBase *property) {
-    return &((PropertyRender<Brush> *)property)->value;
+    return &((PropertyRender<Brush> *)property)->get();
 }
 
 void *getPropertyElementSelection_def(PropertyRenderBase *property) {
-    return &((PropertyRender<ElementSelection> *)property)->value;
+    return &((PropertyRender<ElementSelection> *)property)->get();
 }
 
 void setPropertyInt_def(PluginPropertyDefinition *property,

@@ -11,6 +11,41 @@ StrokeInfo TextSpan::strokeInfo() const {
     return {strokeWidth, strokeLineJoin};
 }
 
+QColor Color::toQColor() const { return QColor(r, g, b, a); }
+
+QBrush Brush::toQBrush(const QRect &rect) const {
+    switch (brushType) {
+    case Brush::Type::SingleColor:
+        return QBrush(color1.toQColor());
+    case Brush::Type::LinearGradient: {
+        QLinearGradient linearGradient;
+        linearGradient.setColorAt(0, color1.toQColor());
+        linearGradient.setColorAt(1, color2.toQColor());
+        linearGradient.setStart(rect.x(), rect.y());
+        linearGradient.setFinalStop(rect.x() + rect.width(),
+                                    rect.y() + rect.height());
+        return linearGradient;
+    }
+    case Brush::Type::RadialGradient: {
+        QRadialGradient radialGradient;
+        radialGradient.setColorAt(0, color1.toQColor());
+        radialGradient.setColorAt(1, color2.toQColor());
+        radialGradient.setCenter(rect.x() + rect.width() / 2.,
+                                 rect.y() + rect.height() / 2.);
+        radialGradient.setRadius(rect.width());
+        return radialGradient;
+    }
+    }
+    Q_UNREACHABLE();
+}
+
+Brush Brush::fromColor(const Color &color) {
+    Brush brush;
+    brush.brushType = SingleColor;
+    brush.color1 = color;
+    return brush;
+}
+
 Brush::Type getBrushTypeFromString(const std::string &str) {
     if (str == "singleColor") {
         return Brush::Type::SingleColor;
@@ -62,6 +97,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::Vector2DFloat;
     } else if (type == "elementSelection") {
         return VariantTypeEnum::ElementSelection;
+    } else if (type == "path") {
+        return VariantTypeEnum::Path;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -95,6 +132,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(Vector2DFloat{0, 0});
     case VariantTypeEnum::ElementSelection:
         return Variant(ElementSelection{});
+    case VariantTypeEnum::Path:
+        return Variant(Path{});
     }
     Q_UNREACHABLE();
 }

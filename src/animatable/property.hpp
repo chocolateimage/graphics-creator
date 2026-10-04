@@ -20,18 +20,43 @@ struct is_lerpable<
     : std::true_type {};
 
 template <> struct is_lerpable<Brush> : std::true_type {};
+template <> struct is_lerpable<PathPoint> : std::true_type {};
+template <> struct is_lerpable<Path> : std::true_type {};
 
-template <typename T> inline T lerp(T a, T b, float value) {
+template <typename T> inline T lerp(const T &a, const T &b, float value) {
     return a * (1.f - value) + (b * value);
 }
 
-template <> inline Brush lerp(Brush a, Brush b, float value) {
+template <> inline Brush lerp(const Brush &a, const Brush &b, float value) {
     return {
         .brushType = a.brushType,
         .color1 = lerp(a.color1, b.color1, value),
         .color2 = lerp(a.color2, b.color2, value),
         .angle = lerp(a.angle, b.angle, value),
     };
+}
+
+template <>
+inline PathPoint lerp(const PathPoint &a, const PathPoint &b, float value) {
+    return {
+        .x = lerp(a.x, b.x, value),
+        .y = lerp(a.y, b.y, value),
+        .curveX = lerp(a.curveX, b.curveX, value),
+        .curveY = lerp(a.curveY, b.curveY, value),
+    };
+}
+
+template <> inline Path lerp(const Path &a, const Path &b, float value) {
+    Path final;
+    final.closed = a.closed;
+    if (a.points.length() == b.points.length()) {
+        for (int i = 0; i < a.points.length(); i++) {
+            final.points.append(lerp(a.points[i], b.points[i], value));
+        }
+    } else {
+        final.points = a.points;
+    }
+    return final;
 }
 
 template <typename T> inline QJsonValue serializeAnyValue(const T &value) {
@@ -178,6 +203,22 @@ template <> inline QJsonValue serializeAnyValue(const ElementSelection &value) {
     return obj;
 }
 
+template <> inline QJsonValue serializeAnyValue(const Path &value) {
+    QJsonObject obj;
+    obj["closed"] = value.closed;
+    QJsonArray pointsArray;
+    for (const auto &point : value.points) {
+        QJsonObject pointObj;
+        pointObj["x"] = point.x;
+        pointObj["y"] = point.y;
+        pointObj["curveX"] = point.curveX;
+        pointObj["curveY"] = point.curveY;
+        pointsArray.append(pointObj);
+    }
+    obj["points"] = pointsArray;
+    return obj;
+}
+
 template <typename T> inline T deserializeAnyValue(const QJsonValue &value) {
     return value;
 }
@@ -301,6 +342,21 @@ inline ElementSelection deserializeAnyValue(const QJsonValue &value) {
     elementSelection.frameType =
         (ElementSelection::FrameType)obj["frameType"].toInt();
     return elementSelection;
+}
+
+template <> inline Path deserializeAnyValue(const QJsonValue &value) {
+    Path path;
+    path.closed = value["closed"].toBool();
+    for (const auto &pointValue : value["points"].toArray()) {
+        QJsonObject pointObj = pointValue.toObject();
+        PathPoint pathPoint;
+        pathPoint.x = pointObj["x"].toInt();
+        pathPoint.y = pointObj["y"].toInt();
+        pathPoint.curveX = pointObj["curveX"].toInt();
+        pathPoint.curveY = pointObj["curveY"].toInt();
+        path.points.append(pathPoint);
+    }
+    return path;
 }
 
 class KeyframeBase {
@@ -716,5 +772,6 @@ template <typename T> class PropertyRender : public PropertyRenderBase {
         value = propertyTyped->get(frameInfo);
     }
 
+  private:
     T value;
 };

@@ -1,6 +1,6 @@
 #pragma once
+#include "editors/editor.hpp"
 #include "scene.hpp"
-#include "text_element_editor.hpp"
 #include <DockManager.h>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
@@ -20,6 +20,7 @@ class TransparentCornerFrame : public QFrame {
 };
 
 class NewMainWindow;
+class PathElement;
 
 struct ResizeMode {
     // resizing itself
@@ -40,6 +41,7 @@ class ImageViewer : public QWidget {
     enum PickType {
         Point,
         Rect,
+        Pen,
     };
 
     explicit ImageViewer(Scene *scene, QWidget *parent = nullptr);
@@ -49,6 +51,9 @@ class ImageViewer : public QWidget {
     void stopPicking();
     QRectF fittedRect();
     QImage image;
+
+    QPointF pixelToViewport(QPointF pos);
+    QPoint viewportToPixel(QPointF pos);
 
     NewMainWindow *mainWindow{nullptr};
 
@@ -73,9 +78,6 @@ class ImageViewer : public QWidget {
     Scene *scene;
 
     std::vector<ResizeMode> resizeModes;
-
-    QPointF pixelToViewport(QPointF pos);
-    QPoint viewportToPixel(QPointF pos);
 
     bool isMovingElements{false};
     Element *shiftSelectElement{nullptr};
@@ -125,6 +127,7 @@ class ImageViewer : public QWidget {
     void enterEvent(QEnterEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
     void inputMethodEvent(QInputMethodEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
@@ -134,12 +137,15 @@ class ImageViewer : public QWidget {
 
     void paintSnapVisualRect(QPainter &painter, const QRect &snapVisualRect);
 
-    TextElementEditor *textElementEditor{nullptr};
+    Editor *editor{nullptr};
+    QCursor penCursor;
 
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
     void elementEditModeChanged(Element *element, bool editMode);
     void playbackStateChanged(bool playing);
+    void closeEditor();
+    void editorCursorChanged();
 
   signals:
     void pixelPicked(QString id, QPoint position);
