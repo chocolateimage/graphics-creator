@@ -50,6 +50,7 @@ set(graphicscreator_SRCS
     src/gui/flowlayout.cpp
     src/gui/welcome_popup.cpp
     src/gui/plugin_manager.cpp
+    src/gui/color_picker.cpp
     src/gui/timeline/timeline.cpp
     src/gui/timeline/timeline_content.cpp
     src/gui/timeline/property_button.cpp
