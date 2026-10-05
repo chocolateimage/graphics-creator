@@ -8,6 +8,16 @@ PathElement::PathElement() : Element() {
     h.hidden = true;
 
     strokeWidth.setMin(0);
+
+    cap.enumList.push_back("Square");
+    cap.enumList.push_back("Flat");
+    cap.enumList.push_back("Round");
+    cap.updateBoundsToEnumList();
+
+    join.enumList.push_back("Bevel");
+    join.enumList.push_back("Miter");
+    join.enumList.push_back("Round");
+    join.updateBoundsToEnumList();
 }
 
 AnimatableRender *PathElement::createClass() { return new PathElementRender(); }
@@ -62,7 +72,16 @@ bool PathElementRender::render(uint32_t *target) {
     QPainter painter(&img);
     painter.setRenderHint(QPainter::Antialiasing);
     if (strokeWidth > 0) {
-        painter.setPen(QPen(stroke.get().toQBrush(rect), strokeWidth));
+        static const Qt::PenCapStyle caps[] = {Qt::PenCapStyle::SquareCap,
+                                               Qt::PenCapStyle::FlatCap,
+                                               Qt::PenCapStyle::RoundCap};
+        static const Qt::PenJoinStyle joins[] = {Qt::PenJoinStyle::BevelJoin,
+                                                 Qt::PenJoinStyle::MiterJoin,
+                                                 Qt::PenJoinStyle::RoundJoin};
+
+        painter.setPen(QPen(stroke.get().toQBrush(rect), strokeWidth,
+                            Qt::PenStyle::SolidLine, caps[this->cap.get()],
+                            joins[this->join.get()]));
     } else {
         painter.setPen(Qt::NoPen);
     }

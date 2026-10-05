@@ -14,6 +14,8 @@ class PathElement : public Element {
     Property<Brush> fill{this, "fill", Brush::fromColor(Color{0, 0, 0, 0})};
     Property<int> strokeWidth{this, "strokeWidth", 8};
     Property<Brush> stroke{this, "stroke", {}};
+    Property<int> cap{this, "cap", 0};
+    Property<int> join{this, "join", 0};
     Property<Path> path{this, "path", {}};
 
     QString const typeName() override { return "path"; }
@@ -27,6 +29,8 @@ class PathElementRender : public ElementRender {
     PropertyRender<Brush> fill{this};
     PropertyRender<int> strokeWidth{this};
     PropertyRender<Brush> stroke{this};
+    PropertyRender<int> cap{this};
+    PropertyRender<int> join{this};
     PropertyRender<Path> path{this};
 
     QPainterPath painterPath;
