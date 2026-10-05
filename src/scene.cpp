@@ -80,6 +80,13 @@ void Scene::reorderElement(Element *element, int newIndex) {
 void Scene::startTimer() {
     if (timer->isActive())
         return;
+
+    for (auto element : elements) {
+        if (element->editMode) {
+            element->setEditMode(false);
+        }
+    }
+
     startFrame = currentFrame;
     elapsedTimer.restart();
     emit playbackStateChanged(true);
