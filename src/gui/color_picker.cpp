@@ -5,6 +5,7 @@
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPainter>
@@ -20,6 +21,7 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
     originalColor = color;
 
     QVBoxLayout *mainLay = new QVBoxLayout(this);
+    mainLay->setSpacing(16);
 
     QHBoxLayout *lay = new QHBoxLayout();
     lay->setContentsMargins(0, 0, 0, 0);
@@ -30,28 +32,51 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
     lay->addWidget(fieldWidget);
 
     QVBoxLayout *lay2 = new QVBoxLayout();
-    lay2->setSpacing(4);
+    lay2->setSpacing(1);
     lay2->setContentsMargins(0, 0, 0, 0);
     ColorPreviewWidget *previewWidget = new ColorPreviewWidget(this);
     lay2->addWidget(previewWidget);
+
+    lay2->addStretch();
 
     QFormLayout *formLay = new QFormLayout();
     spinR = new DraggableSpinBox();
     spinG = new DraggableSpinBox();
     spinB = new DraggableSpinBox();
+
+    spinH = new DraggableSpinBox();
+    spinS = new DraggableSpinBox();
+    spinV = new DraggableSpinBox();
+
     spinA = new DraggableSpinBox();
+
     lineHex = new QLineEdit();
     lineHex->setMaxLength(6);
+
     spinR->setRange(0, 255);
     spinG->setRange(0, 255);
     spinB->setRange(0, 255);
+
+    spinH->setRange(0, 359);
+    spinS->setRange(0, 255);
+    spinV->setRange(0, 255);
+
     spinA->setRange(0, 255);
+
     spinR->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
     spinG->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
     spinB->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
+
+    spinH->setSizePolicy(QSizePolicy::Policy::Expanding,
+                         QSizePolicy::Policy::Fixed);
+    spinS->setSizePolicy(QSizePolicy::Policy::Expanding,
+                         QSizePolicy::Policy::Fixed);
+    spinV->setSizePolicy(QSizePolicy::Policy::Expanding,
+                         QSizePolicy::Policy::Fixed);
+
     spinA->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
     connect(spinR, &QSpinBox::valueChanged, this,
@@ -60,27 +85,46 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
             &ColorPickerDialog::rgbUpdated);
     connect(spinB, &QSpinBox::valueChanged, this,
             &ColorPickerDialog::rgbUpdated);
+    connect(spinH, &QSpinBox::valueChanged, this,
+            &ColorPickerDialog::hsvUpdated);
+    connect(spinS, &QSpinBox::valueChanged, this,
+            &ColorPickerDialog::hsvUpdated);
+    connect(spinV, &QSpinBox::valueChanged, this,
+            &ColorPickerDialog::hsvUpdated);
     connect(spinA, &QSpinBox::valueChanged, this,
             &ColorPickerDialog::rgbUpdated);
     connect(lineHex, &QLineEdit::textChanged, this,
             &ColorPickerDialog::hexUpdated);
     lineHex->setFixedWidth(80);
-    formLay->addRow("R", spinR);
-    formLay->addRow("G", spinG);
-    formLay->addRow("B", spinB);
+
+    constexpr int fieldHeight = 30;
+    spinR->setFixedHeight(fieldHeight);
+    spinG->setFixedHeight(fieldHeight);
+    spinB->setFixedHeight(fieldHeight);
+    spinH->setFixedHeight(fieldHeight);
+    spinS->setFixedHeight(fieldHeight);
+    spinV->setFixedHeight(fieldHeight);
+    spinA->setFixedHeight(fieldHeight);
+    lineHex->setFixedHeight(fieldHeight);
+
+    QLabel *r = new QLabel("R");
+    r->setStyleSheet("color: #ff4e4e");
+    formLay->addRow(r, spinR);
+    QLabel *g = new QLabel("G");
+    g->setStyleSheet("color: #25e415");
+    formLay->addRow(g, spinG);
+    QLabel *b = new QLabel("B");
+    b->setStyleSheet("color: #207ae5");
+    formLay->addRow(b, spinB);
+    formLay->addItem(new QSpacerItem(1, 4));
+    formLay->addRow("H", spinH);
+    formLay->addRow("S", spinS);
+    formLay->addRow("V", spinV);
+    formLay->addItem(new QSpacerItem(1, 4));
     formLay->addRow("A", spinA);
+    formLay->addItem(new QSpacerItem(1, 4));
     formLay->addRow("#", lineHex);
     lay2->addLayout(formLay);
-
-    QPushButton *test = new QPushButton("...");
-    connect(test, &QPushButton::clicked, this, [this]() {
-        QColorDialog dialog;
-        dialog.setCurrentColor(currentColor);
-        if (dialog.exec() == QDialog::DialogCode::Accepted) {
-            setColor(dialog.currentColor());
-        }
-    });
-    lay2->addWidget(test);
 
     lay->addLayout(lay2);
 
@@ -102,10 +146,16 @@ void ColorPickerDialog::setColor(const QColor &color) {
     QSignalBlocker block3(spinB);
     QSignalBlocker block4(spinA);
     QSignalBlocker block5(lineHex);
+    QSignalBlocker block6(spinH);
+    QSignalBlocker block7(spinS);
+    QSignalBlocker block8(spinV);
     currentColor = color.convertTo(QColor::Hsv);
     spinR->setValue(currentColor.red());
     spinG->setValue(currentColor.green());
     spinB->setValue(currentColor.blue());
+    spinH->setValue(currentColor.hsvHue());
+    spinS->setValue(currentColor.hsvSaturation());
+    spinV->setValue(currentColor.value());
     spinA->setValue(currentColor.alpha());
     QString newHex = currentColor.name().sliced(1);
     if (newHex != lineHex->text()) {
@@ -119,6 +169,11 @@ void ColorPickerDialog::rgbUpdated() {
         QColor(spinR->value(), spinG->value(), spinB->value(), spinA->value()));
 }
 
+void ColorPickerDialog::hsvUpdated() {
+    setColor(QColor::fromHsv(spinH->value(), spinS->value(), spinV->value(),
+                             currentColor.alpha()));
+}
+
 void ColorPickerDialog::hexUpdated(const QString &newHex) {
     if (newHex.length() != 6)
         return;
@@ -129,8 +184,8 @@ void ColorPickerDialog::hexUpdated(const QString &newHex) {
 }
 
 ColorFieldWidget::ColorFieldWidget(ColorPickerDialog *picker) : picker(picker) {
-    poolW = 250;
-    poolH = 250;
+    poolW = 350;
+    poolH = 350;
     hueW = 20;
     hueH = poolH;
     hueX = poolW + 10;
@@ -301,12 +356,13 @@ void ColorPreviewWidget::paintEvent(QPaintEvent *event) {
     painter.setBrush(currentColor2);
     painter.drawRect(0, 0, width() / 2, height() / 2);
     painter.setBrush(picker->currentColor);
-    painter.drawRect(width() / 2, 0, width() / 2, height() / 2);
+    painter.drawRect(width() / 2, 0, width() / 2 + 1, height() / 2);
 
     QColor originalColor2 = picker->originalColor;
     originalColor2.setAlphaF(1);
     painter.setBrush(originalColor2);
-    painter.drawRect(0, height() / 2, width() / 2, height() / 2);
+    painter.drawRect(0, height() / 2, width() / 2, height() / 2 + 1);
     painter.setBrush(picker->originalColor);
-    painter.drawRect(width() / 2, height() / 2, width() / 2, height() / 2);
+    painter.drawRect(width() / 2, height() / 2, width() / 2 + 1,
+                     height() / 2 + 1);
 }

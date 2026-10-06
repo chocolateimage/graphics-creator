@@ -3,7 +3,6 @@
 #include <QSpinBox>
 #include <QWidget>
 
-// TODO: hsv inputs
 // TODO: palette
 
 class ColorPickerDialog : public QDialog {
@@ -18,6 +17,7 @@ class ColorPickerDialog : public QDialog {
 
   private slots:
     void rgbUpdated();
+    void hsvUpdated();
     void hexUpdated(const QString &newHex);
 
   private:
@@ -25,6 +25,9 @@ class ColorPickerDialog : public QDialog {
     QSpinBox *spinG;
     QSpinBox *spinB;
     QSpinBox *spinA;
+    QSpinBox *spinH;
+    QSpinBox *spinS;
+    QSpinBox *spinV;
     QLineEdit *lineHex;
 };
 
