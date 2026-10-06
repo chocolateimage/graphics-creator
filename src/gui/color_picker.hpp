@@ -3,7 +3,6 @@
 #include <QSpinBox>
 #include <QWidget>
 
-// TODO: transparency
 // TODO: hsv inputs
 // TODO: palette
 
@@ -25,11 +24,19 @@ class ColorPickerDialog : public QDialog {
     QSpinBox *spinR;
     QSpinBox *spinG;
     QSpinBox *spinB;
+    QSpinBox *spinA;
     QLineEdit *lineHex;
 };
 
 class ColorFieldWidget : public QWidget {
     Q_OBJECT
+    enum MouseHover {
+        None,
+        Pool,
+        Hue,
+        Transparency,
+    };
+
   public:
     explicit ColorFieldWidget(ColorPickerDialog *picker);
 
@@ -45,11 +52,16 @@ class ColorFieldWidget : public QWidget {
     void selectColor(QMouseEvent *event);
     float lastHue = -1;
 
-    bool isMouseInHue = false;
+    MouseHover hover;
     int poolW;
     int poolH;
+    int hueX;
+    int hueW;
+    int hueH;
+    int transparencyX;
     QImage poolImg;
     QImage hueImg;
+    QImage transparencyImg;
 };
 
 class ColorPreviewWidget : public QWidget {

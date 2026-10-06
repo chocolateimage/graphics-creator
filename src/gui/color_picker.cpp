@@ -1,4 +1,6 @@
 #include "color_picker.hpp"
+#include "draggable_spinbox.hpp"
+#include "math.hpp"
 #include <QApplication>
 #include <QColorDialog>
 #include <QDialogButtonBox>
@@ -34,19 +36,23 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
     lay2->addWidget(previewWidget);
 
     QFormLayout *formLay = new QFormLayout();
-    spinR = new QSpinBox();
-    spinG = new QSpinBox();
-    spinB = new QSpinBox();
+    spinR = new DraggableSpinBox();
+    spinG = new DraggableSpinBox();
+    spinB = new DraggableSpinBox();
+    spinA = new DraggableSpinBox();
     lineHex = new QLineEdit();
     lineHex->setMaxLength(6);
     spinR->setRange(0, 255);
     spinG->setRange(0, 255);
     spinB->setRange(0, 255);
+    spinA->setRange(0, 255);
     spinR->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
     spinG->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
     spinB->setSizePolicy(QSizePolicy::Policy::Expanding,
+                         QSizePolicy::Policy::Fixed);
+    spinA->setSizePolicy(QSizePolicy::Policy::Expanding,
                          QSizePolicy::Policy::Fixed);
     connect(spinR, &QSpinBox::valueChanged, this,
             &ColorPickerDialog::rgbUpdated);
@@ -54,12 +60,15 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
             &ColorPickerDialog::rgbUpdated);
     connect(spinB, &QSpinBox::valueChanged, this,
             &ColorPickerDialog::rgbUpdated);
+    connect(spinA, &QSpinBox::valueChanged, this,
+            &ColorPickerDialog::rgbUpdated);
     connect(lineHex, &QLineEdit::textChanged, this,
             &ColorPickerDialog::hexUpdated);
     lineHex->setFixedWidth(80);
     formLay->addRow("R", spinR);
     formLay->addRow("G", spinG);
     formLay->addRow("B", spinB);
+    formLay->addRow("A", spinA);
     formLay->addRow("#", lineHex);
     lay2->addLayout(formLay);
 
@@ -91,11 +100,13 @@ void ColorPickerDialog::setColor(const QColor &color) {
     QSignalBlocker block1(spinR);
     QSignalBlocker block2(spinG);
     QSignalBlocker block3(spinB);
-    QSignalBlocker block4(lineHex);
+    QSignalBlocker block4(spinA);
+    QSignalBlocker block5(lineHex);
     currentColor = color.convertTo(QColor::Hsv);
     spinR->setValue(currentColor.red());
     spinG->setValue(currentColor.green());
     spinB->setValue(currentColor.blue());
+    spinA->setValue(currentColor.alpha());
     QString newHex = currentColor.name().sliced(1);
     if (newHex != lineHex->text()) {
         lineHex->setText(newHex);
@@ -104,22 +115,28 @@ void ColorPickerDialog::setColor(const QColor &color) {
 }
 
 void ColorPickerDialog::rgbUpdated() {
-    setColor(QColor(spinR->value(), spinG->value(), spinB->value()));
+    setColor(
+        QColor(spinR->value(), spinG->value(), spinB->value(), spinA->value()));
 }
 
 void ColorPickerDialog::hexUpdated(const QString &newHex) {
     if (newHex.length() != 6)
         return;
 
-    setColor(QColor("#" + newHex));
+    QColor color("#" + newHex);
+    color.setAlpha(currentColor.alpha());
+    setColor(color);
 }
 
 ColorFieldWidget::ColorFieldWidget(ColorPickerDialog *picker) : picker(picker) {
     poolW = 250;
     poolH = 250;
-    int hueW = 20;
-    int hueH = poolH;
-    setFixedSize(poolW + 10 + hueW, poolH);
+    hueW = 20;
+    hueH = poolH;
+    hueX = poolW + 10;
+    transparencyX = hueX + hueW + 10;
+
+    setFixedSize(poolW + 10 + hueW + 10 + hueW, poolH);
 
     hueImg = QImage(hueW, hueH, QImage::Format_RGB32);
     QColor color;
@@ -143,9 +160,9 @@ void ColorFieldWidget::paintEvent(QPaintEvent *event) {
         lastHue = hue;
         poolImg = QImage(poolW, poolH, QImage::Format_RGB32);
         for (int y = 0; y < poolH; y++) {
+            float ya = (float)y / poolH;
             for (int x = 0; x < poolW; x++) {
                 float xa = (float)x / poolW;
-                float ya = (float)y / poolH;
                 color.setHsvF(hue, xa, 1 - ya);
                 poolImg.setPixelColor(x, y, color);
             }
@@ -162,7 +179,6 @@ void ColorFieldWidget::paintEvent(QPaintEvent *event) {
         6);
     painter.setClipping(false);
 
-    int hueX = poolW + 10;
     painter.drawImage(hueX, 0, hueImg);
 
     qreal hueCenterY = hue * poolH;
@@ -174,6 +190,29 @@ void ColorFieldWidget::paintEvent(QPaintEvent *event) {
     painter.setPen(QPen(Qt::black, 1));
     painter.setBrush(Qt::white);
     painter.drawPath(path);
+
+    transparencyImg = QImage(hueW, hueH, QImage::Format_RGB32);
+    for (int y = 0; y < hueH; y++) {
+        float ya = (float)y / hueH;
+        for (int x = 0; x < hueW; x++) {
+            int c2 = ((x / 10 + y / 10) % 2 == 0) ? 200 : 255;
+            color.setRgb(mix(ya, picker->currentColor.red(), c2),
+                         mix(ya, picker->currentColor.green(), c2),
+                         mix(ya, picker->currentColor.blue(), c2));
+            transparencyImg.setPixelColor(x, y, color);
+        }
+    }
+    painter.drawImage(transparencyX, 0, transparencyImg);
+
+    qreal transparencyCenterY = (1 - picker->currentColor.alphaF()) * poolH;
+    path.clear();
+    path.moveTo(transparencyX + .5, transparencyCenterY - 6);
+    path.lineTo(transparencyX + .5 + 6, transparencyCenterY);
+    path.lineTo(transparencyX + .5, transparencyCenterY + 6);
+    path.lineTo(transparencyX + .5, transparencyCenterY - 6);
+    painter.setPen(QPen(Qt::black, 1));
+    painter.setBrush(Qt::white);
+    painter.drawPath(path);
 }
 
 void ColorFieldWidget::mousePressEvent(QMouseEvent *event) {
@@ -182,9 +221,13 @@ void ColorFieldWidget::mousePressEvent(QMouseEvent *event) {
         int hueW = 20;
         float x = event->position().x();
         if (x < poolW) {
-            isMouseInHue = false;
+            hover = MouseHover::Pool;
         } else if (x >= hueX && x < hueX + hueW) {
-            isMouseInHue = true;
+            hover = MouseHover::Hue;
+        } else if (x >= transparencyX && x < transparencyX + hueW) {
+            hover = MouseHover::Transparency;
+        } else {
+            hover = MouseHover::None;
         }
     }
     selectColor(event);
@@ -200,17 +243,30 @@ void ColorFieldWidget::selectColor(QMouseEvent *event) {
 
     float x = event->position().x();
     float y = event->position().y();
+    float ya = std::clamp(y / poolH, 0.f, 1.f);
 
-    if (isMouseInHue) {
-        float ya = std::clamp(y / poolH, 0.f, 1.f);
-        picker->setColor(QColor::fromHsvF(ya,
-                                          picker->currentColor.saturationF(),
-                                          picker->currentColor.valueF()));
-    } else {
+    switch (hover) {
+    case MouseHover::Pool: {
         float xa = std::clamp(x / poolW, 0.f, 1.f);
-        float ya = std::clamp(y / poolH, 0.f, 1.f);
-        picker->setColor(
-            QColor::fromHsvF(picker->currentColor.hueF(), xa, 1 - ya));
+        picker->setColor(QColor::fromHsvF(picker->currentColor.hueF(), xa,
+                                          1 - ya,
+                                          picker->currentColor.alphaF()));
+        break;
+    }
+    case MouseHover::Hue: {
+        picker->setColor(QColor::fromHsvF(
+            ya, picker->currentColor.saturationF(),
+            picker->currentColor.valueF(), picker->currentColor.alphaF()));
+        break;
+    }
+    case MouseHover::Transparency: {
+        QColor newColor = picker->currentColor;
+        newColor.setAlphaF(1 - ya);
+        picker->setColor(newColor);
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -222,8 +278,35 @@ ColorPreviewWidget::ColorPreviewWidget(ColorPickerDialog *picker)
 void ColorPreviewWidget::paintEvent(QPaintEvent *event) {
     QPainter painter(this);
     painter.setPen(Qt::NoPen);
+
+    constexpr int checkerboardSize = 8;
+    QPixmap checkerboardPattern(checkerboardSize * 2, checkerboardSize * 2);
+    QPainter checkerboardPainter(&checkerboardPattern);
+    QColor checkerboard1 = QColor(200, 200, 200);
+    QColor checkerboard2 = Qt::white;
+    checkerboardPainter.fillRect(0, 0, checkerboardSize, checkerboardSize,
+                                 checkerboard1);
+    checkerboardPainter.fillRect(checkerboardSize, checkerboardSize,
+                                 checkerboardSize, checkerboardSize,
+                                 checkerboard1);
+    checkerboardPainter.fillRect(0, checkerboardSize, checkerboardSize,
+                                 checkerboardSize, checkerboard2);
+    checkerboardPainter.fillRect(checkerboardSize, 0, checkerboardSize,
+                                 checkerboardSize, checkerboard2);
+    checkerboardPainter.end();
+    painter.fillRect(rect(), QBrush(checkerboardPattern));
+
+    QColor currentColor2 = picker->currentColor;
+    currentColor2.setAlphaF(1);
+    painter.setBrush(currentColor2);
+    painter.drawRect(0, 0, width() / 2, height() / 2);
     painter.setBrush(picker->currentColor);
-    painter.drawRect(0, 0, width(), height() / 2);
+    painter.drawRect(width() / 2, 0, width() / 2, height() / 2);
+
+    QColor originalColor2 = picker->originalColor;
+    originalColor2.setAlphaF(1);
+    painter.setBrush(originalColor2);
+    painter.drawRect(0, height() / 2, width() / 2, height() / 2);
     painter.setBrush(picker->originalColor);
-    painter.drawRect(0, height() / 2, width(), height() / 2);
+    painter.drawRect(width() / 2, height() / 2, width() / 2, height() / 2);
 }
