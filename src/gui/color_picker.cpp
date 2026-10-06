@@ -54,6 +54,8 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
             &ColorPickerDialog::rgbUpdated);
     connect(spinB, &QSpinBox::valueChanged, this,
             &ColorPickerDialog::rgbUpdated);
+    connect(lineHex, &QLineEdit::textChanged, this,
+            &ColorPickerDialog::hexUpdated);
     lineHex->setFixedWidth(80);
     formLay->addRow("R", spinR);
     formLay->addRow("G", spinG);
@@ -94,12 +96,22 @@ void ColorPickerDialog::setColor(const QColor &color) {
     spinR->setValue(currentColor.red());
     spinG->setValue(currentColor.green());
     spinB->setValue(currentColor.blue());
-    lineHex->setText(currentColor.name().sliced(1));
+    QString newHex = currentColor.name().sliced(1);
+    if (newHex != lineHex->text()) {
+        lineHex->setText(newHex);
+    }
     update();
 }
 
 void ColorPickerDialog::rgbUpdated() {
     setColor(QColor(spinR->value(), spinG->value(), spinB->value()));
+}
+
+void ColorPickerDialog::hexUpdated(const QString &newHex) {
+    if (newHex.length() != 6)
+        return;
+
+    setColor(QColor("#" + newHex));
 }
 
 ColorFieldWidget::ColorFieldWidget(ColorPickerDialog *picker) : picker(picker) {

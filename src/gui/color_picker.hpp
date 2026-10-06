@@ -5,7 +5,6 @@
 
 // TODO: transparency
 // TODO: hsv inputs
-// TODO: hex input
 // TODO: palette
 
 class ColorPickerDialog : public QDialog {
@@ -20,6 +19,7 @@ class ColorPickerDialog : public QDialog {
 
   private slots:
     void rgbUpdated();
+    void hexUpdated(const QString &newHex);
 
   private:
     QSpinBox *spinR;
