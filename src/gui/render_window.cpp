@@ -14,6 +14,8 @@ extern "C" {
 }
 
 void GuiRenderThread::run() {
+    int ret;
+
     QString filePath = fileInfo.filePath();
     {
         QJsonObject obj;
@@ -61,10 +63,12 @@ void GuiRenderThread::run() {
     stream->time_base = av_d2q(1. / frameRate, AV_TIME_BASE);
     stream->avg_frame_rate = av_d2q(frameRate, AV_TIME_BASE);
     context->framerate = av_d2q(frameRate, AV_TIME_BASE);
+    context->sample_aspect_ratio = AVRational{1, 1};
     context->time_base = stream->time_base;
     context->thread_count = 0;
     context->gop_size = 20;
     context->pix_fmt = AV_PIX_FMT_YUV420P;
+    // context->pix_fmt = AV_PIX_FMT_VAAPI;
     if (context->codec_id == AV_CODEC_ID_QTRLE) {
         context->pix_fmt = AV_PIX_FMT_ARGB;
     } else if (context->codec_id == AV_CODEC_ID_PRORES) {
@@ -74,13 +78,55 @@ void GuiRenderThread::run() {
     } else if (context->codec_id == AV_CODEC_ID_VP9) {
         context->pix_fmt = AV_PIX_FMT_YUVA420P;
     }
+    framePixelFormat = context->pix_fmt;
+
+    if (encoder == "h264_vaapi") {
+        context->pix_fmt = AV_PIX_FMT_VAAPI;
+        framePixelFormat = AV_PIX_FMT_NV12;
+        useVAAPI = true;
+    }
 
     if (formatContext->oformat->flags & AVFMT_GLOBALHEADER) {
         context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     }
 
+    // hwdevice
+    if (useVAAPI) {
+        ret = av_hwdevice_ctx_create(&hwDeviceCtx, AV_HWDEVICE_TYPE_VAAPI,
+                                     nullptr, nullptr, 0);
+        if (ret < 0) {
+            doErrored(QStringLiteral("could not create VAAPI device: ") +
+                      av_err2str(ret));
+            return;
+        }
+
+        AVBufferRef *hwFramesRef;
+        AVHWFramesContext *framesCtx = NULL;
+
+        hwFramesRef = av_hwframe_ctx_alloc(hwDeviceCtx);
+        if (!hwFramesRef) {
+            doErrored("could not create VAAPI frame context");
+            return;
+        }
+        framesCtx = (AVHWFramesContext *)(hwFramesRef->data);
+        framesCtx->format = context->pix_fmt;
+        framesCtx->sw_format = framePixelFormat;
+        framesCtx->width = width;
+        framesCtx->height = height;
+        framesCtx->initial_pool_size = 20;
+        ret = av_hwframe_ctx_init(hwFramesRef);
+        if (ret < 0) {
+            doErrored(QStringLiteral("could not init VAAPI frame context: ") +
+                      av_err2str(ret));
+            av_buffer_unref(&hwFramesRef);
+            return;
+        }
+        context->hw_frames_ctx = av_buffer_ref(hwFramesRef);
+        av_buffer_unref(&hwFramesRef);
+    }
+
     // open_video()
-    int ret = avcodec_open2(context, codec, &opt);
+    ret = avcodec_open2(context, codec, &opt);
     av_dict_free(&opt);
     if (ret < 0) {
         doErrored(QStringLiteral("could not open video codec: ") +
@@ -189,6 +235,7 @@ void GuiRenderThread::run() {
         avio_closep(&formatContext->pb);
     }
     avformat_free_context(formatContext);
+    av_buffer_unref(&hwDeviceCtx);
 
     if (!hasErrored) {
         emit finishedSuccessfully();
@@ -208,7 +255,37 @@ GuiRenderThread::~GuiRenderThread() {
 }
 
 bool GuiRenderThread::writeFrame(AVFrame *frame) {
-    int ret = avcodec_send_frame(context, frame);
+    int ret;
+
+    AVFrame *hwFrame = nullptr;
+    if (useVAAPI && frame != nullptr) {
+        hwFrame = av_frame_alloc();
+        ret = av_hwframe_get_buffer(context->hw_frames_ctx, hwFrame, 0);
+        if (ret < 0) {
+            doErrored(QStringLiteral("error in av_hwframe_get_buffer: ") +
+                      av_err2str(ret));
+            return false;
+        }
+        if (!hwFrame->hw_frames_ctx) {
+            doErrored(
+                QStringLiteral("frame could not be attached to hw context"));
+            return false;
+        }
+
+        ret = av_hwframe_transfer_data(hwFrame, frame, 0);
+        if (ret < 0) {
+            doErrored(QStringLiteral("frame could not be transferred") +
+                      av_err2str(ret));
+            return false;
+        }
+
+        hwFrame->pts = frame->pts;
+
+        ret = avcodec_send_frame(context, hwFrame);
+    } else {
+        ret = avcodec_send_frame(context, frame);
+    }
+
     if (ret < 0) {
         doErrored(QStringLiteral("error sending frame to encoder: ") +
                   av_err2str(ret));
@@ -235,6 +312,8 @@ bool GuiRenderThread::writeFrame(AVFrame *frame) {
         }
     }
 
+    av_frame_free(&hwFrame);
+
     return true;
 }
 
@@ -250,7 +329,7 @@ AVFrame *GuiRenderThread::getFrame() {
     AVFrame *frame = av_frame_alloc();
     frame->width = width;
     frame->height = height;
-    frame->format = context->pix_fmt;
+    frame->format = framePixelFormat;
     av_frame_get_buffer(frame, 0);
     av_frame_make_writable(frame);
     return frame;
@@ -333,6 +412,7 @@ RenderWindow::RenderWindow(NewMainWindow *mainWindow)
         {"prores", ".mov (Apple ProRes) (Recommended)", ".mov"},
         {"libx264", ".mp4 (H264), no transparency", ".mp4"},
         {"h264_nvenc", ".mp4 (H264), no transparency, NVIDIA", ".mp4"},
+        {"h264_vaapi", ".mp4 (H264), no transparency, VAAPI", ".mp4"},
         {"libvpx-vp9", ".webm (VP9)", ".webm"},
     };
 

@@ -43,6 +43,9 @@ class GuiRenderThread : public QThread {
     std::atomic<bool> isCancelling{false};
     std::atomic<bool> hasErrored{false};
     QString errorMsg;
+    AVPixelFormat framePixelFormat;
+    bool useVAAPI = false;
+    AVBufferRef *hwDeviceCtx{nullptr};
 
     std::vector<FrameTask *> tasks{};
 
