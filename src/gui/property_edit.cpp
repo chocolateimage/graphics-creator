@@ -1,9 +1,9 @@
 #include "property_edit.hpp"
 #include "brush_input.hpp"
+#include "color_button.hpp"
 #include "draggable_spinbox.hpp"
 #include "fontcombobox.hpp"
 #include "line.hpp"
-#include <KColorButton>
 #include <KIconColors>
 #include <KIconLoader>
 #include <QApplication>
@@ -284,11 +284,9 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         connect(inputY, &DraggableDoubleSpinBox::editingFinished, this,
                 [this]() { finishEditing(); });
     } else if (variantType == VariantTypeEnum::Color) {
-        auto colorButton = new KColorButton(this);
-        colorButton->setAlphaChannelEnabled(true);
         auto value = variant.get<Color>();
-        colorButton->setColor(QColor(value.r, value.g, value.b, value.a));
-        connect(colorButton, &KColorButton::changed, this,
+        auto colorButton = new ColorButton(value.toQColor(), this);
+        connect(colorButton, &ColorButton::colorChanged, this,
                 [this](const QColor &newColor) {
                     beginEditing();
                     set((Color){newColor.red(), newColor.green(),

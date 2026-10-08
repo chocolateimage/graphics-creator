@@ -1,7 +1,7 @@
 #pragma once
 
+#include "color_button.hpp"
 #include "variant.hpp"
-#include <KColorButton>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QWidget>
@@ -31,8 +31,8 @@ class BrushInput : public QWidget {
     QAction *actionSingleColor;
     QAction *actionLinearGradient;
     QAction *actionRadialGradient;
-    KColorButton *color1;
-    KColorButton *color2;
+    ColorButton *color1;
+    ColorButton *color2;
     QSpinBox *angleInput;
     QPushButton *changeButton;
     QMenu *typeMenu;

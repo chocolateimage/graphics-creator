@@ -609,14 +609,6 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
 
     QMenu *helpMenu = menuBar->addMenu("Help");
 
-    // TODO: temp
-    QAction *testColorPicker = helpMenu->addAction("Color Picker");
-    testColorPicker->setShortcut(QKeySequence("a"));
-    connect(testColorPicker, &QAction::triggered, this, [this]() {
-        ColorPickerDialog *dialog = new ColorPickerDialog(Qt::red, this);
-        dialog->show();
-    });
-
     QAction *aboutAction = helpMenu->addAction("About");
     connect(aboutAction, &QAction::triggered, this, &NewMainWindow::about);
     QAction *aboutQtAction = helpMenu->addAction("About Qt");

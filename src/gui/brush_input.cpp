@@ -1,6 +1,5 @@
 #include "brush_input.hpp"
 #include "draggable_spinbox.hpp"
-#include <KColorButton>
 #include <QActionGroup>
 #include <QHBoxLayout>
 #include <QMenu>
@@ -10,14 +9,12 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
     auto lay = new QHBoxLayout(this);
     lay->setContentsMargins(0, 0, 0, 0);
 
-    color1 = new KColorButton(this);
-    color1->setAlphaChannelEnabled(true);
+    color1 = new ColorButton();
     lay->addWidget(color1);
-    connect(color1, &KColorButton::changed, this,
+    connect(color1, &ColorButton::colorChanged, this,
             &BrushInput::_valueChangedFinished);
-    color2 = new KColorButton(this);
-    color2->setAlphaChannelEnabled(true);
-    connect(color2, &KColorButton::changed, this,
+    color2 = new ColorButton();
+    connect(color2, &ColorButton::colorChanged, this,
             &BrushInput::_valueChangedFinished);
     lay->addWidget(color2);
 
@@ -93,10 +90,8 @@ void BrushInput::setValue(Brush value) {
     actionSingleColor->setChecked(value.brushType == Brush::SingleColor);
     actionLinearGradient->setChecked(value.brushType == Brush::LinearGradient);
     actionRadialGradient->setChecked(value.brushType == Brush::RadialGradient);
-    color1->setColor(QColor::fromRgb(value.color1.r, value.color1.g,
-                                     value.color1.b, value.color1.a));
-    color2->setColor(QColor::fromRgb(value.color2.r, value.color2.g,
-                                     value.color2.b, value.color2.a));
+    color1->setColor(value.color1.toQColor());
+    color2->setColor(value.color2.toQColor());
     angleInput->setValue(value.angle);
     updateType();
 }
