@@ -150,6 +150,10 @@ void ColorPickerDialog::setColor(const QColor &color) {
     QSignalBlocker block7(spinS);
     QSignalBlocker block8(spinV);
     currentColor = color.convertTo(QColor::Hsv);
+    if (currentColor.hsvHue() == -1) {
+        currentColor.setHsvF(0, currentColor.saturationF(),
+                             currentColor.valueF(), currentColor.alphaF());
+    }
     spinR->setValue(currentColor.red());
     spinG->setValue(currentColor.green());
     spinB->setValue(currentColor.blue());
