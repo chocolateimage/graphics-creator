@@ -576,7 +576,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         ads::DockWidgetArea::RightDockWidgetArea, propertiesDockWidget);
 
     auto effectsDockArea =
-        dockManager->addDockWidget(ads::DockWidgetArea::BottomDockWidgetArea,
+        dockManager->addDockWidget(ads::DockWidgetArea::RightDockWidgetArea,
                                    effectsDockWidget, propertiesDockArea);
     auto timelineDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::BottomDockWidgetArea, timelineDockWidget);
@@ -594,7 +594,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     policy.setVerticalStretch(0);
     timelineDockArea->setSizePolicy(policy);
 
-    dockManager->setSplitterSizes(sceneDockArea, {0, 350});
+    dockManager->setSplitterSizes(timelineDockArea, {50, 0});
+    dockManager->setSplitterSizes(sceneDockArea, {0, 300, 300});
 
     QAction *saveLayoutAction = viewMenu->addAction("Save layout");
     saveLayoutAction->setToolTip(
