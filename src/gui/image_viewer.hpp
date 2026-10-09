@@ -142,6 +142,8 @@ class ImageViewer : public QWidget {
     Editor *editor{nullptr};
     QCursor penCursor;
 
+    Element *dropPresetElement{nullptr};
+
   private slots:
     void elementSelectionChanged(QList<Element *> elements);
     void elementEditModeChanged(Element *element, bool editMode);

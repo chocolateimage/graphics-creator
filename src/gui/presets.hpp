@@ -16,8 +16,8 @@ class Preset {
     virtual ~Preset() {}
     QString displayName;
     QString id;
-    virtual bool canApply(Element *element) = 0;
-    virtual void apply(Element *element) = 0;
+    virtual bool canApply(NewMainWindow *mainWindow, Element *element) = 0;
+    virtual Element *apply(NewMainWindow *mainWindow, Element *element) = 0;
 };
 
 class TextPreset : public Preset {
@@ -28,8 +28,8 @@ class TextPreset : public Preset {
 
     std::function<void(TextElement *)> applyFunc;
 
-    bool canApply(Element *element) override;
-    void apply(Element *element) override;
+    bool canApply(NewMainWindow *mainWindow, Element *element) override;
+    Element *apply(NewMainWindow *mainWindow, Element *element) override;
 };
 
 class PresetsListWidget : public QListWidget {

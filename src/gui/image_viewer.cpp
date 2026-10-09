@@ -447,6 +447,18 @@ void ImageViewer::paintEvent(QPaintEvent *event) {
                 painter.restore();
             }
         }
+
+        if (dropPresetElement) {
+            painter.setPen(QPen(QColor(50, 200, 30), 2));
+            painter.setBrush(QColor(50, 200, 30, 50));
+
+            QRect boundingBox = dropPresetElement->getBoundingBox(fi);
+            QPointF pos = boundingBox.topLeft();
+            QPointF bottomRight = boundingBox.bottomRight() + QPoint{1, 1};
+            pos = pixelToViewport(pos);
+            QPointF size = pixelToViewport(bottomRight) - pos;
+            painter.drawRect(pos.x(), pos.y(), size.x() + 1, size.y() + 1);
+        }
     }
 
     if (isDroppingImage) {
@@ -566,20 +578,19 @@ void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
     if (mimeData->hasFormat(PRESET_MIME_TYPE)) {
         QPoint mousePos = viewportToPixel(event->position());
         Element *element = elementAtPos(mousePos);
-        if (!element) {
-            event->ignore();
-            return;
-        }
 
         uint64_t address =
             QString::fromUtf8(mimeData->data(PRESET_MIME_TYPE)).toULongLong();
         Preset *preset = (Preset *)address;
-        if (preset->canApply(element)) {
+        if (preset->canApply(mainWindow, element)) {
             event->setDropAction(Qt::DropAction::CopyAction);
             event->accept();
         } else {
             event->ignore();
         }
+
+        dropPresetElement = element;
+        update();
     }
 }
 
@@ -591,6 +602,10 @@ void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
     }
     if (isDroppingVideo) {
         isDroppingVideo = false;
+        update();
+    }
+    if (dropPresetElement) {
+        dropPresetElement = nullptr;
         update();
     }
 }
@@ -636,16 +651,20 @@ void ImageViewer::dropEvent(QDropEvent *event) {
     if (mimeData->hasFormat(PRESET_MIME_TYPE)) {
         QPoint mousePos = viewportToPixel(event->position());
         Element *element = elementAtPos(mousePos);
-        if (!element) {
-            return;
-        }
 
         uint64_t address =
             QString::fromUtf8(mimeData->data(PRESET_MIME_TYPE)).toULongLong();
         Preset *preset = (Preset *)address;
-        if (preset->canApply(element)) {
-            preset->apply(element);
+        if (preset->canApply(mainWindow, element)) {
+            Element *newElement = preset->apply(mainWindow, element);
+            if (!element && newElement) {
+                newElement->x.set(mousePos.x(), {0});
+                newElement->y.set(mousePos.y(), {0});
+            }
         }
+
+        dropPresetElement = nullptr;
+        update();
     }
 }
 
