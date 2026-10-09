@@ -369,4 +369,10 @@ void ColorPreviewWidget::paintEvent(QPaintEvent *event) {
     painter.setBrush(picker->originalColor);
     painter.drawRect(width() / 2, height() / 2, width() / 2 + 1,
                      height() / 2 + 1);
+
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(palette().mid(), 1));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(rect().adjusted(1, 1, -1, -1));
+    painter.drawRect(rect());
 }
