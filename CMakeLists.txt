@@ -35,6 +35,7 @@ set(graphicscreator_SRCS
     src/priority_mutex.cpp
     src/log.cpp
     src/plugin.cpp
+    src/presets.cpp
     src/gui/gui.cpp
     src/gui/image_viewer.cpp
     src/gui/fontcombobox.cpp
@@ -52,7 +53,7 @@ set(graphicscreator_SRCS
     src/gui/plugin_manager.cpp
     src/gui/color_picker.cpp
     src/gui/color_button.cpp
-    src/gui/presets.cpp
+    src/gui/presets_window.cpp
     src/gui/timeline/timeline.cpp
     src/gui/timeline/timeline_content.cpp
     src/gui/timeline/property_button.cpp

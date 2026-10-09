@@ -1,13 +1,14 @@
 #pragma once
-#include "scene.hpp"
-#include <QListWidget>
-#include <QWidget>
-
-class NewMainWindow;
-class TextElement;
+#include <QString>
 
 const QString PRESET_MIME_TYPE =
     QStringLiteral("application/x-graphicscreator-preset");
+
+class NewMainWindow;
+class Element;
+class TextElement;
+
+void initPresets();
 
 class Preset {
   public:
@@ -32,20 +33,4 @@ class TextPreset : public Preset {
     Element *apply(NewMainWindow *mainWindow, Element *element) override;
 };
 
-class PresetsListWidget : public QListWidget {
-    Q_OBJECT
-  public:
-    QMimeData *mimeData(const QList<QListWidgetItem *> &items) const override;
-};
-
-class PresetsWindow : public QWidget {
-    Q_OBJECT
-  public:
-    PresetsWindow(Scene *scene, NewMainWindow *mainWindow);
-    Scene *scene;
-    NewMainWindow *mainWindow;
-    QList<Preset *> presets;
-
-  private slots:
-    void doubleClicked(QListWidgetItem *item);
-};
+extern QList<Preset *> presetList;

@@ -11,7 +11,7 @@
 #include "effects_window.hpp"
 #include "plugin.hpp"
 #include "plugin_manager.hpp"
-#include "presets.hpp"
+#include "presets_window.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
@@ -300,6 +300,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
               [](const EffectInfo &a, const EffectInfo &b) {
                   return a.sortString() < b.sortString();
               });
+
+    initPresets();
 
     lastRenderDelayTimer.setSingleShot(true);
     lastRenderDelayTimer.setInterval(100);
