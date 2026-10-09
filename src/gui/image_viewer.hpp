@@ -55,6 +55,8 @@ class ImageViewer : public QWidget {
     QPointF pixelToViewport(QPointF pos);
     QPoint viewportToPixel(QPointF pos);
 
+    Element *elementAtPos(const QPoint &pos);
+
     NewMainWindow *mainWindow{nullptr};
 
   protected:

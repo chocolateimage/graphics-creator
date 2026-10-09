@@ -11,6 +11,7 @@
 #include "effects_window.hpp"
 #include "plugin.hpp"
 #include "plugin_manager.hpp"
+#include "presets.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
@@ -558,6 +559,11 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     timeline = new TimelineWidget(scene, this);
     timelineDockWidget->setWidget(timeline);
 
+    ads::CDockWidget *presetsDockWidget =
+        dockManager->createDockWidget("Presets");
+    auto presetsWindow = new PresetsWindow(scene, this);
+    presetsDockWidget->setWidget(presetsWindow);
+
     propertiesDockWidget = dockManager->createDockWidget("Properties");
     propertiesDockWidget->setIcon(
         QIcon::fromTheme("settings-configure-symbolic"));
@@ -578,6 +584,10 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     auto effectsDockArea =
         dockManager->addDockWidget(ads::DockWidgetArea::RightDockWidgetArea,
                                    effectsDockWidget, propertiesDockArea);
+
+    auto presetsDockArea = dockManager->addDockWidget(
+        ads::DockWidgetArea::RightDockWidgetArea, presetsDockWidget);
+
     auto timelineDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::BottomDockWidgetArea, timelineDockWidget);
 
@@ -616,8 +626,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(aboutQtAction, &QAction::triggered, this, &NewMainWindow::aboutQt);
 
     QSettings settings;
-    dockManager->loadPerspectives(settings);
-    dockManager->openPerspective("Default");
+    // dockManager->loadPerspectives(settings);
+    // dockManager->openPerspective("Default");
 
     for (int i = 0; i < std::max(1, QThread::idealThreadCount() - 1); i++) {
         createThread();

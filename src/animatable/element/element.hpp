@@ -3,6 +3,7 @@
 #include "animatable/effect/effect.hpp"
 #include "animatable/property.hpp"
 #include "variant.hpp"
+#include <QDropEvent>
 #include <QObject>
 #include <QRect>
 #include <string>

@@ -6,6 +6,7 @@
 #include "editors/path_element_editor.hpp"
 #include "editors/text_element_editor.hpp"
 #include "gui.hpp"
+#include "presets.hpp"
 #include <KMessageBox>
 #include <QApplication>
 #include <QClipboard>
@@ -534,9 +535,13 @@ void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
             update();
         }
     }
+    if (mimeData->hasFormat(PRESET_MIME_TYPE)) {
+        event->accept();
+    }
 }
 
 void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
+    const QMimeData *mimeData = event->mimeData();
     if (isDroppingImage) {
         dropImageCursor = viewportToPixel(event->position());
         if (dropImageCursor.manhattanLength() < 50) {
@@ -558,6 +563,24 @@ void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
         }
         update();
     }
+    if (mimeData->hasFormat(PRESET_MIME_TYPE)) {
+        QPoint mousePos = viewportToPixel(event->position());
+        Element *element = elementAtPos(mousePos);
+        if (!element) {
+            event->ignore();
+            return;
+        }
+
+        uint64_t address =
+            QString::fromUtf8(mimeData->data(PRESET_MIME_TYPE)).toULongLong();
+        Preset *preset = (Preset *)address;
+        if (preset->canApply(element)) {
+            event->setDropAction(Qt::DropAction::CopyAction);
+            event->accept();
+        } else {
+            event->ignore();
+        }
+    }
 }
 
 void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
@@ -573,6 +596,7 @@ void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
 }
 
 void ImageViewer::dropEvent(QDropEvent *event) {
+    const QMimeData *mimeData = event->mimeData();
     if (isDroppingImage) {
         ImageElement *imageElement = new ImageElement();
         imageElement->x.set(dropImageCursor.x(), {0});
@@ -608,6 +632,20 @@ void ImageViewer::dropEvent(QDropEvent *event) {
         }
         isDroppingVideo = false;
         update();
+    }
+    if (mimeData->hasFormat(PRESET_MIME_TYPE)) {
+        QPoint mousePos = viewportToPixel(event->position());
+        Element *element = elementAtPos(mousePos);
+        if (!element) {
+            return;
+        }
+
+        uint64_t address =
+            QString::fromUtf8(mimeData->data(PRESET_MIME_TYPE)).toULongLong();
+        Preset *preset = (Preset *)address;
+        if (preset->canApply(element)) {
+            preset->apply(element);
+        }
     }
 }
 
@@ -651,6 +689,46 @@ QRectF ImageViewer::fittedRect() {
         newWidth,
         newHeight,
     };
+}
+
+Element *ImageViewer::elementAtPos(const QPoint &pos) {
+    FrameInfo frameInfo{scene->currentFrame};
+    Element *finalElement = nullptr;
+    bool exact =
+        QApplication::queryKeyboardModifiers().testFlag(Qt::AltModifier);
+
+    for (auto element : scene->elements) {
+        if (!element->visible)
+            continue;
+
+        if (exact) {
+            GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
+            if (groupElement)
+                continue;
+
+            if (scene->selectedElements.contains(element))
+                continue;
+        } else {
+            if (element->hasParent())
+                continue;
+        }
+
+        if (element->getBoundingBox(frameInfo).contains(pos)) {
+            finalElement = element;
+            break;
+        }
+    }
+
+    if (!exact) {
+        for (auto element : scene->selectedElements) {
+            if (element->getBoundingBox(frameInfo).contains(pos)) {
+                finalElement = element;
+                break;
+            }
+        }
+    }
+
+    return finalElement;
 }
 
 void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
@@ -962,44 +1040,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
 
-    {
-        bool exact =
-            QApplication::queryKeyboardModifiers().testFlag(Qt::AltModifier);
-
-        hoverElement = nullptr;
-        for (auto element : scene->elements) {
-            if (!element->visible)
-                continue;
-
-            if (exact) {
-                GroupElement *groupElement =
-                    dynamic_cast<GroupElement *>(element);
-                if (groupElement)
-                    continue;
-
-                if (scene->selectedElements.contains(element))
-                    continue;
-            } else {
-                if (element->hasParent())
-                    continue;
-            }
-
-            if (element->getBoundingBox(frameInfo).contains(pixelPos)) {
-                hoverElement = element;
-                break;
-            }
-        }
-
-        if (!exact) {
-            for (auto element : scene->selectedElements) {
-                if (element->getBoundingBox(frameInfo).contains(pixelPos)) {
-                    hoverElement = element;
-                    break;
-                }
-            }
-        }
-        update();
-    }
+    hoverElement = elementAtPos(pixelPos);
+    update();
 
     hoverResizeMode = -1;
     hoverResizeElement = nullptr;
