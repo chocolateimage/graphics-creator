@@ -14,6 +14,7 @@ class ColorButton : public QPushButton {
 
   protected:
     void paintEvent(QPaintEvent *) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
   private slots:
     void openColorDialog();
