@@ -2,5 +2,9 @@
   {
     "name": "Bottom Card",
     "file": "card"
+  },
+  {
+    "name": "Centered Title",
+    "file": "center-title"
   }
 ]
