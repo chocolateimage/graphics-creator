@@ -24,11 +24,41 @@ void initPresets() {
             int fontSize = 100;
             auto spans = textElement->text.get({0}).spans;
             if (!spans.isEmpty()) {
-                fontSize = spans.first().fontSize;
+                fontSize = spans.first().fontSize * 0.5;
             }
 
             newAnimator->opacity.set(0, {0});
             newAnimator->y.set(-fontSize, {0});
+
+            newAnimator->selectors.append(selector);
+            textElement->textAnimators.append(newAnimator);
+            emit textElement->effectListUpdated();
+        }));
+    presetList.append(new TextPreset(
+        "Text Fading Out Down", "fading-out-down", [](Element *element) {
+            TextElement *textElement = (TextElement *)element;
+            TextAnimator *newAnimator = new TextAnimator(textElement);
+            TextAnimatorSelector *selector =
+                new TextAnimatorSelector(newAnimator);
+
+            int offset = element->scene->currentFrame;
+            int start = offset;
+            int end = offset + element->scene->frameRate * 0.3;
+            selector->offset.toggleAnimating({start});
+            selector->offset.set(-100, {start});
+            selector->offset.set(100, {end});
+            selector->easing.set(Easing{"easeInCubic"}, {0});
+            selector->shape.set(TextAnimatorSelectorRender::Down, {0});
+            newAnimator->opacity.set(0, {0});
+
+            int fontSize = 100;
+            auto spans = textElement->text.get({0}).spans;
+            if (!spans.isEmpty()) {
+                fontSize = spans.first().fontSize * 0.5;
+            }
+
+            newAnimator->opacity.set(0, {0});
+            newAnimator->y.set(fontSize, {0});
 
             newAnimator->selectors.append(selector);
             textElement->textAnimators.append(newAnimator);
@@ -48,7 +78,7 @@ Element *TextPreset::apply(NewMainWindow *mainWindow, Element *element) {
         textElement->y.set(0, {0});
         textElement->w.set(0, {0});
         textElement->h.set(0, {0});
-        textElement->setObjectName(displayName);
+        textElement->setObjectName("New Text");
         mainWindow->addElementUndoable(textElement);
         element = textElement;
     }
