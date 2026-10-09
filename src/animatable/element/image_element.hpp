@@ -6,12 +6,12 @@ class ImageElement : public Element {
     ImageElement();
     virtual ~ImageElement() {}
 
-    virtual AnimatableRender *createClass();
+    AnimatableRender *createClass() override;
 
     Property<std::string> path{this, "path", ""};
     Property<bool> scaled{this, "scaled", true};
 
-    virtual QString const typeName() { return "image"; }
+    QString const typeName() override { return "image"; }
 };
 
 class ImageElementRender : public ElementRender {
@@ -22,5 +22,5 @@ class ImageElementRender : public ElementRender {
     PropertyRender<std::string> path{this};
     PropertyRender<bool> scaled{this};
 
-    virtual bool render(uint32_t *target);
+    bool render(uint32_t *target) override;
 };

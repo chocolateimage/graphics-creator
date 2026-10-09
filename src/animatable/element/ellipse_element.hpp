@@ -6,11 +6,13 @@ class EllipseElement : public Element {
     EllipseElement();
     virtual ~EllipseElement() {}
 
-    virtual AnimatableRender *createClass();
+    AnimatableRender *createClass() override;
 
     Property<Brush> fill{this, "fill", {}};
+    Property<int> strokeWidth{this, "strokeWidth", 0};
+    Property<Brush> stroke{this, "stroke", {}};
 
-    virtual QString const typeName() { return "ellipse"; }
+    QString const typeName() override { return "ellipse"; }
 };
 
 class EllipseElementRender : public ElementRender {
@@ -19,6 +21,10 @@ class EllipseElementRender : public ElementRender {
     virtual ~EllipseElementRender() {}
 
     PropertyRender<Brush> fill{this};
+    PropertyRender<int> strokeWidth{this};
+    PropertyRender<Brush> stroke{this};
 
-    virtual bool render(uint32_t *target);
+    Rect getRenderBox() override;
+
+    bool render(uint32_t *target) override;
 };

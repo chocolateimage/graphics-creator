@@ -6,14 +6,14 @@ class RectangleElement : public Element {
     RectangleElement();
     virtual ~RectangleElement() {}
 
-    virtual AnimatableRender *createClass();
+    AnimatableRender *createClass() override;
 
     Property<Brush> fill{this, "fill", {}};
     Property<int> strokeWidth{this, "strokeWidth", 0};
     Property<Brush> stroke{this, "stroke", {}};
     Property<int> roundness{this, "roundness", 0};
 
-    virtual QString const typeName() { return "rectangle"; }
+    QString const typeName() override { return "rectangle"; }
 };
 
 class RectangleElementRender : public ElementRender {
@@ -26,7 +26,7 @@ class RectangleElementRender : public ElementRender {
     PropertyRender<Brush> stroke{this};
     PropertyRender<int> roundness{this};
 
-    virtual Rect getRenderBox();
+    Rect getRenderBox() override;
 
-    virtual bool render(uint32_t *target);
+    bool render(uint32_t *target) override;
 };
