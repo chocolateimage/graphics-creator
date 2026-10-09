@@ -48,6 +48,7 @@
 #include <QProgressDialog>
 #include <QRandomGenerator>
 #include <QSettings>
+#include <QSplitter>
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QToolBar>
@@ -587,11 +588,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
         dockManager->addDockWidget(ads::DockWidgetArea::RightDockWidgetArea,
                                    effectsDockWidget, propertiesDockArea);
 
-    auto presetsDockArea = dockManager->addDockWidget(
-        ads::DockWidgetArea::RightDockWidgetArea, presetsDockWidget);
-
     auto timelineDockArea = dockManager->addDockWidget(
         ads::DockWidgetArea::BottomDockWidgetArea, timelineDockWidget);
+
+    auto presetsDockArea =
+        dockManager->addDockWidget(ads::DockWidgetArea::RightDockWidgetArea,
+                                   presetsDockWidget, timelineDockArea);
 
     QSizePolicy policy = sceneDockArea->sizePolicy();
     policy.setHorizontalStretch(1);
@@ -606,8 +608,12 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     policy.setVerticalStretch(0);
     timelineDockArea->setSizePolicy(policy);
 
-    dockManager->setSplitterSizes(timelineDockArea, {50, 0});
-    dockManager->setSplitterSizes(sceneDockArea, {0, 300, 300});
+    QSplitter *splitter = ads::internal::findParent<QSplitter *>(
+        ads::internal::findParent<QSplitter *>(sceneDockArea));
+    if (splitter) {
+        splitter->setSizes(
+            {(int)(splitter->height() * 0.6), (int)(splitter->height() * 0.4)});
+    }
 
     QAction *saveLayoutAction = viewMenu->addAction("Save layout");
     saveLayoutAction->setToolTip(
@@ -619,6 +625,7 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     viewMenu->addAction(timelineDockWidget->toggleViewAction());
     viewMenu->addAction(propertiesDockWidget->toggleViewAction());
     viewMenu->addAction(effectsDockWidget->toggleViewAction());
+    viewMenu->addAction(presetsDockWidget->toggleViewAction());
 
     QMenu *helpMenu = menuBar->addMenu("Help");
 
@@ -628,8 +635,8 @@ NewMainWindow::NewMainWindow() : QMainWindow() {
     connect(aboutQtAction, &QAction::triggered, this, &NewMainWindow::aboutQt);
 
     QSettings settings;
-    // dockManager->loadPerspectives(settings);
-    // dockManager->openPerspective("Default");
+    dockManager->loadPerspectives(settings);
+    dockManager->openPerspective("Default");
 
     for (int i = 0; i < std::max(1, QThread::idealThreadCount() - 1); i++) {
         createThread();
