@@ -79,15 +79,7 @@ void FramePreviewThread::run() {
             window->openTasks.pop_front();
         }
 
-        QElapsedTimer renderTime;
-        renderTime.start();
-
         task->render(renderThread);
-
-        // qInfo() << "Render time:"
-        //         << qPrintable(QString("%1").arg(
-        //                renderTime.nsecsElapsed() / 1000000., 0, 'f', 1))
-        //         << "ms";
 
         emit taskDone(task);
 
