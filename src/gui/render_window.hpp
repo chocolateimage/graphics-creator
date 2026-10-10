@@ -34,12 +34,14 @@ class GuiRenderThread : public QThread {
     ~GuiRenderThread();
     NewMainWindow *window{nullptr};
     QString encoder;
+    QString thumbnailFile;
     QFileInfo fileInfo;
     QMutex frameMutex;
     std::unordered_map<int64_t, AVFrame *> frames;
     std::vector<AVFrame *> unusedFrames;
     int64_t currentFrameIndex{0};
     int64_t lastFrameIndex{0};
+    int64_t thumbnailFrameIndex{-1};
     std::atomic<bool> isCancelling{false};
     std::atomic<bool> hasErrored{false};
     QString errorMsg;
@@ -107,6 +109,8 @@ class RenderWindow : public QWidget {
     QLabel *renderProgressLabel;
     QProgressBar *renderProgressBar;
     VideoFileButton *renderedFileButton;
+
+    QString thumbnailFile;
 
     GuiRenderThread *thread{nullptr};
 

@@ -159,6 +159,9 @@ void GuiRenderThread::run() {
     }
 
     lastFrameIndex = durationFrames - 1;
+    if (!thumbnailFile.isEmpty()) {
+        thumbnailFrameIndex = std::min((int64_t)20, lastFrameIndex);
+    }
 
     QList<GuiRenderDrawThread *> threads;
 
@@ -378,6 +381,17 @@ void GuiRenderDrawThread::run() {
         FrameTask *frameTask = guiRenderThread->tasks[curFrame];
         frameTask->render(renderThread);
 
+        if (curFrame == guiRenderThread->thumbnailFrameIndex) {
+            QImage img((uint8_t *)frameTask->values, frameTask->width,
+                       frameTask->height, QImage::Format_ARGB32);
+            img.save(guiRenderThread->thumbnailFile);
+
+            QJsonObject obj;
+            obj["type"] = "thumbnail";
+            obj["path"] = guiRenderThread->thumbnailFile;
+            logJson(obj);
+        }
+
         swsCtx = sws_getCachedContext(
             swsCtx, frameTask->width, frameTask->height, AV_PIX_FMT_BGRA,
             frameTask->width, frameTask->height, (AVPixelFormat)frame->format,
@@ -568,6 +582,7 @@ void RenderWindow::render(QFileInfo fileInfo, QString encoder) {
     thread->window = mainWindow;
     thread->fileInfo = fileInfo;
     thread->encoder = encoder;
+    thread->thumbnailFile = thumbnailFile;
 
     connect(thread, &GuiRenderThread::errored, this,
             &RenderWindow::renderVideoError);

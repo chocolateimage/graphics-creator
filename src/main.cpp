@@ -74,12 +74,22 @@ int main(int argc, char **argv) {
         "Load all .dlls from the current working directory.");
     parser.addOption(pluginCwdOption);
 
+    QCommandLineOption thumbnailOption(
+        "thumbnail",
+        "While rendering creates a thumbnail to the file specified. Will not "
+        "overwrite unless --overwrite is set.",
+        "file");
+    parser.addOption(thumbnailOption);
+
     parser.process(application);
 
     const QStringList args = parser.positionalArguments();
     QString newProject = parser.value(newProjectOption);
     QString renderFile = parser.value(renderOption);
+    QString thumbnailFile = parser.value(thumbnailOption);
     QStringList additionalPlugins = parser.values(pluginOption);
+    bool overwrite = parser.isSet(overwriteOption);
+    bool hasThumbnail = parser.isSet(thumbnailOption);
 
     pluginManager = new PluginManager();
     pluginManager->loadDefaultPlugins();
@@ -131,7 +141,7 @@ int main(int argc, char **argv) {
         }
         QFileInfo info(renderFile);
         if (info.exists()) {
-            if (!parser.isSet(overwriteOption)) {
+            if (!overwrite) {
                 qCritical()
                     << "Not overwriting file" << info.absoluteFilePath();
                 qCritical() << "Use --overwrite to overwrite the file";
@@ -139,10 +149,25 @@ int main(int argc, char **argv) {
             }
         }
 
+        QFileInfo thumbnailInfo(thumbnailFile);
+        if (hasThumbnail) {
+            if (thumbnailInfo.exists()) {
+                if (!overwrite) {
+                    qCritical() << "Not overwriting thumbnail file"
+                                << thumbnailInfo.absoluteFilePath();
+                    qCritical() << "Use --overwrite to overwrite the file";
+                    return 1;
+                }
+            }
+        }
+
         // TODO: template/placeholder text
 
         RenderWindow *renderWindow = new RenderWindow(&widget);
         renderWindow->renderFilePathInput->setText(info.absoluteFilePath());
+        if (hasThumbnail) {
+            renderWindow->thumbnailFile = thumbnailInfo.absoluteFilePath();
+        }
         renderWindow->render(info, encoder);
         if (renderWindow->thread) {
             renderWindow->thread->wait();
