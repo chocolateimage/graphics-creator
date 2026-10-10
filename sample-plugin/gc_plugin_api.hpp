@@ -23,6 +23,13 @@ typedef void ElementSelection;
 struct PluginInitData;
 struct PluginInterface;
 
+struct RGBA {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+};
+
 struct Rect {
     int x, y, w, h;
 };
@@ -154,7 +161,7 @@ inline constexpr int pixelIndex(int x, int y, int stride) {
     return y * stride + x;
 }
 
-static constexpr std::array<uint8_t, 4> extractRGBA(uint32_t num) {
+static constexpr RGBA extractRGBA(uint32_t num) {
     return {(uint8_t)(num >> 16), (uint8_t)(num >> 8), (uint8_t)num,
             (uint8_t)(num >> 24)};
 }

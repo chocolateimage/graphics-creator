@@ -1,7 +1,25 @@
 #pragma once
-#include <array>
 #include <cmath>
 #include <cstdint>
+
+struct RGBA {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+};
+
+struct RGB {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
+
+struct OKLAB {
+    double l;
+    double m;
+    double s;
+};
 
 template <typename T> inline constexpr T mod(T a, T b) {
     T r = a % b;
@@ -230,8 +248,8 @@ static double easeInOutBounce(double x) {
     }
 }
 
-static std::array<uint8_t, 4> over(double r1, double g1, double b1, double a1,
-                                   double r2, double g2, double b2, double a2) {
+static RGBA over(double r1, double g1, double b1, double a1, double r2,
+                 double g2, double b2, double a2) {
     a1 = a1 / 255.;
     a2 = a2 / 255.;
     double t = a1 * (1 - a2);
@@ -246,7 +264,7 @@ static std::array<uint8_t, 4> over(double r1, double g1, double b1, double a1,
             (uint8_t)(a * 255.)};
 }
 
-static constexpr std::array<uint8_t, 4> extractRGBA(uint32_t num) {
+static constexpr RGBA extractRGBA(uint32_t num) {
     return {(uint8_t)(num >> 16), (uint8_t)(num >> 8), (uint8_t)num,
             (uint8_t)(num >> 24)};
 }
@@ -262,7 +280,7 @@ static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
     return makePixel(r3, g3, b3, a3);
 }
 
-static double srgbToLinear(double x) {
+static inline double srgbToLinear(double x) {
     if (x < 0.04045) {
         return x * 0.0773993808;
     }
@@ -270,7 +288,7 @@ static double srgbToLinear(double x) {
     return std::pow(x * 0.9478672986 + 0.0521327014, 2.4);
 }
 
-static double linearToSrgb(double x) {
+static inline double linearToSrgb(double x) {
     if (x < 0.0031308) {
         return x * 12.92;
     }
@@ -278,7 +296,7 @@ static double linearToSrgb(double x) {
     return 1.055 * std::pow(x, 0.41666) - 0.055;
 }
 
-static std::array<double, 3> rgbToOklab(double r, double g, double b) {
+static OKLAB rgbToOklab(double r, double g, double b) {
     r = srgbToLinear(r / 255.);
     g = srgbToLinear(g / 255.);
     b = srgbToLinear(b / 255.);
@@ -294,7 +312,7 @@ static std::array<double, 3> rgbToOklab(double r, double g, double b) {
             l * 0.0259040371 + m * 0.7827717662 + s * -0.8086757660};
 }
 
-static std::array<uint8_t, 3> oklabToRgb(double L, double a, double b) {
+static RGB oklabToRgb(double L, double a, double b) {
     double l = L + a * 0.3963377774 + b * 0.2158037573;
     double m = L + a * -0.1055613458 + b * -0.0638541728;
     double s = L + a * -0.0894841775 + b * -1.2914855480;
@@ -310,9 +328,8 @@ static std::array<uint8_t, 3> oklabToRgb(double L, double a, double b) {
     return {(uint8_t)r, (uint8_t)g, (uint8_t)b};
 }
 
-static std::array<uint8_t, 4> mixColor(uint8_t r1, uint8_t g1, uint8_t b1,
-                                       uint8_t a1, uint8_t r2, uint8_t g2,
-                                       uint8_t b2, uint8_t a2, double x) {
+static RGBA mixColor(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1, uint8_t r2,
+                     uint8_t g2, uint8_t b2, uint8_t a2, double x) {
     auto [l1, oa1, ob1] = rgbToOklab(r1, g1, b1);
     auto [l2, oa2, ob2] = rgbToOklab(r2, g2, b2);
     auto [r, g, b] =

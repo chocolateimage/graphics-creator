@@ -1,5 +1,4 @@
 #pragma once
-#include <array>
 #include <cmath>
 
 // Source - https://stackoverflow.com/a/6930407
@@ -10,6 +9,12 @@ struct HSV {
     double h; // angle in degrees
     double s; // a fraction between 0 and 1
     double v; // a fraction between 0 and 1
+};
+
+struct RGBf {
+    double r;
+    double g;
+    double b;
 };
 
 static HSV rgb2hsv(double inR, double inG, double inB) {
@@ -53,7 +58,7 @@ static HSV rgb2hsv(double inR, double inG, double inB) {
     return out;
 }
 
-static std::array<double, 3> hsv2rgb(const HSV &in) {
+static RGBf hsv2rgb(const HSV &in) {
     double hh, p, q, t, ff;
     long i;
 
