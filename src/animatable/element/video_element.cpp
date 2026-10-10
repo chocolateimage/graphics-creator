@@ -43,7 +43,6 @@ VideoElement::getVideoData(const FrameInfo &frameInfo) {
 }
 
 bool VideoElementRender::render(uint32_t *target) {
-    auto rect = getRenderBox();
     int w = this->w;
     int h = this->h;
 
