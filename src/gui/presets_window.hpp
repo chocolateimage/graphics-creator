@@ -18,7 +18,13 @@ class PresetsWindow : public QWidget {
     PresetsWindow(Scene *scene, NewMainWindow *mainWindow);
     Scene *scene;
     NewMainWindow *mainWindow;
+    PresetsListWidget *listWidget;
     QList<Preset *> presets;
+
+    void reloadPresets();
+
+  protected:
+    bool event(QEvent *event) override;
 
   private slots:
     void doubleClicked(QListWidgetItem *item);

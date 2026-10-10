@@ -18,7 +18,9 @@ PresetsWindow::PresetsWindow(Scene *scene, NewMainWindow *mainWindow)
     : scene(scene), mainWindow(mainWindow) {
     QVBoxLayout *lay = new QVBoxLayout(this);
     lay->setContentsMargins(0, 0, 0, 0);
-    PresetsListWidget *listWidget = new PresetsListWidget();
+
+    listWidget = new PresetsListWidget();
+    listWidget->setSupportedDragActions({Qt::DropAction::CopyAction});
     listWidget->setViewMode(QListWidget::IconMode);
     listWidget->setMovement(QListWidget::Static);
     listWidget->setUniformItemSizes(true);
@@ -32,15 +34,31 @@ PresetsWindow::PresetsWindow(Scene *scene, NewMainWindow *mainWindow)
             &PresetsWindow::doubleClicked);
     lay->addWidget(listWidget);
 
+    reloadPresets();
+}
+
+void PresetsWindow::reloadPresets() {
+    listWidget->clear();
     for (Preset *preset : presetList) {
-        QIcon icon(
-            QPixmap(mainWindow->dataPath + "/presets/" + preset->id + ".png"));
+        QImage img(mainWindow->dataPath + "/presets/" + preset->id + ".png");
+        if (palette().text().color().lightnessF() < 0.5) {
+            img.invertPixels();
+        }
+        QIcon icon(QPixmap::fromImage(img));
         QListWidgetItem *item = new QListWidgetItem(icon, preset->displayName);
         item->setSizeHint(QSize(90, 90));
         item->setToolTip(preset->displayName);
         item->setData(Qt::UserRole, QString::number((uint64_t)(preset)));
         listWidget->addItem(item);
     }
+}
+
+bool PresetsWindow::event(QEvent *event) {
+    if (event->type() == QEvent::PaletteChange) {
+        reloadPresets();
+    }
+
+    return QWidget::event(event);
 }
 
 void PresetsWindow::doubleClicked(QListWidgetItem *item) {
