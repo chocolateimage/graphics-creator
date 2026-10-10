@@ -21,6 +21,7 @@ void GuiRenderThread::run() {
         QJsonObject obj;
         obj["type"] = "starting";
         obj["file"] = fileInfo.absoluteFilePath();
+        obj["encoder"] = encoder;
         logJson(obj);
     }
     QDir().mkpath(fileInfo.absolutePath());
@@ -581,6 +582,13 @@ void RenderWindow::render(QFileInfo fileInfo, QString encoder) {
     thread->durationFrames = scene->durationFrames;
     thread->window = mainWindow;
     thread->fileInfo = fileInfo;
+    if (encoder.isEmpty()) {
+        if (fileInfo.suffix() == "mp4") {
+            encoder = "libx264";
+        } else {
+            encoder = "prores";
+        }
+    }
     thread->encoder = encoder;
     thread->thumbnailFile = thumbnailFile;
 

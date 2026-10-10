@@ -133,12 +133,6 @@ int main(int argc, char **argv) {
     if (!renderFile.isEmpty()) {
         qInfo() << "";
         QString encoder = parser.value(encoderOption);
-        if (encoder.isEmpty()) {
-            qCritical()
-                << "An encoder must also be set with --encoder. View the help "
-                   "with --help to see a short list of encoders.";
-            return 1;
-        }
         QFileInfo info(renderFile);
         if (info.exists()) {
             if (!overwrite) {
