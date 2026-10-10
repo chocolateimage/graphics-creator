@@ -1,25 +1,40 @@
 #include "brightness_effect.hpp"
 #include "math.hpp"
+#include <immintrin.h>
 
 BrightnessEffect::BrightnessEffect() {
     brightness.setMin(0);
-    brightness.setMax(25500);
-    brightness.suffix = "%";
+    brightness.setMax(255);
 }
 
 bool BrightnessEffectRender::render(const uint32_t *source,
                                     const Rect &sourceRect, uint32_t *target) {
-    Rect rect = renderBox;
-    double brightness = this->brightness / 100.;
-    for (int y = 0; y < sourceRect.h; y++) {
-        for (int x = 0; x < sourceRect.w; x++) {
-            auto [r, g, b, a] =
-                extractRGBA(source[pixelIndex(x, y, sourceRect.w)]);
-            r = std::min(r * brightness, 255.);
-            g = std::min(g * brightness, 255.);
-            b = std::min(b * brightness, 255.);
-            target[pixelIndex(x, y, rect.w)] = makePixel(r, g, b, a);
-        }
+    uint8_t brightness = this->brightness.get();
+
+    int size = sourceRect.w * sourceRect.h;
+
+    __m256i valueB = _mm256_set_epi8(
+        0, brightness, brightness, brightness, 0, brightness, brightness,
+        brightness, 0, brightness, brightness, brightness, 0, brightness,
+        brightness, brightness, 0, brightness, brightness, brightness, 0,
+        brightness, brightness, brightness, 0, brightness, brightness,
+        brightness, 0, brightness, brightness, brightness);
+
+    int i = 0;
+    for (; i <= size - 8; i += 8) {
+        __m256i valueA = _mm256_loadu_si256((__m256i *)(source + i));
+        __m256i result = _mm256_adds_epu8(valueA, valueB);
+        _mm256_storeu_si256((__m256i *)(target + i), result);
     }
+
+    for (; i < size; i++) {
+        RGBA rgba = extractRGBA(source[i]);
+        rgba.r = std::min(255, rgba.r + brightness);
+        rgba.g = std::min(255, rgba.g + brightness);
+        rgba.b = std::min(255, rgba.b + brightness);
+
+        target[i] = makePixel(rgba);
+    }
+
     return true;
 }

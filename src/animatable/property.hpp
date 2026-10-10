@@ -398,6 +398,10 @@ class PropertyBase {
     };
     virtual bool isAnimatable() { return true; }
     QString getDisplayName() {
+        if (!displayName.empty()) {
+            return QString::fromStdString(displayName);
+        }
+
         QString label;
         QString word;
         int len = name.size();
@@ -422,6 +426,7 @@ class PropertyBase {
     std::vector<KeyframeBase *> keyframes;
     Animatable *animatable;
     std::string name;
+    std::string displayName;
     virtual void toggleLock(const FrameInfo &frameInfo) {}
     void toggleAnimating(const FrameInfo &frameInfo) {
         isAnimating = !isAnimating;

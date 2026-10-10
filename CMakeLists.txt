@@ -88,7 +88,7 @@ target_link_libraries(
     FFmpeg::FFmpeg
     harfbuzz Freetype::Freetype Fontconfig::Fontconfig
 )
-target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter)
+target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -mavx -mavx2)
 
 add_custom_command(TARGET graphics-creator POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different

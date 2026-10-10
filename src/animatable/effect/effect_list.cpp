@@ -10,6 +10,7 @@
 #include "expand_render_box_effect.hpp"
 #include "fill_effect.hpp"
 #include "flip_effect.hpp"
+#include "gain_effect.hpp"
 #include "grid_effect.hpp"
 #include "hsv_effect.hpp"
 #include "in_out_effect.hpp"
@@ -35,13 +36,14 @@ std::vector<EffectInfo> effectList = {
     DEFINE_EFFECT("Blur", "Box Blur", "boxBlur", BlurEffect),
 
     DEFINE_EFFECT("Color", "Opacity", "opacity", OpacityEffect),
-    DEFINE_EFFECT("Color", "Brightness", "brightness", BrightnessEffect),
+    DEFINE_EFFECT("Color", "Gain", "brightness", GainEffect),
     DEFINE_EFFECT("Color", "Tint", "tint", TintEffect),
     DEFINE_EFFECT("Color", "Invert", "invert", InvertEffect),
     DEFINE_EFFECT("Color", "Hue/Saturation", "hsv", HsvEffect),
     DEFINE_EFFECT("Color", "Fill", "fill", FillEffect),
     DEFINE_EFFECT("Color", "Color Link", "colorLink", ColorLinkEffect),
     DEFINE_EFFECT("Color", "Levels", "levels", LevelsEffect),
+    DEFINE_EFFECT("Color", "Brightness", "brightness2", BrightnessEffect),
 
     DEFINE_EFFECT("Tools", "Offset", "offset", OffsetEffect),
     DEFINE_EFFECT("Tools", "Scale", "scale", ScaleEffect),

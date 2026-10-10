@@ -37,6 +37,10 @@ inline constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
     return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
+inline constexpr uint32_t makePixel(RGBA rgba) {
+    return (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b;
+}
+
 inline constexpr int pixelIndex(int x, int y, int stride) {
     return y * stride + x;
 }
