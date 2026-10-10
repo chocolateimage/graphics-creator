@@ -30,9 +30,19 @@ bool RectangleElementRender::render(uint32_t *target) {
     int h = this->h;
     int strokeWidth = this->strokeWidth;
     int roundness = std::min(this->roundness.get(), std::min(h / 2, w / 2));
-    auto fill = this->fill;
-    auto stroke = this->stroke;
+    auto fill = this->fill.get();
+    auto stroke = this->stroke.get();
     bool hasStroke = strokeWidth > 0;
+
+    if (strokeWidth == 0 && roundness == 0 &&
+        fill.brushType == Brush::Type::SingleColor) {
+        uint32_t pixelColor = makePixel(fill.color1);
+        int pixelCount = rect.w * rect.h;
+        for (int i = 0; i < pixelCount; i++) {
+            target[i] = pixelColor;
+        }
+        return true;
+    }
 
     for (int y = 0; y < rect.h; y++) {
         for (int x = 0; x < rect.w; x++) {
