@@ -28,6 +28,7 @@ find_package(qtadvanceddocking-qt6 REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 set(graphicscreator_SRCS
+    src/main.cpp
     src/render.cpp
     src/variant.cpp
     src/scene.cpp
