@@ -8,6 +8,10 @@ PathElement::PathElement() : Element() {
     h.hidden = true;
 
     strokeWidth.setMin(0);
+    from.setMin(0);
+    from.setMax(100);
+    to.setMin(0);
+    to.setMax(100);
 
     cap.enumList.push_back("Square");
     cap.enumList.push_back("Flat");
@@ -93,7 +97,16 @@ bool PathElementRender::render(uint32_t *target) {
     }
 
     painter.translate(-rect.x(), -rect.y());
-    painter.drawPath(painterPath);
+
+    QPainterPath finalPainterPath = painterPath;
+    double from = this->from.get() / 100.;
+    double to = this->to.get() / 100.;
+    double offset = this->offset.get() / 100.;
+    if (from != 0 || to != 1 || offset != 0) {
+        finalPainterPath = finalPainterPath.trimmed(from, to, offset);
+    }
+
+    painter.drawPath(finalPainterPath);
 
     memcpy(target, img.bits(), rect.width() * rect.height() * 4);
 

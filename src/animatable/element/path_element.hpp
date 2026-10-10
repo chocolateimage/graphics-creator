@@ -17,6 +17,9 @@ class PathElement : public Element {
     Property<int> cap{this, "cap", 0};
     Property<int> join{this, "join", 0};
     Property<Path> path{this, "path", {}};
+    Property<double> from{this, "from", 0};
+    Property<double> to{this, "to", 100};
+    Property<double> offset{this, "offset", 0};
 
     QString const typeName() override { return "path"; }
 };
@@ -32,6 +35,9 @@ class PathElementRender : public ElementRender {
     PropertyRender<int> cap{this};
     PropertyRender<int> join{this};
     PropertyRender<Path> path{this};
+    PropertyRender<double> from{this};
+    PropertyRender<double> to{this};
+    PropertyRender<double> offset{this};
 
     QPainterPath painterPath;
     QRect rect;
