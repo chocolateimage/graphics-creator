@@ -33,4 +33,16 @@ class TextPreset : public Preset {
     Element *apply(NewMainWindow *mainWindow, Element *element) override;
 };
 
+class AnyElementPreset : public Preset {
+  public:
+    AnyElementPreset(QString displayName, QString id,
+                     std::function<void(Element *)> applyFunc)
+        : Preset(displayName, id), applyFunc(applyFunc) {}
+
+    std::function<void(Element *)> applyFunc;
+
+    bool canApply(NewMainWindow *mainWindow, Element *element) override;
+    Element *apply(NewMainWindow *mainWindow, Element *element) override;
+};
+
 extern QList<Preset *> presetList;

@@ -1,4 +1,7 @@
 #include "presets.hpp"
+#include "animatable/effect/blur_effect.hpp"
+#include "animatable/effect/opacity_effect.hpp"
+#include "animatable/effect/place_original_effect.hpp"
 #include "animatable/element/text_element.hpp"
 #include "gui/gui.hpp"
 
@@ -64,6 +67,15 @@ void initPresets() {
             textElement->textAnimators.append(newAnimator);
             emit textElement->effectListUpdated();
         }));
+    presetList.append(
+        new AnyElementPreset("Glow", "glow", [](Element *element) {
+            BlurEffect *blurEffect = new BlurEffect();
+            blurEffect->radius.set(32, {0});
+            blurEffect->iterations.set(2, {0});
+            element->addEffect(blurEffect);
+            element->addEffect(new OpacityEffect());
+            element->addEffect(new PlaceOriginalEffect());
+        }));
 }
 
 bool TextPreset::canApply(NewMainWindow *mainWindow, Element *element) {
@@ -83,5 +95,14 @@ Element *TextPreset::apply(NewMainWindow *mainWindow, Element *element) {
         element = textElement;
     }
     applyFunc((TextElement *)element);
+    return element;
+}
+
+bool AnyElementPreset::canApply(NewMainWindow *mainWindow, Element *element) {
+    return element != nullptr;
+}
+
+Element *AnyElementPreset::apply(NewMainWindow *mainWindow, Element *element) {
+    applyFunc(element);
     return element;
 }

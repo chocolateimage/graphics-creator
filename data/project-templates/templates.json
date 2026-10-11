@@ -6,5 +6,9 @@
   {
     "name": "Centered Title",
     "file": "center-title"
+  },
+  {
+    "name": "Lower Thirds",
+    "file": "lower-thirds-01"
   }
 ]
