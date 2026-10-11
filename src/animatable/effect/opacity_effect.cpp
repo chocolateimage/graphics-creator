@@ -9,15 +9,19 @@ OpacityEffect::OpacityEffect() {
 
 bool OpacityEffectRender::render(const uint32_t *source, const Rect &sourceRect,
                                  uint32_t *target) {
-    Rect rect = renderBox;
     double opacity = this->opacity / 100.;
+    if (opacity == 1) {
+        memcpy(target, source, sourceRect.w * sourceRect.h * 4);
+        return true;
+    }
+
     for (int y = 0; y < sourceRect.h; y++) {
         for (int x = 0; x < sourceRect.w; x++) {
             uint32_t value = source[pixelIndex(x, y, sourceRect.w)];
             uint32_t alpha = value >> 24;
             uint32_t rest = value & 0x00FFFFFF;
             uint32_t finalAlpha = (int)(alpha * opacity) << 24;
-            target[pixelIndex(x, y, rect.w)] = finalAlpha | rest;
+            target[pixelIndex(x, y, sourceRect.w)] = finalAlpha | rest;
         }
     }
     return true;
