@@ -1,6 +1,7 @@
 #include "welcome_screen.hpp"
 #include "flowlayout.hpp"
 #include "gui.hpp"
+#include "project_templates.hpp"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
@@ -90,28 +91,16 @@ WelcomeScreenWidget::WelcomeScreenWidget(NewMainWindow *mainWindow,
             &WelcomeScreenWidget::newProjectClicked);
     flowLayout->addWidget(newBtn);
 
-    QFile templatesFile(mainWindow->dataPath +
-                        "/project-templates/templates.json");
-    if (templatesFile.open(QIODevice::ReadOnly)) {
-        QByteArray templatesData = templatesFile.readAll();
-        QJsonDocument templatesDoc = QJsonDocument::fromJson(templatesData);
-        templatesFile.close();
+    for (const auto &projectTemplate : projectTemplates) {
+        QImage img = QImage(projectTemplate.imagePath);
 
-        for (const auto &templateJson : templatesDoc.array()) {
-            auto templateObj = templateJson.toObject();
-            QString fileName = mainWindow->dataPath + "/project-templates/" +
-                               templateObj["file"].toString();
-
-            QImage img = QImage(fileName + ".png");
-
-            WelcomeScreenProjectWidget *btn = new WelcomeScreenProjectWidget(
-                templateObj["name"].toString(), false, img, this);
-            connect(btn, &WelcomeScreenProjectWidget::clicked, this,
-                    [this, fileName]() {
-                        emit openClicked(fileName + ".gcp", true);
-                    });
-            flowLayout->addWidget(btn);
-        }
+        WelcomeScreenProjectWidget *btn = new WelcomeScreenProjectWidget(
+            projectTemplate.displayName, false, img, this);
+        connect(btn, &WelcomeScreenProjectWidget::clicked, this,
+                [this, projectTemplate]() {
+                    emit openClicked(projectTemplate.projectPath, true);
+                });
+        flowLayout->addWidget(btn);
     }
 
     lay->addLayout(flowLayout);

@@ -240,27 +240,8 @@ class RemoveElementsCommand : public QUndoCommand {
     }
 };
 
-NewMainWindow::NewMainWindow() : QMainWindow() {
-    QStringList dataPaths = {
-        QApplication::applicationDirPath() + "/data",
-        QApplication::applicationDirPath() + "/../share/graphics-creator/data",
-    };
-
-    for (auto path : dataPaths) {
-        if (QDir(path).exists()) {
-            dataPath = QDir(path).absolutePath();
-            break;
-        }
-    }
-
-    if (dataPath.isEmpty()) {
-        qCritical() << "No data path found. Tried:" << dataPaths;
-        KMessageBox::error(
-            nullptr, "No data folder found.\n\nPlease try reinstalling the "
-                     "program. If this "
-                     "problem persists after reinstalling, report an issue.");
-        exit(1);
-    }
+NewMainWindow::NewMainWindow(const QString &dataPath)
+    : QMainWindow(), dataPath(dataPath) {
 
     networkAccessManager = new QNetworkAccessManager(this);
     scene = new Scene();

@@ -62,7 +62,7 @@ class VideoSettingsDialog : public QDialog {
 
 class NewMainWindow : public QMainWindow {
   public:
-    NewMainWindow();
+    NewMainWindow(const QString &dataPath);
     ~NewMainWindow();
 
     QToolBar *toolBar;

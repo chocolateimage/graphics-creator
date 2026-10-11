@@ -1,8 +1,11 @@
 #include "gui/gui.hpp"
 #include "gui/render_window.hpp"
+#include "log.hpp"
 #include "plugin.hpp"
+#include "project_templates.hpp"
 #include "shared.hpp"
 #include <KIconTheme>
+#include <KMessageBox>
 #include <KStyleManager>
 #include <QApplication>
 #include <QCommandLineParser>
@@ -81,6 +84,10 @@ int main(int argc, char **argv) {
         "file");
     parser.addOption(thumbnailOption);
 
+    QCommandLineOption listTemplatesOption(
+        "list-templates", "List built-in templates in JSON format");
+    parser.addOption(listTemplatesOption);
+
     parser.process(application);
 
     const QStringList args = parser.positionalArguments();
@@ -90,6 +97,28 @@ int main(int argc, char **argv) {
     QStringList additionalPlugins = parser.values(pluginOption);
     bool overwrite = parser.isSet(overwriteOption);
     bool hasThumbnail = parser.isSet(thumbnailOption);
+
+    QString dataPath;
+    QStringList dataPaths = {
+        QApplication::applicationDirPath() + "/data",
+        QApplication::applicationDirPath() + "/../share/graphics-creator/data",
+    };
+
+    for (auto path : dataPaths) {
+        if (QDir(path).exists()) {
+            dataPath = QDir(path).absolutePath();
+            break;
+        }
+    }
+
+    if (dataPath.isEmpty()) {
+        qCritical() << "No data path found. Tried:" << dataPaths;
+        KMessageBox::error(
+            nullptr, "No data folder found.\n\nPlease try reinstalling the "
+                     "program. If this "
+                     "problem persists after reinstalling, report an issue.");
+        exit(1);
+    }
 
     pluginManager = new PluginManager();
     pluginManager->loadDefaultPlugins();
@@ -114,7 +143,24 @@ int main(int argc, char **argv) {
         }
     }
 
-    NewMainWindow widget;
+    loadProjectTemplates(dataPath);
+
+    if (parser.isSet(listTemplatesOption)) {
+        QJsonObject obj;
+        QJsonArray arr;
+        for (const auto &projectTemplate : projectTemplates) {
+            QJsonObject obj;
+            obj["path"] = projectTemplate.projectPath;
+            obj["image"] = projectTemplate.imagePath;
+            obj["displayName"] = projectTemplate.displayName;
+            arr.append(obj);
+        }
+        obj["templates"] = arr;
+        logJson(obj);
+        return 0;
+    }
+
+    NewMainWindow widget(dataPath);
     if (!args.isEmpty()) {
         widget.loadFile(args[0], false);
     } else if (!newProject.isEmpty()) {

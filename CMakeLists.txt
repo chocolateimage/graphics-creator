@@ -37,6 +37,7 @@ set(graphicscreator_SRCS
     src/log.cpp
     src/plugin.cpp
     src/presets.cpp
+    src/project_templates.cpp
     src/gui/gui.cpp
     src/gui/image_viewer.cpp
     src/gui/fontcombobox.cpp
