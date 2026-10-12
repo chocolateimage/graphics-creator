@@ -80,6 +80,7 @@ add_subdirectory(src/animatable/effect)
 
 add_executable(graphics-creator WIN32 ${graphicscreator_SRCS})
 set_property(TARGET graphics-creator PROPERTY AUTOMOC ON)
+set_property(TARGET graphics-creator PROPERTY CXX_STANDARD 17)
 
 target_include_directories(graphics-creator PRIVATE ${FFMPEG_INCLUDE_DIRS} ${HARFBUZZ_INCLUDE_DIR} ${FREETYPE_INCLUDE_DIRS} src)
 target_link_libraries(
