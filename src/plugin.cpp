@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include "ae/ae_effect.hpp"
+#include "ae/aegp.hpp"
 #include "ae/entry.hpp"
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/effect/plugin_effect.hpp"
@@ -8,8 +9,6 @@
 #include <QDir>
 #include <QMessageBox>
 #include <QStandardPaths>
-#include <qmessagebox.h>
-#include <string.h>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #else
@@ -252,6 +251,54 @@ void PluginManager::loadDefaultPlugins() {
     }
 }
 
+#ifdef Q_OS_WIN
+int PIPL_Entry(HMODULE hModule, LPCSTR lpType, LPSTR lpName, LONG_PTR lParam) {
+    PluginInitData *initData = (PluginInitData *)lParam;
+    HRSRC resource = FindResourceA(hModule, lpName, lpType);
+    HGLOBAL loadedResource = LoadResource(hModule, resource);
+    size_t size = SizeofResource(hModule, resource);
+    const char *data = (const char *)LockResource(loadedResource);
+
+    PluginPipl *pluginPipl = new PluginPipl(QByteArray(data, size));
+    initData->privateData->pipls.append(pluginPipl);
+    return 1;
+}
+#endif
+
+PluginPipl::PluginPipl(const QByteArray &data) {
+    QDataStream stream(data);
+    stream.setByteOrder(QDataStream::LittleEndian);
+    stream.skipRawData(6);
+    uint32_t count;
+    stream >> count;
+    for (uint32_t i = 0; i < count; i++) {
+        stream.skipRawData(4);
+
+        char rawKey[5];
+        stream >> rawKey[3];
+        stream >> rawKey[2];
+        stream >> rawKey[1];
+        stream >> rawKey[0];
+        rawKey[4] = 0;
+        stream.skipRawData(4);
+        QString key = QString(rawKey);
+
+        uint32_t length;
+        stream >> length;
+
+        QByteArray value(length, 0);
+        stream.readRawData(value.data(), length);
+
+        properties[key] = value;
+    }
+}
+
+QString PluginPipl::getString(const QString &key) {
+    QByteArray bytes = properties[key];
+    uint8_t length = bytes[0];
+    return bytes.sliced(1, length);
+}
+
 bool PluginManager::loadPlugin(const QString &path) {
     qInfo() << "Loading plugin" << path;
     Library_t library = loadLibrary(path);
@@ -262,14 +309,22 @@ bool PluginManager::loadPlugin(const QString &path) {
         return false;
     }
 
-    pluginInterface = new PluginInterface();
-    pluginInterface->functions = createFunctions();
+    if (!pluginInterface) {
+        pluginInterface = new PluginInterface();
+        pluginInterface->functions = createFunctions();
+    }
 
     PluginInitDataPrivate priv{};
     priv.library = library;
     PluginInitData data{};
     data.privateData = &priv;
     data.id = nullptr;
+    data.name = nullptr;
+    data.version = nullptr;
+
+#ifdef Q_OS_WIN
+    EnumResourceNamesA(library, "PIPL", PIPL_Entry, (LONG_PTR)&data);
+#endif
 
     void *aeEntry = getLibraryFunction(library, "PluginDataEntryFunction");
     void *aeEntry2 = getLibraryFunction(library, "PluginDataEntryFunction2");
@@ -296,7 +351,7 @@ bool PluginManager::loadPlugin(const QString &path) {
                        << ret;
             return false;
         }
-    } else {
+    } else if (data.privateData->pipls.isEmpty()) {
         qWarning() << "Could not find gcPluginInit in plugin" << path;
         return false;
     }
@@ -304,13 +359,38 @@ bool PluginManager::loadPlugin(const QString &path) {
     Plugin *plugin = new Plugin();
     plugin->library = library;
     plugin->id = data.id;
-    plugin->name = data.name;
-    plugin->version = data.version;
+    if (data.name) {
+        plugin->name = data.name;
+    } else {
+        plugin->name = "<unknown>";
+    }
+    if (data.version) {
+        plugin->version = data.version;
+    } else {
+        plugin->version = "<unknown>";
+    }
     plugin->path = path;
     for (auto effect : data.privateData->aeEffects) {
         plugin->aeEffects.push_back(effect);
         effect->plugin = plugin;
         effect->registerEffect();
+    }
+    for (auto pipl : data.privateData->pipls) {
+        /*key "kind"
+value "xgEA"
+key "name"
+value "\tPanelator\x00\x00"
+key "catg"
+value "\x0EGeneral Plugin\x00"
+key "vers"
+value "\x00\x00\x03\x00"
+key "8664"
+value "EntryPointFunc\x00\x00"*/
+        if (pipl->properties["kind"] == "xgEA") {
+            AEGP *aegp = new AEGP(plugin, pipl);
+            plugin->aegps.append(aegp);
+        }
+        delete pipl;
     }
     plugin->isDebug =
         getLibraryFunction(library, "exportedDebugFunction") != nullptr;

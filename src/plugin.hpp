@@ -1,6 +1,8 @@
 #pragma once
 #include "variant.hpp"
+#include <QByteArray>
 #include <QList>
+#include <QMap>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -15,6 +17,7 @@ struct ElementSelectionSnippet;
 class PluginEffectRender;
 class PropertyRenderBase;
 class AEEffect;
+class AEGP;
 
 typedef int (*gcPluginInit_t)(PluginInterface *, PluginInitData *);
 
@@ -151,9 +154,17 @@ struct PluginInterface {
     PluginFunctions *functions;
 };
 
+class PluginPipl {
+  public:
+    PluginPipl(const QByteArray &data);
+    QMap<QString, QByteArray> properties;
+    QString getString(const QString &key);
+};
+
 struct PluginInitDataPrivate {
     Library_t library;
     QList<AEEffect *> aeEffects;
+    QList<PluginPipl *> pipls;
 };
 
 struct PluginInitData {
@@ -172,6 +183,7 @@ class Plugin {
     QString path;
     bool isDebug;
     QList<AEEffect *> aeEffects;
+    QList<AEGP *> aegps;
 };
 
 PluginFunctions *createFunctions();

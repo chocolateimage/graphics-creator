@@ -7,6 +7,7 @@ set(graphicscreator_SRCS
   src/ae/interaction_callbacks.cpp
   src/ae/ae_effect.cpp
   src/ae/smart.cpp
+  src/ae/aegp.cpp
   src/ae/suites/ansi_suite.cpp
   src/ae/suites/fill_matte_suite.cpp
   src/ae/suites/iterate_suite.cpp
@@ -25,5 +26,7 @@ set(graphicscreator_SRCS
   src/ae/suites/aegp_pf_interface_suite.cpp
   src/ae/suites/drawbot_suites.cpp
   src/ae/suites/aegp_world_suite.cpp
+  src/ae/suites/aegp_workspace_panel_suite.cpp
+  src/ae/suites/aegp_command_suite.cpp
   PARENT_SCOPE
 )

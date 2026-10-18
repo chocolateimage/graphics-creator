@@ -1,10 +1,25 @@
 #include "aegp_register_suite.hpp"
 #include "ae/ae_base.hpp"
+#include "ae/aegp.hpp"
+#include "aegp_command_suite.hpp"
+#include <QAction>
+
+typedef int32_t (*commandHookFunc_t)(void *globalRefcon, void *commandRefcon,
+                                     int32_t command, uint32_t priority,
+                                     bool alreadyHandled, bool *handled);
 
 int32_t registerCommandHook(int32_t pluginId, uint32_t priority,
-                            int32_t command, void *function,
+                            int32_t command, commandHookFunc_t function,
                             void *functionData) {
     qInfo() << "registerCommandHook";
+    QAction *action = aegpGlobalCommands[command];
+    AEGP *plugin = AEGP::getPlugin(pluginId);
+    action->connect(action, &QAction::triggered, action,
+                    [function, functionData, plugin, command]() {
+                        bool handled = false;
+                        function(plugin->globalRefcon, functionData, command, 0,
+                                 false, &handled);
+                    });
     return 0;
 }
 

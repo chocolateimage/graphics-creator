@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "ae/suites/aegp_command_suite.hpp"
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/group_element.hpp"
@@ -437,6 +438,15 @@ NewMainWindow::NewMainWindow(const QString &dataPath)
         KColorSchemeMenu::createMenu(KColorSchemeManager::instance());
     viewMenu->addMenu(colorMenu->menu());
     viewMenu->addSeparator();
+
+    if (!aegpGlobalCommands.isEmpty()) {
+        QMenu *pluginMenu = menuBar->addMenu("Plugins");
+        pluginMenu->addAction(pluginsAction);
+        pluginMenu->addSeparator();
+        for (auto command : aegpGlobalCommands) {
+            pluginMenu->addAction(command);
+        }
+    }
 
     setMenuBar(menuBar);
 

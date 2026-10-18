@@ -1,9 +1,11 @@
 #include "suite_loader.hpp"
+#include "suites/aegp_command_suite.hpp"
 #include "suites/aegp_compute_cache_suite.hpp"
 #include "suites/aegp_memory_suite.hpp"
 #include "suites/aegp_pf_interface_suite.hpp"
 #include "suites/aegp_register_suite.hpp"
 #include "suites/aegp_utility_suite.hpp"
+#include "suites/aegp_workspace_panel_suite.hpp"
 #include "suites/aegp_world_suite.hpp"
 #include "suites/ansi_suite.hpp"
 #include "suites/app_suite.hpp"
@@ -46,6 +48,9 @@ DrawbotSurfaceSuite2 *drawbotSurfaceSuite2 = new DrawbotSurfaceSuite2();
 DrawbotPathSuite1 *drawbotPathSuite1 = new DrawbotPathSuite1();
 PFEffectCustomUISuite1 *effectCustomUISuite1 = new PFEffectCustomUISuite1();
 AEGPWorldSuite3 *aegpWorldSuite3 = new AEGPWorldSuite3();
+AEGPWorkspacePanelSuite1 *aegpWorkspacePanelSuite1 =
+    new AEGPWorkspacePanelSuite1();
+AEGPCommandSuite1 *aegpCommandSuite1 = new AEGPCommandSuite1();
 
 uint32_t loadSuite(const char *name, int32_t version, const void **suite) {
     // qInfo() << "loadSuite";
@@ -112,6 +117,11 @@ uint32_t loadSuite(const char *name, int32_t version, const void **suite) {
         *suite = aegpWorldSuite3;
     } else if (strcmp(name, "PF AE Adv App Suite") == 0 && version == 2) {
         *suite = advAppSuite2;
+    } else if (strcmp(name, "AEGP Workspace Panel Suite") == 0 &&
+               version == 1) {
+        *suite = aegpWorkspacePanelSuite1;
+    } else if (strcmp(name, "AEGP Command Suite") == 0 && version == 1) {
+        *suite = aegpCommandSuite1;
     } else {
         qInfo() << "NO SUITE FOUND!" << name << version;
         // abort();
