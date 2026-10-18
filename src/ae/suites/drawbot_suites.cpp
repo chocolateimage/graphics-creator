@@ -190,7 +190,7 @@ int32_t drawString(AECustomUIWindow *window, DrawbotBrush *brush,
                    DrawbotFont *font, wchar_t *string, Vector2DFloat *origin,
                    int alignment, int truncation, float width) {
     QPointF point(origin->x, origin->y);
-    QString str(string);
+    QString str = QString::fromWCharArray(string);
     window->painter->setBrush(Qt::NoBrush);
     window->painter->setPen(QPen(brush->brush.color()));
     window->painter->setFont(font->font);

@@ -256,8 +256,8 @@ int32_t copy(void *effect, AELayer *src, AELayer *dst, AERect *srcRect,
     qInfo() << "    dstLayer (l,t,r,b)" << dst->rect.left << dst->rect.top
             << dst->rect.right << dst->rect.bottom;
 
-    if (dstX < 0 || dstY < 0 || dstRect2.right > dst->width ||
-        dstRect2.bottom > dst->height) {
+    if (dstX < 0 || dstY < 0 || dstRect2.right > (int)dst->width ||
+        dstRect2.bottom > (int)dst->height) {
         qInfo() << "    weird dst rect?";
         return 1;
     }
@@ -267,8 +267,8 @@ int32_t copy(void *effect, AELayer *src, AELayer *dst, AERect *srcRect,
     SwsContext *swsCtx =
         sws_getContext(srcW, srcH, AV_PIX_FMT_ARGB, dstW, dstH, AV_PIX_FMT_ARGB,
                        SWS_BILINEAR, nullptr, nullptr, nullptr);
-    int srcStride[] = {src->stride};
-    int dstStride[] = {dst->stride};
+    int srcStride[] = {(int)src->stride};
+    int dstStride[] = {(int)dst->stride};
     ARGB *srcData = src->data + srcY * src->width + srcX;
     ARGB *dstData = dst->data + dstY * dst->width + dstX;
     sws_scale(swsCtx, (const uint8_t *const *)&srcData, srcStride, 0, srcH,

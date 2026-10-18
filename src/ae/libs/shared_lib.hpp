@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <string>
 
 struct MsvcString {
@@ -28,7 +29,7 @@ struct MsvcString {
             ptr = (char *)malloc(string.size() + 1);
             strcpy(ptr, string.c_str());
         } else {
-            strcpy_s(buf, string.c_str());
+            strcpy(buf, string.c_str());
         }
     }
 };
