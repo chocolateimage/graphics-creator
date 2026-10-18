@@ -37,15 +37,54 @@ void ColorButton::paintEvent(QPaintEvent *) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QBrush color = currentColor;
-    painter.setPen(QPen(QColor(128, 128, 128), 1));
-    if (option.state & QStyle::State_Sunken) {
-        color = currentColor.darker(150);
-    } else if (option.state & QStyle::State_MouseOver) {
-        color = currentColor.darker(120);
+    if (currentColor.alphaF() == 1) {
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(currentColor);
+        painter.drawRect(1, 1, width() - 1, height() - 2);
+    } else {
+        QColor opaqueColor = currentColor;
+        opaqueColor.setAlphaF(1);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(opaqueColor);
+        painter.drawRect(1, 1, width() / 2, height() - 2);
+
+        constexpr int checkerboardSize = 8;
+        QPixmap checkerboardPattern(checkerboardSize * 2, checkerboardSize * 2);
+        QPainter checkerboardPainter(&checkerboardPattern);
+        QColor checkerboard1 = QColor(200, 200, 200);
+        QColor checkerboard2 = Qt::white;
+        checkerboardPainter.fillRect(0, 0, checkerboardSize, checkerboardSize,
+                                     checkerboard1);
+        checkerboardPainter.fillRect(checkerboardSize, checkerboardSize,
+                                     checkerboardSize, checkerboardSize,
+                                     checkerboard1);
+        checkerboardPainter.fillRect(0, checkerboardSize, checkerboardSize,
+                                     checkerboardSize, checkerboard2);
+        checkerboardPainter.fillRect(checkerboardSize, 0, checkerboardSize,
+                                     checkerboardSize, checkerboard2);
+        checkerboardPainter.end();
+        painter.fillRect(width() / 2, 1, width() / 2, height() - 2,
+                         QBrush(checkerboardPattern));
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(currentColor);
+        painter.drawRect(width() / 2, 1, width() / 2, height() - 2);
     }
-    painter.setBrush(color);
-    painter.drawRect(rect().adjusted(1, 1, -1, -1));
+
+    painter.setPen(QPen(QColor(128, 128, 128), 1));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(1, 1, width() - 2, height() - 2);
+
+    QColor overlayColor = Qt::transparent;
+    if (option.state & QStyle::State_Sunken) {
+        overlayColor = QColor(0, 0, 0, 80);
+    } else if (option.state & QStyle::State_MouseOver) {
+        overlayColor = QColor(0, 0, 0, 50);
+    }
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(overlayColor);
+    painter.drawRect(rect());
 }
 
 void ColorButton::mousePressEvent(QMouseEvent *event) {
