@@ -566,6 +566,7 @@ void RenderWindow::render(QFileInfo fileInfo, QString encoder) {
         task->height = scene->height;
         task->frame = frame;
         task->seconds = frame / scene->frameRate;
+        task->frameRate = scene->frameRate;
         task->id = frame;
 
         for (auto element : scene->elements) {

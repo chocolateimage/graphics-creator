@@ -90,6 +90,7 @@ class ElementRender : public AnimatableRender {
     std::vector<EffectRender *> effects;
     int startFrame;
     int durationFrames;
+    int frameRate;
 
     RenderThread *renderThread{nullptr};
 

@@ -1,0 +1,4 @@
+EXPORTS
+    ?BEToSDKPixelFormat@MF@@YA?AW4PrPixelFormat@@UPixelFormat@dvamediatypes@@@Z = g01
+    ?IsGPUAccelerationAvailable@MF@@YA_NXZ = g02
+    ?OR709@ColorSpaces@MF@@YA?AUColorSpace@color@dvamediatypes@@XZ = g03

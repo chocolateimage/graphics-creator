@@ -36,4 +36,6 @@ void Effect::deserialize(const QJsonObject &obj) {
     enabled = obj["enabled"].toBool(true);
 }
 
+QString Effect::getOptionsButtonText() { return QString(); }
+
 Rect EffectRender::getRenderBox(const Rect &lastBox) { return lastBox; }

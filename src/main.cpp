@@ -126,7 +126,8 @@ int main(int argc, char **argv) {
         if (QFileInfo(path).isDir()) {
             for (auto file : QDir(path).entryInfoList(QDir::Files)) {
                 if (file.filePath().endsWith(".dll") ||
-                    file.filePath().endsWith(".so")) {
+                    file.filePath().endsWith(".so") ||
+                    file.filePath().endsWith(".aex")) {
                     pluginManager->loadPlugin(file.filePath());
                 }
             }

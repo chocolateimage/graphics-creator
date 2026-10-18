@@ -35,5 +35,6 @@ set(graphicscreator_SRCS
   src/animatable/effect/displacement_map_effect.cpp
   src/animatable/effect/plugin_effect.cpp
   src/animatable/effect/gain_effect.cpp
+  src/animatable/effect/ae_plugin_effect.cpp
   PARENT_SCOPE
 )

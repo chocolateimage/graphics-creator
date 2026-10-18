@@ -1,0 +1,2 @@
+EXPORTS
+    ?GetBounds@OM_Shape@@QEBAHPEAUM_FloatShortRect@@@Z = om01

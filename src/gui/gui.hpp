@@ -1,6 +1,5 @@
 #pragma once
 #include "image_viewer.hpp"
-#include "render.hpp"
 #include "scene.hpp"
 #include "timeline/timeline.hpp"
 #include <DockManager.h>
@@ -23,6 +22,7 @@
 
 class NewMainWindow;
 class RenderWindow;
+class FrameTask;
 
 struct SavedFrame {
     uint32_t *values;
@@ -62,6 +62,8 @@ class VideoSettingsDialog : public QDialog {
 
 class NewMainWindow : public QMainWindow {
   public:
+    static NewMainWindow *instance();
+
     NewMainWindow(const QString &dataPath);
     ~NewMainWindow();
 
@@ -177,6 +179,9 @@ class NewMainWindow : public QMainWindow {
     QLabel *statusText;
 
     QTimer lastRenderDelayTimer;
+
+  private:
+    static NewMainWindow *_instance;
 
   protected:
     void showEvent(QShowEvent *event) override;

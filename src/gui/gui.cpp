@@ -240,8 +240,13 @@ class RemoveElementsCommand : public QUndoCommand {
     }
 };
 
+NewMainWindow *NewMainWindow::_instance = nullptr;
+
+NewMainWindow *NewMainWindow::instance() { return _instance; }
+
 NewMainWindow::NewMainWindow(const QString &dataPath)
     : QMainWindow(), dataPath(dataPath) {
+    _instance = this;
 
     networkAccessManager = new QNetworkAccessManager(this);
     scene = new Scene();
@@ -1637,6 +1642,7 @@ bool NewMainWindow::createTask(int frame) {
     task->height = scene->height;
     task->frame = frame;
     task->seconds = frame / scene->frameRate;
+    task->frameRate = scene->frameRate;
     task->id = ++globalId;
 
     inProgressTasks.append(task);

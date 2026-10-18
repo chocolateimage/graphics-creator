@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QVBoxLayout>
+#include <qnamespace.h>
 
 const QString EFFECT_DRAG_MIME_TYPE =
     "application/x-graphicscreator-effect-drag";
@@ -37,7 +38,7 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
     effectButton->setStyleSheet(
         "#effectButton {border-radius: 0px; border-top: 1px solid "
         "palette(light); border-bottom: 1px solid palette(light); "
-        "background: palette(mid);}");
+        "background: rgba(128,128,128,0.1);}");
     effectButton->installEventFilter(this);
 
     QHBoxLayout *effectButtonLayout = new QHBoxLayout(effectButton);
@@ -63,6 +64,18 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
 
     QLabel *lbl = new QLabel(displayName, effectButton);
     effectButtonLayout->addWidget(lbl);
+
+    QString optionsButtonText = effect->getOptionsButtonText();
+    if (!optionsButtonText.isEmpty()) {
+        effectButtonLayout->addSpacing(8);
+        QPushButton *optionsButton = new QPushButton(effectButton);
+        optionsButton->setText(optionsButtonText);
+        optionsButton->setFlat(true);
+        connect(optionsButton, &QPushButton::clicked, effect,
+                &Effect::openOptions);
+        effectButtonLayout->addWidget(optionsButton);
+    }
+
     effectButtonLayout->addStretch();
 
     QPushButton *deleteButton = new QPushButton(effectButton);
@@ -77,7 +90,7 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
     propertiesWidget = new QWidget(this);
     propertiesWidget->setVisible(!effect->collapsed);
     QFormLayout *propertiesLayout = new QFormLayout(propertiesWidget);
-    propertiesLayout->setVerticalSpacing(2);
+    propertiesLayout->setVerticalSpacing(0);
     QString description = effect->effectDescription();
     if (!description.isEmpty()) {
         QLabel *descriptionLabel = new QLabel(propertiesWidget);
@@ -98,14 +111,13 @@ EffectWidget::EffectWidget(Scene *scene, Element *element, Effect *effect,
         lay->setContentsMargins(0, 0, 0, 0);
 
         PropertyEdit *propertyEdit = new PropertyEdit(property, scene, widget);
-        lay->addWidget(propertyEdit);
-
-        lay->addStretch();
+        lay->addWidget(propertyEdit, 1);
 
         PropertyToggleAnimationButton *toggleAnimationButton =
             new PropertyToggleAnimationButton(
                 PropertyToggleAnimationButton::Keyframe, false, scene, property,
                 widget);
+        toggleAnimationButton->setFixedHeight(30);
         lay->addWidget(toggleAnimationButton);
 
         propertiesLayout->addRow(property->getDisplayName(), widget);
@@ -294,10 +306,13 @@ QMenu *EffectsWindow::createEffectsMenu(QWidget *parent) {
         if (menus.contains(effectInfo.category)) {
             categoryMenu = menus[effectInfo.category];
         } else {
-            categoryMenu = menu->addMenu(effectInfo.category);
+            QString categoryName = effectInfo.category;
+            categoryMenu = menu->addMenu(categoryName.replace("&", "&&"));
             menus[effectInfo.category] = categoryMenu;
         }
-        QAction *action = categoryMenu->addAction(effectInfo.displayName);
+        QString actionName = effectInfo.displayName;
+        QAction *action =
+            categoryMenu->addAction(actionName.replace("&", "&&"));
         action->setData(effectInfo.name);
     }
 

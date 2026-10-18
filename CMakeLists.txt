@@ -56,6 +56,7 @@ set(graphicscreator_SRCS
     src/gui/color_picker.cpp
     src/gui/color_button.cpp
     src/gui/presets_window.cpp
+    src/gui/ae_custom_ui.cpp
     src/gui/timeline/timeline.cpp
     src/gui/timeline/timeline_content.cpp
     src/gui/timeline/property_button.cpp
@@ -77,9 +78,33 @@ set(graphicscreator_SRCS
 
 add_subdirectory(src/animatable/effect)
 
+add_subdirectory(src/ae)
+add_library(dvacore SHARED src/ae/libs/dvacore.cpp src/ae/libs/dvacore.def)
+add_library(VideoFrame SHARED src/ae/libs/videoframe.cpp src/ae/libs/videoframe.def)
+add_library(GPUFoundation SHARED src/ae/libs/gpufoundation.cpp src/ae/libs/gpufoundation.def)
+add_library(U SHARED src/ae/libs/u.cpp src/ae/libs/u.def)
+add_library(Memory SHARED src/ae/libs/memory.cpp)
+add_library(dvamediatypes SHARED src/ae/libs/dvamediatypes.cpp src/ae/libs/dvamediatypes.def)
+add_library(mediafoundation SHARED src/ae/libs/mediafoundation.cpp src/ae/libs/mediafoundation.def)
+add_library(PF SHARED src/ae/libs/pf.cpp src/ae/libs/pf.def)
+add_library(MSK SHARED src/ae/libs/msk.cpp)
+add_library(ColorSpaceConverter SHARED src/ae/libs/colorspaceconverter.cpp src/ae/libs/colorspaceconverter.def)
+add_library(OM SHARED src/ae/libs/om.cpp src/ae/libs/om.def)
+SET_TARGET_PROPERTIES(dvacore PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(VideoFrame PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(GPUFoundation PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(U PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(Memory PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(dvamediatypes PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(mediafoundation PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(PF PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(MSK PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(ColorSpaceConverter PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(OM PROPERTIES PREFIX "")
 
-add_executable(graphics-creator WIN32 ${graphicscreator_SRCS})
+add_executable(graphics-creator ${graphicscreator_SRCS})
 set_property(TARGET graphics-creator PROPERTY AUTOMOC ON)
+set_property(TARGET graphics-creator PROPERTY CXX_STANDARD 17)
 
 target_include_directories(graphics-creator PRIVATE ${FFMPEG_INCLUDE_DIRS} ${HARFBUZZ_INCLUDE_DIR} ${FREETYPE_INCLUDE_DIRS} src)
 target_link_libraries(

@@ -14,6 +14,7 @@ struct PluginInterface;
 struct ElementSelectionSnippet;
 class PluginEffectRender;
 class PropertyRenderBase;
+class AEEffect;
 
 typedef int (*gcPluginInit_t)(PluginInterface *, PluginInitData *);
 
@@ -150,7 +151,10 @@ struct PluginInterface {
     PluginFunctions *functions;
 };
 
-struct PluginInitDataPrivate {};
+struct PluginInitDataPrivate {
+    Library_t library;
+    QList<AEEffect *> aeEffects;
+};
 
 struct PluginInitData {
     PluginInitDataPrivate *privateData;
@@ -167,6 +171,7 @@ class Plugin {
     QString version;
     QString path;
     bool isDebug;
+    QList<AEEffect *> aeEffects;
 };
 
 PluginFunctions *createFunctions();
@@ -186,6 +191,10 @@ class PluginManager {
 
     void loadDefaultPlugins();
     bool loadPlugin(const QString &path);
+
+  private:
+    static int aeCallback(void *, const char *, const char *, const char *,
+                          const char *, int32_t, int32_t, int32_t, int32_t);
 };
 
 extern PluginManager *pluginManager;

@@ -401,6 +401,7 @@ RenderedElement::RenderedElement(ElementRender *element) : element(element) {
     for (auto effect : element->effects) {
         effect->renderThread = element->renderThread;
         effect->currentFrame = element->currentFrame;
+        effect->frameRate = element->frameRate;
         effect->currentSeconds = element->currentSeconds;
         effect->originalBox = elementRect;
         effect->originalValues = elementValues;
@@ -440,6 +441,7 @@ void FrameTask::render(RenderThread &renderThread) {
     for (auto element : renderElements) {
         element->renderThread = &renderThread;
         element->currentFrame = frame;
+        element->frameRate = frameRate;
         element->currentSeconds = seconds;
         element->prepare();
     }

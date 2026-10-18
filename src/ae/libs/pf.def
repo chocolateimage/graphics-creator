@@ -1,0 +1,6 @@
+EXPORTS
+   ??0PF_UnoBuffer@@QEAA@HHH@Z = pf01
+   ?NewReference@PF_World@@SAPEAV1@PEAUPF_LayerDef@@@Z = pf02
+   ?PF_MergeMaskAlpha@@YAXPEAUPF_ProgressInfo@@HHPEBUM_LRect@@PEBUPF_UnoBuffer@@1PEAVPF_World@@@Z = pf03
+   ??1PF_UnoBuffer@@QEAA@XZ = pf04
+   ??0PF_CompositeModePlus@@QEAA@AEBVPF_CompositeMode@@@Z = pf05

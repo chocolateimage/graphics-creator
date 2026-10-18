@@ -1,4 +1,7 @@
 #include "property_edit.hpp"
+#include "ae/ae_param.hpp"
+#include "ae_custom_ui.hpp"
+#include "animatable/effect/ae_plugin_effect.hpp"
 #include "brush_input.hpp"
 #include "color_button.hpp"
 #include "draggable_spinbox.hpp"
@@ -13,6 +16,7 @@
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QToolButton>
+#include <qpushbutton.h>
 
 PropertyToggleAnimationButton::PropertyToggleAnimationButton(
     Mode mode, bool completelyFlat, Scene *scene, PropertyBase *property,
@@ -106,7 +110,17 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
     int min = INT_MIN;
     int max = INT_MAX;
 
-    if (variantType == VariantTypeEnum::None) {
+    if (property->aeParam &&
+        (property->aeParam->uiFlags & AEParameter::ParamUIFlags::Control)) {
+        AEPluginEffect *aePluginEffect = (AEPluginEffect *)property->animatable;
+        widget = new AECustomUIWindow(aePluginEffect);
+        widget->setFixedHeight(property->aeParam->uiHeight);
+        widget->setSizePolicy(QSizePolicy::Policy::Expanding,
+                              QSizePolicy::Policy::Fixed);
+    } else if (property->isButton) {
+        auto button = new QPushButton(property->buttonText, this);
+        widget = button;
+    } else if (variantType == VariantTypeEnum::None) {
         auto line = new HorizontalLine(this);
         line->setSizePolicy(QSizePolicy::Policy::Expanding,
                             QSizePolicy::Policy::Minimum);
@@ -146,8 +160,13 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             widget = input;
         } else if (!propertyTyped->enumList.empty()) {
             auto input = new QComboBox(this);
+            input->setFixedHeight(30);
             for (const auto &item : propertyTyped->enumList) {
-                input->addItem(QString::fromStdString(item));
+                if (item == "(-") {
+                    input->insertSeparator(input->count());
+                } else {
+                    input->addItem(QString::fromStdString(item));
+                }
             }
             input->setCurrentIndex(variant.get<int>());
 
@@ -312,6 +331,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         widget = fontWidget;
     } else if (variantType == VariantTypeEnum::Bool) {
         auto input = new QCheckBox(this);
+        input->setText(property->buttonText);
         input->setChecked(variant.get<bool>());
         connect(input, &QCheckBox::checkStateChanged, this,
                 [this](Qt::CheckState checkState) {

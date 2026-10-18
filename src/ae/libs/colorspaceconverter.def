@@ -1,0 +1,4 @@
+EXPORTS
+    ?CopyFrameRect@GPUFrameManipulators@VF@@YAHAEBV?$InterfaceRef@UIVideoFrame@MF@@@classref@dvacore@@AEBV?$RectT@H@geom@5@01W4RenderQuality@dvamediatypes@@@Z = csc01
+    ?GetRGBYUVConversionMatrices@CSC@@YA?AURGBYUVConversions@GF@@AEBUColorSpace@color@dvamediatypes@@AEAVGuid@utility@dvacore@@AEBW4ColorAwareEffectsEnabled@56@@Z = csc02
+    ?GetRGBYUVConversionMatrices@CSC@@YA?AURGBYUVConversionMatrices@1@AEBUColorSpace@color@dvamediatypes@@AEBW4ColorAwareEffectsEnabled@45@@Z = csc03

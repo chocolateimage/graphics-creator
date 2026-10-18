@@ -9,13 +9,14 @@ class EffectRender : public AnimatableRender {
   public:
     virtual Rect getRenderBox(const Rect &lastBox);
     Rect renderBox;
-    ElementRender *element;
-    RenderThread *renderThread;
+    ElementRender *element{nullptr};
+    RenderThread *renderThread{nullptr};
 
     Rect originalBox;
-    uint32_t *originalValues;
+    uint32_t *originalValues{nullptr};
 
     int currentFrame{0};
+    int frameRate{0};
     double currentSeconds{0};
 
     virtual bool render(const uint32_t *source, const Rect &sourceRect,
@@ -37,6 +38,8 @@ class Effect : public Animatable, public ICollapsible {
     virtual QString effectDescription() { return ""; };
     QJsonObject serialize() override;
     void deserialize(const QJsonObject &obj) override;
+    virtual QString getOptionsButtonText();
+    virtual void openOptions() {}
 
   signals:
     void collapsedChanged(bool newValue);

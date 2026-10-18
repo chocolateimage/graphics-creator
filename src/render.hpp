@@ -169,6 +169,7 @@ class FrameTask {
     int height;
     int frame;
     double seconds;
+    int frameRate;
 
     uint64_t id;
     uint32_t *values;

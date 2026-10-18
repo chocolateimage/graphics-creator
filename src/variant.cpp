@@ -1,4 +1,5 @@
 #include "variant.hpp"
+#include "ae/ae_base.hpp"
 #include "math.hpp"
 #include "render.hpp"
 #include <QDebug>
@@ -99,6 +100,8 @@ VariantTypeEnum::Enum Variant::typeFromString(const std::string &type) {
         return VariantTypeEnum::ElementSelection;
     } else if (type == "path") {
         return VariantTypeEnum::Path;
+    } else if (type == "aeMemory") {
+        return VariantTypeEnum::AEMemoryHandle;
     } else {
         return (VariantTypeEnum::Enum)-1;
     }
@@ -134,6 +137,8 @@ Variant Variant::getDefault(VariantTypeEnum::Enum type) {
         return Variant(ElementSelection{});
     case VariantTypeEnum::Path:
         return Variant(Path{});
+    case VariantTypeEnum::AEMemoryHandle:
+        return Variant(new AEMemoryHandle{});
     }
     Q_UNREACHABLE();
 }

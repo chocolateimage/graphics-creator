@@ -10,6 +10,7 @@
 #include <variant>
 
 class StrokeInfo;
+struct AEMemoryHandle;
 
 struct Color {
     int r{255}, g{255}, b{255}, a{255};
@@ -172,7 +173,7 @@ Brush::Type getBrushTypeFromString(const std::string &str);
 using VariantType =
     std::variant<std::monostate, std::string, int, double, Color, Vector2DInt,
                  Font, bool, Easing, Brush, TextSpans, Vector2DFloat,
-                 ElementSelection, Path>;
+                 ElementSelection, Path, AEMemoryHandle *>;
 
 struct VariantTypeEnum {
     enum Enum {
@@ -190,6 +191,7 @@ struct VariantTypeEnum {
         Vector2DFloat,
         ElementSelection,
         Path,
+        AEMemoryHandle,
     };
 };
 

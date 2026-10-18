@@ -1,0 +1,5 @@
+EXPORTS
+    ?GetGPUIVFFromPFEffectWorld@VF@@YA?AV?$InterfaceRef@UIVideoFrame@MF@@@classref@dvacore@@PEBUPF_LayerDef@@@Z = b01
+    ?GetPPixHandFrameMapping@VF@@YA?AV?$InterfaceRef@UUnknownBase@classref@dvacore@@@classref@dvacore@@PEAPEAUPPix@@@Z = b02
+    ?CreateGPUVideoFrame@VF@@YAHAEAV?$InterfaceRef@UIVideoFrame@MF@@@classref@dvacore@@AEBV?$shared_ptr@VDevice@GF@@@std@@UPixelFormat@dvamediatypes@@IIVPixelAspectRatio@8@W4FieldType@8@V?$PointT@H@geom@4@AEBUColorSpace@color@8@_K77AEBV?$shared_ptr@$$CBVRecycledMemory@allocator@dvacore@@@6@AEBV234@_N@Z = b03
+    ?NewPPixFromVideoFrame@VF@@YAPEAPEAUPPix@@V?$InterfaceRef@UIVideoFrame@MF@@@classref@dvacore@@@Z = b04

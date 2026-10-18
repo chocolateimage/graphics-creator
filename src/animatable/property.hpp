@@ -1,4 +1,5 @@
 #pragma once
+#include "ae/ae_base.hpp"
 #include "animatable.hpp"
 #include "frame_info.hpp"
 #include "variant.hpp"
@@ -8,7 +9,10 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QString>
+#include <qstringview.h>
 #include <string>
+
+class AEEffectParameter;
 
 template <class T, class = void> struct is_lerpable : std::false_type {};
 
@@ -219,6 +223,13 @@ template <> inline QJsonValue serializeAnyValue(const Path &value) {
     return obj;
 }
 
+template <> inline QJsonValue serializeAnyValue(AEMemoryHandle *const &value) {
+    QJsonObject obj;
+    QByteArray arr = QByteArray::fromRawData((char *)value->data, value->size);
+    obj["hex"] = QString(arr.toHex());
+    return obj;
+}
+
 template <typename T> inline T deserializeAnyValue(const QJsonValue &value) {
     return value;
 }
@@ -357,6 +368,19 @@ template <> inline Path deserializeAnyValue(const QJsonValue &value) {
         path.points.append(pathPoint);
     }
     return path;
+}
+
+template <>
+inline AEMemoryHandle *deserializeAnyValue(const QJsonValue &value) {
+    AEMemoryHandle *handle = new AEMemoryHandle();
+    QJsonValue hexVal = value["hex"];
+    if (!hexVal.isUndefined()) {
+        QByteArray byteArray = QByteArray::fromHex(hexVal.toString().toUtf8());
+        handle->size = byteArray.size();
+        handle->data = malloc(handle->size);
+        memcpy(handle->data, byteArray.data(), handle->size);
+    }
+    return handle;
 }
 
 class KeyframeBase {
@@ -546,6 +570,9 @@ class PropertyBase {
     bool locked{false};
     QList<QString> flags;
     float stepMultiplier{1};
+    bool isButton{false};
+    QString buttonText;
+    AEEffectParameter *aeParam{nullptr};
 };
 
 template <typename T> class Property : public PropertyBase {

@@ -1,4 +1,6 @@
 #include "plugin.hpp"
+#include "ae/ae_effect.hpp"
+#include "ae/entry.hpp"
 #include "animatable/effect/effect_list.hpp"
 #include "animatable/effect/plugin_effect.hpp"
 #include "brush.hpp"
@@ -7,6 +9,7 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <qmessagebox.h>
+#include <string.h>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #else
@@ -250,6 +253,7 @@ void PluginManager::loadDefaultPlugins() {
 }
 
 bool PluginManager::loadPlugin(const QString &path) {
+    qInfo() << "Loading plugin" << path;
     Library_t library = loadLibrary(path);
     if (!library) {
         qWarning() << "Error loading plugin" << path;
@@ -258,24 +262,42 @@ bool PluginManager::loadPlugin(const QString &path) {
         return false;
     }
 
-    gcPluginInit_t pluginInit =
-        (gcPluginInit_t)getLibraryFunction(library, "gcPluginInit");
-    if (!pluginInit) {
-        qWarning() << "Could not find gcPluginInit in plugin" << path;
-        return false;
-    }
-
     pluginInterface = new PluginInterface();
     pluginInterface->functions = createFunctions();
 
     PluginInitDataPrivate priv{};
+    priv.library = library;
     PluginInitData data{};
     data.privateData = &priv;
     data.id = nullptr;
 
-    int ret = pluginInit(pluginInterface, &data);
-    if (ret != 0) {
-        qWarning() << "Error in plugin init for" << path << "with code" << ret;
+    void *aeEntry = getLibraryFunction(library, "PluginDataEntryFunction");
+    void *aeEntry2 = getLibraryFunction(library, "PluginDataEntryFunction2");
+    void *gcInit = getLibraryFunction(library, "gcPluginInit");
+    if (gcInit) {
+        gcPluginInit_t pluginInit = (gcPluginInit_t)gcInit;
+
+        int ret = pluginInit(pluginInterface, &data);
+        if (ret != 0) {
+            qWarning() << "Error in plugin init for" << path << "with code"
+                       << ret;
+            return false;
+        }
+    } else if (aeEntry || aeEntry2) {
+        if (aeEntry2) {
+            aeEntry = aeEntry2;
+        }
+        qInfo() << "Calling entry";
+        aeEntryFunc_t aeEntryFunc = (aeEntryFunc_t)aeEntry;
+        int ret = aeEntryFunc(&data, aeCallback);
+        qInfo() << "Called entry";
+        if (ret != 0) {
+            qWarning() << "Error in plugin init for" << path << "with code"
+                       << ret;
+            return false;
+        }
+    } else {
+        qWarning() << "Could not find gcPluginInit in plugin" << path;
         return false;
     }
 
@@ -285,6 +307,11 @@ bool PluginManager::loadPlugin(const QString &path) {
     plugin->name = data.name;
     plugin->version = data.version;
     plugin->path = path;
+    for (auto effect : data.privateData->aeEffects) {
+        plugin->aeEffects.push_back(effect);
+        effect->plugin = plugin;
+        effect->registerEffect();
+    }
     plugin->isDebug =
         getLibraryFunction(library, "exportedDebugFunction") != nullptr;
     loadedPlugins.append(plugin);
@@ -294,6 +321,37 @@ bool PluginManager::loadPlugin(const QString &path) {
     }
 
     return true;
+}
+
+int PluginManager::aeCallback(void *data, const char *_name, const char *,
+                              const char *_category, const char *funcName,
+                              int32_t, int32_t ver1, int32_t ver2, int32_t) {
+    PluginInitData *initData = (PluginInitData *)data;
+
+    initData->id = _name;
+
+    if (_name[0] == '$' && _name[1] == '$' && _name[2] == '$') {
+        initData->name = strchr(_name, '=') + 1;
+    } else {
+        initData->name = _name;
+    }
+
+    initData->version = "AE";
+
+    AEEffect *aeEffect = new AEEffect();
+    aeEffect->name = _name;
+    aeEffect->displayName = initData->name;
+    aeEffect->effectEntryFunc = (effectEntryFunc_t)getLibraryFunction(
+        initData->privateData->library, funcName);
+
+    if (_category[0] == '$' && _category[1] == '$' && _category[2] == '$') {
+        aeEffect->category = strchr(_category, '=') + 1;
+    } else {
+        aeEffect->category = _category;
+    }
+
+    initData->privateData->aeEffects.push_back(aeEffect);
+    return 0;
 }
 
 PluginManager *pluginManager = nullptr;

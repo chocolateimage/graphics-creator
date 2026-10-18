@@ -1,0 +1,29 @@
+set(graphicscreator_SRCS
+  ${graphicscreator_SRCS}
+  src/ae/ae_base.cpp
+  src/ae/ae_data.cpp
+  src/ae/suite_loader.cpp
+  src/ae/utility_callbacks.cpp
+  src/ae/interaction_callbacks.cpp
+  src/ae/ae_effect.cpp
+  src/ae/smart.cpp
+  src/ae/suites/ansi_suite.cpp
+  src/ae/suites/fill_matte_suite.cpp
+  src/ae/suites/iterate_suite.cpp
+  src/ae/suites/world_suite.cpp
+  src/ae/suites/world_transform_suite.cpp
+  src/ae/suites/handle_suite.cpp
+  src/ae/suites/aegp_utility_suite.cpp
+  src/ae/suites/aegp_memory_suite.cpp
+  src/ae/suites/app_suite.cpp
+  src/ae/suites/aegp_compute_cache_suite.cpp
+  src/ae/suites/effect_ui_suite.cpp
+  src/ae/suites/aegp_register_suite.cpp
+  src/ae/suites/param_utils_suite.cpp
+  src/ae/suites/color_param_suite.cpp
+  src/ae/suites/channel_suite.cpp
+  src/ae/suites/aegp_pf_interface_suite.cpp
+  src/ae/suites/drawbot_suites.cpp
+  src/ae/suites/aegp_world_suite.cpp
+  PARENT_SCOPE
+)

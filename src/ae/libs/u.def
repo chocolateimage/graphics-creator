@@ -1,0 +1,9 @@
+EXPORTS
+    ?U_TranslateAndReportException@@YAHAEAVexception@std@@@Z = d01
+    ?T_FpLong2Time@@YAHNPEAUT_Time@@@Z = d02
+    ?T_ConvTime@@YAHPEBUT_Time@@IPEAU1@PEAE@Z = d03
+    ?T_FrameRate2Duration@@YAHHPEAUT_Time@@@Z = d04
+    ?Translate@M_Matrix3@@QEAAXNN@Z = d05
+    ?SetIdentity@M_Matrix3@@QEAAXXZ = d06
+    ?T_AddTime@@YAHPEBUT_Time@@0PEAU1@@Z = d07
+    ?T_MulTime@@YAHPEBUT_Time@@PEBUM_Ratio@@PEAU1@@Z = d08
