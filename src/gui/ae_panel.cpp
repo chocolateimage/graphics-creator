@@ -28,10 +28,6 @@ void AEPanelWindow::showEvent(QShowEvent *event) {
 
     HWND hwnd = (HWND)window()->winId();
 
-    INITCOMMONCONTROLSEX icce;
-    icce.dwSize = sizeof(INITCOMMONCONTROLSEX);
-    icce.dwICC = ICC_STANDARD_CLASSES | ICC_WIN95_CLASSES;
-    InitCommonControlsEx(&icce);
     registration->createPanelFunc(registration->aegp->globalRefcon,
                                   registration->funcData, hwnd, this,
                                   &functions, &instanceRefcon);
