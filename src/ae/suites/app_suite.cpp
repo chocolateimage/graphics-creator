@@ -4,20 +4,148 @@
 #include <QPalette>
 
 struct AppColor {
+    enum {
+        None = -1,
+
+        Frame,
+        Fill,
+        Text,
+        LightTinge,
+        DarkTinge,
+        Hilite,
+        Shadow,
+
+        ButtonFrame,
+        ButtonFill,
+        ButtonText,
+        ButtonLightTinge,
+        ButtonDarkTinge,
+        ButtonHilite,
+        ButtonShadow,
+
+        ButtonPressedFrame,
+        ButtonPressedFill,
+        ButtonPressedText,
+        ButtonPressedLightTinge,
+        ButtonPressedDarkTinge,
+        ButtonPressedHilite,
+        ButtonPressedShadow,
+
+        FrameDisabled,
+        FillDisabled,
+        TextDisabled,
+        LightTingeDisabled,
+        DarkTingeDisabled,
+        HiliteDisabled,
+        ShadowDisabled,
+
+        ButtonFrameDisabled,
+        ButtonFillDisabled,
+        ButtonTextDisabled,
+        ButtonLightTingeDisabled,
+        ButtonDarkTingeDisabled,
+        ButtonHiliteDisabled,
+        ButtonShadowDisabled,
+
+        ButtonPressedFrameDisabled,
+        ButtonPressedFillDisabled,
+        ButtonPressedTextDisabled,
+        ButtonPressedLightTingeDisabled,
+        ButtonPressedDarkTingeDisabled,
+        ButtonPressedHiliteDisabled,
+        ButtonPressedShadowDisabled,
+
+        Black,
+        White,
+        Gray,
+        Red,
+        Yellow,
+        Green,
+        Cyan,
+
+        TlwNeedleCurrentTime,
+        TlwNeedlePreviewTime,
+        TlwCacheMarkMem,
+        TlwCacheMarkDisk,
+        TlwCacheMarkMix,
+        FillLight,
+        HotText,
+        HotTextDisabled,
+
+        Label0,
+        Label1,
+        Label2,
+        Label3,
+        Label4,
+        Label5,
+        Label6,
+        Label7,
+        Label8,
+        Label9,
+        Label10,
+        Label11,
+        Label12,
+        Label13,
+        Label14,
+        Label15,
+        Label16,
+
+        TlwCacheMarkMemDubious,
+        TlwCacheMarkDiskDubious,
+        TlwCacheMarkMixDubious,
+        HotTextPressed,
+        HotTextWarning,
+        PureBlack,
+        PureWhite,
+
+        PanelBackground = 1000,
+        ListBoxFill,
+        DarkCaptionFill,
+        DarkCaptionText,
+        TextOnLighterBg,
+    };
+
     uint16_t r, g, b;
 };
 
 int32_t appGetBgColor(AppColor *outColor) {
     QPalette palette = qApp->palette();
     QColor color = palette.window().color();
-    outColor->r = color.redF() * 65536.;
-    outColor->g = color.greenF() * 65536.;
-    outColor->b = color.blueF() * 65536.;
+    outColor->r = color.redF() * 65535.;
+    outColor->g = color.greenF() * 65535.;
+    outColor->b = color.blueF() * 65535.;
     return 0;
 }
 
-int32_t appGetColor(int16_t type, void *) {
-    qInfo() << "appGetColor";
+int32_t appGetColor(int16_t type, AppColor *outColor) {
+    QPalette palette = qApp->palette();
+    QColor color;
+    switch (type) {
+    case AppColor::Black:
+        color = Qt::black;
+        break;
+    case AppColor::PanelBackground:
+        color = palette.color(QPalette::ColorRole::Window);
+        break;
+    case AppColor::ListBoxFill:
+        color = palette.color(QPalette::ColorRole::Base);
+        break;
+    case AppColor::DarkCaptionFill:
+        color = palette.color(QPalette::ColorRole::Window);
+        break;
+    case AppColor::Text:
+    case AppColor::DarkCaptionText:
+    case AppColor::TextOnLighterBg:
+        color = palette.color(QPalette::ColorRole::Text);
+        break;
+    default: {
+        qCritical() << "appGetColor() COLOR NOT IMPLEMENTED" << type;
+        abort();
+    } break;
+    }
+    outColor->r = color.redF() * 65535.;
+    outColor->g = color.greenF() * 65535.;
+    outColor->b = color.blueF() * 65535.;
     return 0;
 }
 

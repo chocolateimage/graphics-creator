@@ -16,7 +16,6 @@
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QToolButton>
-#include <qpushbutton.h>
 
 PropertyToggleAnimationButton::PropertyToggleAnimationButton(
     Mode mode, bool completelyFlat, Scene *scene, PropertyBase *property,

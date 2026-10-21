@@ -57,6 +57,7 @@ set(graphicscreator_SRCS
     src/gui/color_button.cpp
     src/gui/presets_window.cpp
     src/gui/ae_custom_ui.cpp
+    src/gui/ae_panel.cpp
     src/gui/timeline/timeline.cpp
     src/gui/timeline/timeline_content.cpp
     src/gui/timeline/property_button.cpp

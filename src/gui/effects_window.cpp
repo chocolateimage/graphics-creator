@@ -13,7 +13,6 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QVBoxLayout>
-#include <qnamespace.h>
 
 const QString EFFECT_DRAG_MIME_TYPE =
     "application/x-graphicscreator-effect-drag";
