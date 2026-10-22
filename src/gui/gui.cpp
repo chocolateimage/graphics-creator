@@ -30,7 +30,6 @@
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDoubleSpinBox>
-#include <QElapsedTimer>
 #include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -623,8 +622,6 @@ NewMainWindow::NewMainWindow(const QString &dataPath)
     clipboardContentsChanged();
     elementSelectionChanged({});
     playbackStateChanged(false);
-
-    rerender(false);
 }
 
 void NewMainWindow::openPlugins() {

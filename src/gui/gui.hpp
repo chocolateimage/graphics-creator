@@ -7,7 +7,6 @@
 #include <QChronoTimer>
 #include <QComboBox>
 #include <QDialog>
-#include <QElapsedTimer>
 #include <QFormLayout>
 #include <QLabel>
 #include <QMainWindow>
