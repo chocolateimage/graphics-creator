@@ -19,6 +19,7 @@ class ColorPickerDialog : public QDialog {
     void rgbUpdated();
     void hsvUpdated();
     void hexUpdated(const QString &newHex);
+    void pickColor();
 
   private:
     QSpinBox *spinR;
