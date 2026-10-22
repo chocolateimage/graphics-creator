@@ -1,4 +1,5 @@
 #pragma once
+#include "variant.hpp"
 #include <cmath>
 #include <cstdint>
 
@@ -39,6 +40,10 @@ inline constexpr uint32_t makePixel(uint8_t red, uint8_t green, uint8_t blue,
 
 inline constexpr uint32_t makePixel(RGBA rgba) {
     return (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b;
+}
+
+inline constexpr uint32_t makePixel(Color color) {
+    return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 }
 
 inline constexpr int pixelIndex(int x, int y, int stride) {
@@ -268,7 +273,7 @@ static RGBA over(double r1, double g1, double b1, double a1, double r2,
             (uint8_t)(a * 255.)};
 }
 
-static constexpr RGBA extractRGBA(uint32_t num) {
+inline constexpr RGBA extractRGBA(uint32_t num) {
     return {(uint8_t)(num >> 16), (uint8_t)(num >> 8), (uint8_t)num,
             (uint8_t)(num >> 24)};
 }
