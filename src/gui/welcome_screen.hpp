@@ -8,12 +8,20 @@ constexpr int PREVIEW_IMAGE_ORIGINAL_HEIGHT = 90;
 constexpr int PREVIEW_IMAGE_HEIGHT = PREVIEW_IMAGE_ORIGINAL_HEIGHT * 2;
 
 class NewMainWindow;
+class QLabel;
 
 class WelcomeScreenProjectWidget : public QPushButton {
     Q_OBJECT
   public:
     explicit WelcomeScreenProjectWidget(const QString &title, bool isNew,
-                                        QImage img, QWidget *parent = nullptr);
+                                        const QString &imagePath,
+                                        QWidget *parent = nullptr);
+
+  private:
+    bool isNew;
+    QString imagePath;
+    void loadImage();
+    QLabel *imageLabel;
 };
 
 class WelcomeScreenWidget : public QWidget {
