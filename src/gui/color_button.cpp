@@ -2,8 +2,10 @@
 #include "color_picker.hpp"
 #include <QApplication>
 #include <QClipboard>
+#include <QDrag>
 #include <QHBoxLayout>
 #include <QMenu>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QStyleOptionButton>
@@ -11,6 +13,7 @@
 
 ColorButton::ColorButton(const QColor &color, QWidget *parent)
     : QPushButton(parent) {
+    setAcceptDrops(true);
     setColor(color);
     setFixedHeight(24);
     connect(this, &ColorButton::clicked, this, &ColorButton::openColorDialog);
@@ -22,6 +25,27 @@ void ColorButton::openColorDialog() {
         return;
     }
     setColor(dialog->currentColor);
+}
+
+QColor ColorButton::colorFromMime(const QMimeData *mimeData) {
+    if (mimeData->hasColor()) {
+        return mimeData->colorData().value<QColor>();
+    } else if (mimeData->hasText()) {
+        QString text = mimeData->text().trimmed();
+        if (text.startsWith("#") && text.length() == 7) {
+            return QColor(text);
+        }
+    }
+
+    return QColor::Invalid;
+}
+
+QString ColorButton::hexTransparency() {
+    return QStringLiteral("#") +
+           QString::number(currentColor.red(), 16).rightJustified(2, '0') +
+           QString::number(currentColor.green(), 16).rightJustified(2, '0') +
+           QString::number(currentColor.blue(), 16).rightJustified(2, '0') +
+           QString::number(currentColor.alpha(), 16).rightJustified(2, '0');
 }
 
 void ColorButton::setColor(const QColor &color) {
@@ -88,6 +112,9 @@ void ColorButton::paintEvent(QPaintEvent *) {
 }
 
 void ColorButton::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        dragStartPosition = event->position();
+    }
     if (event->button() == Qt::RightButton) {
         QMenu menu;
         QMenu *copyMenu = menu.addMenu(QIcon::fromTheme("edit-copy"), "Copy");
@@ -113,15 +140,7 @@ void ColorButton::mousePressEvent(QMouseEvent *event) {
         } else if (finalAction == hexRgb) {
             copyString = currentColor.name(QColor::NameFormat::HexRgb);
         } else if (finalAction == hexRgba) {
-            copyString =
-                QStringLiteral("#") +
-                QString::number(currentColor.red(), 16).rightJustified(2, '0') +
-                QString::number(currentColor.green(), 16)
-                    .rightJustified(2, '0') +
-                QString::number(currentColor.blue(), 16)
-                    .rightJustified(2, '0') +
-                QString::number(currentColor.alpha(), 16)
-                    .rightJustified(2, '0');
+            copyString = hexTransparency();
         }
 
         if (!copyString.isEmpty()) {
@@ -130,4 +149,42 @@ void ColorButton::mousePressEvent(QMouseEvent *event) {
         }
     }
     QPushButton::mousePressEvent(event);
+}
+
+void ColorButton::mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton) {
+        if ((event->position() - dragStartPosition).manhattanLength() >=
+            QApplication::startDragDistance()) {
+            QDrag *drag = new QDrag(this);
+            QMimeData *mimeData = new QMimeData();
+            mimeData->setColorData(currentColor);
+            if (currentColor.alphaF() == 1) {
+                mimeData->setText(currentColor.name());
+            } else {
+                mimeData->setText(hexTransparency());
+            }
+            drag->setMimeData(mimeData);
+
+            QPixmap previewPix(24, 24);
+            previewPix.fill(currentColor);
+            drag->setPixmap(previewPix);
+
+            drag->exec(Qt::DropAction::CopyAction);
+        }
+    }
+
+    QPushButton::mouseMoveEvent(event);
+}
+
+void ColorButton::dragEnterEvent(QDragEnterEvent *event) {
+    QColor color = colorFromMime(event->mimeData());
+    if (color.isValid()) {
+        event->accept();
+    }
+}
+
+void ColorButton::dropEvent(QDropEvent *event) {
+    const QMimeData *mimeData = event->mimeData();
+    QColor color = colorFromMime(event->mimeData());
+    setColor(color);
 }
