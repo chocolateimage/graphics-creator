@@ -183,9 +183,14 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
             return true;
         }
 
-        path.points.append(PathPoint{pos.x(), pos.y()});
+        int insertIndex = path.points.length();
+        if (!selectedPathPoints.isEmpty()) {
+            insertIndex = selectedPathPoints.first() + 1;
+        }
+
+        path.points.insert(insertIndex, PathPoint{pos.x(), pos.y()});
         selectedPathPoints.clear();
-        selectedPathPoints.append(path.points.length() - 1);
+        selectedPathPoints.append(insertIndex);
         pathElement->path.set(path, frameInfo);
 
         currentHold = HoldType::ControlPointBothTo;
