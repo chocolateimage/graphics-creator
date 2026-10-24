@@ -31,5 +31,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/chocolateimage/graphics-creator.git
-        tag: v0.5.0
-        commit: 599f6c256a3872ecc21ef33f01ce4f214bc332ec
+        tag: v0.6.0
+        commit: fa593cc93597de25a31e2bfc112c2bf7a0a4cbc6
