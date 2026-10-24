@@ -2,6 +2,7 @@
 #include "gui/gui.hpp"
 #include "gui/image_viewer.hpp"
 #include <QApplication>
+#include <QMenu>
 #include <QPalette>
 #include <QWidget>
 
@@ -185,7 +186,64 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         beginHold(pos);
         return true;
     } else if (event->button() == Qt::MouseButton::RightButton) {
-        emit closeEditor();
+        if (hoveringPointIndex != -1) {
+            Path path = pathElement->path.get(frameInfo);
+            selectedPathPoints.clear();
+            selectedPathPoints.append(hoveringPointIndex);
+            repaintParent();
+
+            PathPoint &point = path.points[hoveringPointIndex];
+
+            QMenu menu;
+
+            bool isSymmetric = point.controlX1 == -point.controlX2 &&
+                               point.controlY1 == -point.controlY2;
+            bool hasNoControlPoints =
+                point.controlX1 == 0 && point.controlX2 == 0 &&
+                point.controlY1 == 0 && point.controlY2 == 0;
+
+            QAction *makeSymmetric = nullptr;
+            QAction *removeControlPoints = nullptr;
+            if (!isSymmetric) {
+                makeSymmetric = menu.addAction(
+                    QIcon::fromTheme("node-type-symmetric"), "Make symmetric");
+            }
+            if (!hasNoControlPoints) {
+                removeControlPoints =
+                    menu.addAction(QIcon::fromTheme("format-node-corner"),
+                                   "Remove control points");
+            }
+
+            if (!menu.actions().isEmpty()) {
+                menu.addSeparator();
+            }
+
+            QAction *removeAction =
+                menu.addAction(QIcon::fromTheme("delete"), "Remove point");
+            removeAction->setShortcut(QKeySequence("Delete"));
+
+            QAction *triggered = menu.exec(QCursor::pos());
+            if (triggered == removeAction) {
+                path.points.removeAt(hoveringPointIndex);
+                selectedPathPoints.clear();
+                pathElement->path.set(path, frameInfo);
+                repaintParent();
+            } else if (triggered == makeSymmetric) {
+                point.controlX2 = -point.controlX1;
+                point.controlY2 = -point.controlY1;
+                pathElement->path.set(path, frameInfo);
+                repaintParent();
+            } else if (triggered == removeControlPoints) {
+                point.controlX1 = 0;
+                point.controlY1 = 0;
+                point.controlX2 = 0;
+                point.controlY2 = 0;
+                pathElement->path.set(path, frameInfo);
+                repaintParent();
+            }
+        } else {
+            emit closeEditor();
+        }
         return true;
     }
 
@@ -315,8 +373,8 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
                                   offset)
                 .toPoint();
         bool hoveringFromPoint =
-            (fromPoint - viewportPos).manhattanLength() < 48;
-        bool hoveringToPoint = (toPoint - viewportPos).manhattanLength() < 48;
+            (fromPoint - viewportPos).manhattanLength() < 12;
+        bool hoveringToPoint = (toPoint - viewportPos).manhattanLength() < 12;
 
         if (hoveringFromPoint || hoveringToPoint) {
             hoveringControlPointIndex = index;
