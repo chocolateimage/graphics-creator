@@ -120,8 +120,10 @@ struct Brush {
 struct PathPoint {
     int x{0};
     int y{0};
-    int curveX{0};
-    int curveY{0};
+    int controlX1{0};
+    int controlY1{0};
+    int controlX2{0};
+    int controlY2{0};
 };
 
 struct Path {

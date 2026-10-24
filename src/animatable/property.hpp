@@ -41,8 +41,10 @@ inline PathPoint lerp(const PathPoint &a, const PathPoint &b, float value) {
     return {
         .x = lerp(a.x, b.x, value),
         .y = lerp(a.y, b.y, value),
-        .curveX = lerp(a.curveX, b.curveX, value),
-        .curveY = lerp(a.curveY, b.curveY, value),
+        .controlX1 = lerp(a.controlX1, b.controlX1, value),
+        .controlY1 = lerp(a.controlY1, b.controlY1, value),
+        .controlX2 = lerp(a.controlX2, b.controlX2, value),
+        .controlY2 = lerp(a.controlY2, b.controlY2, value),
     };
 }
 
@@ -211,8 +213,10 @@ template <> inline QJsonValue serializeAnyValue(const Path &value) {
         QJsonObject pointObj;
         pointObj["x"] = point.x;
         pointObj["y"] = point.y;
-        pointObj["curveX"] = point.curveX;
-        pointObj["curveY"] = point.curveY;
+        pointObj["controlX1"] = point.controlX1;
+        pointObj["controlY1"] = point.controlY1;
+        pointObj["controlX2"] = point.controlX2;
+        pointObj["controlY2"] = point.controlY2;
         pointsArray.append(pointObj);
     }
     obj["points"] = pointsArray;
@@ -352,8 +356,10 @@ template <> inline Path deserializeAnyValue(const QJsonValue &value) {
         PathPoint pathPoint;
         pathPoint.x = pointObj["x"].toInt();
         pathPoint.y = pointObj["y"].toInt();
-        pathPoint.curveX = pointObj["curveX"].toInt();
-        pathPoint.curveY = pointObj["curveY"].toInt();
+        pathPoint.controlX1 = pointObj["controlX1"].toInt();
+        pathPoint.controlY1 = pointObj["controlY1"].toInt();
+        pathPoint.controlX2 = pointObj["controlX2"].toInt();
+        pathPoint.controlY2 = pointObj["controlY2"].toInt();
         path.points.append(pathPoint);
     }
     return path;
