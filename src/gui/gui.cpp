@@ -596,6 +596,9 @@ NewMainWindow::NewMainWindow(const QString &dataPath)
 
     QMenu *helpMenu = menuBar->addMenu("Help");
 
+    QAction *documentationAction = helpMenu->addAction("Documentation");
+    connect(documentationAction, &QAction::triggered, this,
+            &NewMainWindow::openDocumentation);
     QAction *aboutAction = helpMenu->addAction("About");
     connect(aboutAction, &QAction::triggered, this, &NewMainWindow::about);
     QAction *aboutQtAction = helpMenu->addAction("About Qt");
@@ -729,6 +732,11 @@ void NewMainWindow::importClicked() {
         element->setObjectName(name);
         addElementUndoable(element);
     }
+}
+
+void NewMainWindow::openDocumentation() {
+    QDesktopServices::openUrl(
+        QUrl("https://graphicscreator.chocolateimage.me/"));
 }
 
 void NewMainWindow::about() {
