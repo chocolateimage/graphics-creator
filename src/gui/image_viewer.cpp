@@ -839,8 +839,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         int targetX = resizeX * resizeMode.moveX + startResizeRect.x();
         int targetY = resizeY * resizeMode.moveY + startResizeRect.y();
         if (centered) {
-            targetX = startResizeRect.x() - resizeX / 2;
-            targetY = startResizeRect.y() - resizeY / 2;
+            targetX = startResizeRect.x() - ((resizeX / 2) * resizeMode.sizeX);
+            targetY = startResizeRect.y() - ((resizeY / 2) * resizeMode.sizeY);
         }
 
         if (resizeElement->x.get(frameInfo) != targetX) {
