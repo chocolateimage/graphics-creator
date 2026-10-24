@@ -2,6 +2,7 @@
 #include "color_picker.hpp"
 #include <QApplication>
 #include <QClipboard>
+#include <QColorDialog>
 #include <QDrag>
 #include <QHBoxLayout>
 #include <QMenu>
@@ -122,7 +123,11 @@ void ColorButton::mousePressEvent(QMouseEvent *event) {
         QAction *rgba = copyMenu->addAction("RGBA");
         QAction *hexRgb = copyMenu->addAction("HEX (#RGB)");
         QAction *hexRgba = copyMenu->addAction("HEX (#RGBA)");
+
+        QAction *nativeAction = menu.addAction("Edit with native color editor");
+
         QAction *finalAction = menu.exec(QCursor::pos());
+
         QString copyString;
         if (finalAction == rgb) {
             copyString =
@@ -141,6 +146,13 @@ void ColorButton::mousePressEvent(QMouseEvent *event) {
             copyString = currentColor.name(QColor::NameFormat::HexRgb);
         } else if (finalAction == hexRgba) {
             copyString = hexTransparency();
+        } else if (finalAction == nativeAction) {
+            QColorDialog *dialog = new QColorDialog(currentColor);
+            dialog->setOption(QColorDialog::ShowAlphaChannel);
+            dialog->setCurrentColor(currentColor);
+            if (dialog->exec() == QColorDialog::Accepted) {
+                setColor(dialog->currentColor());
+            }
         }
 
         if (!copyString.isEmpty()) {
