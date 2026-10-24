@@ -49,6 +49,12 @@ void PathElementEditor::paint(QPainter &painter) {
 
     FrameInfo frameInfo{scene->currentFrame};
     Path path = pathElement->path.get(frameInfo);
+    for (auto pointIndex : selectedPathPoints) {
+        if (pointIndex >= path.points.length()) {
+            selectedPathPoints.clear();
+            break;
+        }
+    }
 
     painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
 
