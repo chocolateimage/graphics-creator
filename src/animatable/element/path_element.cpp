@@ -59,7 +59,7 @@ void PathElementRender::prepare() {
         painterPath.cubicTo(lastPoint.x + lastPoint.controlX1,
                             lastPoint.y + lastPoint.controlY1,
                             firstPoint.x + firstPoint.controlX2,
-                            firstPoint.y - firstPoint.controlY2, firstPoint.x,
+                            firstPoint.y + firstPoint.controlY2, firstPoint.x,
                             firstPoint.y);
     }
 
