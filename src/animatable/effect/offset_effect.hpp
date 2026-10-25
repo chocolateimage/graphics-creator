@@ -11,6 +11,7 @@ class OffsetEffectRender : public EffectRender {
 
     PropertyRender<int> x{this};
     PropertyRender<int> y{this};
+    PropertyRender<bool> tiled{this};
 };
 
 class OffsetEffect : public Effect {
@@ -24,4 +25,5 @@ class OffsetEffect : public Effect {
 
     Property<int> x{this, "x", 0};
     Property<int> y{this, "y", 0};
+    Property<bool> tiled{this, "tiled", false};
 };
