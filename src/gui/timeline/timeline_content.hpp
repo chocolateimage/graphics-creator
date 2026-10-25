@@ -13,6 +13,11 @@ struct TimelineKeyframeData {
     double h;
 };
 
+struct TimelineElementData {
+    QRectF rect;
+    Element *element;
+};
+
 class TimelineContentWidget : public QWidget {
   public:
     explicit TimelineContentWidget(TimelineWidget *timelineWidget,
@@ -27,6 +32,7 @@ class TimelineContentWidget : public QWidget {
     bool deleteSelected();
     QList<KeyframeBase *> selectedKeyframes;
     int updatedHeight{0};
+    // Where the keyframes are located in the timeline
     QList<TimelineKeyframeData> keyframeData;
 
   public slots:
@@ -54,7 +60,8 @@ class TimelineContentWidget : public QWidget {
     double startMousePosition;
     bool isResizingElements{false};
     bool isResizingOut{false};
-    QList<QRectF> elementRects;
+    // Where the elements are located in the timeline
+    QList<TimelineElementData> elementData;
 
     void paintElement(QPainter &painter, Element *element, double *yPos);
     void paintProperty(QPainter &painter, PropertyBase *property, double *yPos);
