@@ -1,4 +1,4 @@
 #pragma once
 #include <QString>
 
-const QString VERSION = QStringLiteral("0.6.0");
+const QString VERSION = QStringLiteral("0.6.1");
