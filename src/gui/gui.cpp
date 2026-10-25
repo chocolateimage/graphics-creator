@@ -740,13 +740,27 @@ void NewMainWindow::openDocumentation() {
 }
 
 void NewMainWindow::about() {
-    QMessageBox::about(this, "About",
-                       "Graphics Creator v" + VERSION +
-                           "<br><br><a "
-                           "href=\"https://github.com/chocolateimage/"
-                           "graphics-creator\">Source code</a> | <a "
-                           "href=\"https://github.com/chocolateimage/"
-                           "graphics-creator/issues\">Report issue</a>");
+    QString description = "Graphics Creator v" + VERSION + "<br><br>";
+
+    QStringList supportedFeatures;
+    if (__builtin_cpu_supports("avx2")) {
+        supportedFeatures += "AVX2";
+    }
+    if (supportedFeatures.isEmpty()) {
+        supportedFeatures.append("None");
+    }
+
+    description +=
+        "Supported used CPU features: " + supportedFeatures.join(", ") +
+        "<br><br>";
+
+    description += "<a "
+                   "href=\"https://github.com/chocolateimage/"
+                   "graphics-creator\">Source code</a> | <a "
+                   "href=\"https://github.com/chocolateimage/"
+                   "graphics-creator/issues\">Report issue</a>";
+
+    QMessageBox::about(this, "About", description);
 }
 
 void NewMainWindow::aboutQt() { QMessageBox::aboutQt(this); }

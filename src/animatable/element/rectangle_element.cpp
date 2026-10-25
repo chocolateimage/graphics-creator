@@ -24,7 +24,8 @@ float roundedRect(float pX, float pY, float bX, float bY, float r) {
            std::min(std::max(dX, dY), 0.f) - r;
 }
 
-bool RectangleElementRender::render(uint32_t *target) {
+__attribute__((target_clones("avx2", "default"))) bool
+RectangleElementRender::render(uint32_t *target) {
     auto rect = getRenderBox();
     int w = this->w;
     int h = this->h;
