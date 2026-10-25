@@ -202,17 +202,36 @@ void ColorPickerDialog::hexUpdated(const QString &newHex) {
 }
 
 void ColorPickerDialog::pickColor() {
-    QColorDialog *colorDialog = new QColorDialog(this);
+    colorDialog = new QColorDialog(this);
     colorDialog->setOption(QColorDialog::NoButtons, true);
     colorDialog->setOption(QColorDialog::DontUseNativeDialog, true);
-    QPushButton *btn = colorDialog->findChild<QPushButton *>();
-    btn->click();
+    colorDialogButton = colorDialog->findChild<QPushButton *>();
+#ifdef Q_OS_WIN
+    colorDialogButton->installEventFilter(this);
+#endif
+    colorDialogButton->click();
 
+#ifndef Q_OS_WIN
     connect(colorDialog, &QColorDialog::currentColorChanged, this,
-            [this, colorDialog](const QColor &color) {
+            [this](const QColor &color) {
                 setColor(color);
                 colorDialog->deleteLater();
+                colorDialog = nullptr;
             });
+#endif
+}
+
+bool ColorPickerDialog::eventFilter(QObject *object, QEvent *event) {
+    if (object == colorDialogButton) {
+        if (event->type() == QEvent::EnabledChange) {
+            if (colorDialogButton->isEnabled()) {
+                setColor(colorDialog->currentColor());
+                colorDialog->deleteLater();
+                colorDialog = nullptr;
+            }
+        }
+    }
+    return QDialog::eventFilter(object, event);
 }
 
 ColorFieldWidget::ColorFieldWidget(ColorPickerDialog *picker) : picker(picker) {

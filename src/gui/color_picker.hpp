@@ -5,6 +5,8 @@
 
 // TODO: palette
 
+class QColorDialog;
+
 class ColorPickerDialog : public QDialog {
     Q_OBJECT
   public:
@@ -21,6 +23,9 @@ class ColorPickerDialog : public QDialog {
     void hexUpdated(const QString &newHex);
     void pickColor();
 
+  protected:
+    bool eventFilter(QObject *, QEvent *) override;
+
   private:
     QSpinBox *spinR;
     QSpinBox *spinG;
@@ -30,6 +35,8 @@ class ColorPickerDialog : public QDialog {
     QSpinBox *spinS;
     QSpinBox *spinV;
     QLineEdit *lineHex;
+    QColorDialog *colorDialog{nullptr};
+    QPushButton *colorDialogButton{nullptr};
 };
 
 class ColorFieldWidget : public QWidget {
