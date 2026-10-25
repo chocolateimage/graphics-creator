@@ -1329,14 +1329,16 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
                sceneObject["frameRate"].toDouble(),
                sceneObject["durationFrames"].toInt());
     int newFrame = sceneObject["currentFrame"].toInt();
-
-    for (auto elementValue : sceneObject["elements"].toArray()) {
-        QJsonObject elementObj = elementValue.toObject();
-        Element *element = loadElementFromJson(elementObj);
-        if (!element) {
-            continue;
+    {
+        QSignalBlocker block1(scene);
+        for (auto elementValue : sceneObject["elements"].toArray()) {
+            QJsonObject elementObj = elementValue.toObject();
+            Element *element = loadElementFromJson(elementObj);
+            if (!element) {
+                continue;
+            }
+            scene->addElement(element);
         }
-        scene->addElement(element);
     }
 
     inProgressTasks.clear();
