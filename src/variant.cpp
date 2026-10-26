@@ -19,11 +19,17 @@ QBrush Brush::toQBrush(const QRect &rect) const {
         return QBrush(color1.toQColor());
     case Brush::Type::LinearGradient: {
         QLinearGradient linearGradient;
+        double rad = qDegreesToRadians(angle);
+        double radCos = std::cos(rad);
+        double radSin = std::sin(rad);
+        double radius = (rect.width() * std::abs(radCos) +
+                         rect.height() * std::abs(radSin)) /
+                        2.;
+        QPointF offset{radius * radCos, radius * radSin};
         linearGradient.setColorAt(0, color1.toQColor());
         linearGradient.setColorAt(1, color2.toQColor());
-        linearGradient.setStart(rect.x(), rect.y());
-        linearGradient.setFinalStop(rect.x() + rect.width(),
-                                    rect.y() + rect.height());
+        linearGradient.setStart(rect.center() - offset);
+        linearGradient.setFinalStop(rect.center() + offset);
         return linearGradient;
     }
     case Brush::Type::RadialGradient: {
