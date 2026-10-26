@@ -33,6 +33,7 @@ template <> inline Brush lerp(const Brush &a, const Brush &b, float value) {
         .color1 = lerp(a.color1, b.color1, value),
         .color2 = lerp(a.color2, b.color2, value),
         .angle = lerp(a.angle, b.angle, value),
+        .size = lerp(a.size, b.size, value),
     };
 }
 
@@ -88,6 +89,9 @@ template <> inline QJsonValue serializeAnyValue(const Brush &value) {
     }
     obj["color1"] = serializeAnyValue(value.color1);
     obj["color2"] = serializeAnyValue(value.color2);
+    if (value.size != 1) {
+        obj["size"] = value.size;
+    }
     return obj;
 }
 
@@ -266,7 +270,8 @@ template <> inline Brush deserializeAnyValue(const QJsonValue &value) {
     return Brush{.brushType = (Brush::Type)obj["type"].toInt(0),
                  .color1 = deserializeAnyValue<Color>(obj["color1"]),
                  .color2 = deserializeAnyValue<Color>(obj["color2"]),
-                 .angle = obj["angle"].toDouble(0)};
+                 .angle = obj["angle"].toDouble(0),
+                 .size = obj["size"].toDouble(1)};
 }
 
 template <> inline Easing deserializeAnyValue(const QJsonValue &value) {

@@ -105,6 +105,8 @@ struct Brush {
     Color color1;
     Color color2;
     double angle{0};
+    // For radial gradient how scaled the radius is
+    double size{1};
 
     QBrush toQBrush(const QRect &rect) const;
 
