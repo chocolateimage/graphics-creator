@@ -24,6 +24,7 @@ find_package(Fontconfig REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg Network)
 find_package(KF6 REQUIRED IconThemes WidgetsAddons ColorScheme ConfigWidgets)
 find_package(qtadvanceddocking-qt6 REQUIRED)
+find_package(Vulkan REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 
@@ -76,6 +77,7 @@ set(graphicscreator_SRCS
 )
 
 add_subdirectory(src/animatable/effect)
+add_subdirectory(src/gpu)
 
 
 add_executable(graphics-creator WIN32 ${graphicscreator_SRCS})
@@ -90,6 +92,7 @@ target_link_libraries(
     KF6::ColorScheme KF6::ConfigWidgets KF6::IconThemes KF6::WidgetsAddons
     FFmpeg::FFmpeg
     harfbuzz Freetype::Freetype Fontconfig::Fontconfig
+    Vulkan::Vulkan
 )
 target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter)
 

@@ -12,7 +12,7 @@
 #include <QDir>
 #include <QFileInfo>
 
-int main(int argc, char **argv) {
+int main_(int argc, char **argv) {
 #ifdef Q_OS_WIN
     CreateMutexA(nullptr, false, "GraphicsCreatorOpen");
     if (qEnvironmentVariable("MSYSTEM").isEmpty()) {
