@@ -14,46 +14,22 @@
 #include <QVBoxLayout>
 
 WelcomeScreenProjectWidget::WelcomeScreenProjectWidget(const QString &title,
-                                                       bool isNew, QImage img,
+                                                       bool isNew,
+                                                       const QString &imagePath,
                                                        QWidget *parent)
-    : QPushButton(parent) {
+    : QPushButton(parent), isNew(isNew), imagePath(imagePath) {
     setFlat(true);
     setFixedSize(180, 150);
     QVBoxLayout *lay = new QVBoxLayout(this);
     lay->setAlignment(Qt::AlignCenter);
 
-    constexpr int imgW = PREVIEW_IMAGE_ORIGINAL_WIDTH;
-    constexpr int imgH = PREVIEW_IMAGE_ORIGINAL_HEIGHT;
-    QPixmap pixmap{PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT};
-    pixmap.setDevicePixelRatio(2);
-    pixmap.fill(Qt::transparent);
-    {
-        QPainter painter(&pixmap);
-        painter.setRenderHint(QPainter::Antialiasing);
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(128, 128, 140, 50));
-        painter.drawRoundedRect(0, 0, imgW, imgH, 4, 4);
+    QTimer::singleShot(1, this, &WelcomeScreenProjectWidget::loadImage);
 
-        if (isNew) {
-            constexpr int pw = 6;
-
-            painter.setBrush(palette().text());
-            painter.drawRect(imgW / 2 - pw / 2, imgH / 2 - pw * 2, pw, pw * 4);
-            painter.drawRect(imgW / 2 - pw * 2, imgH / 2 - pw / 2, pw * 4, pw);
-        } else if (img.isNull()) {
-            QIcon icon = QIcon::fromTheme("graphics");
-            QPixmap pixmap = icon.pixmap(QSize(64, 64), 2);
-            painter.drawPixmap(imgW / 2 - 32, imgH / 2 - 32, pixmap);
-        } else {
-            img.setDevicePixelRatio(2);
-            painter.drawImage(0, 0, img);
-        }
-    }
-
-    QLabel *image = new QLabel();
-    image->setPixmap(pixmap);
-    image->setAlignment(Qt::AlignCenter);
-    lay->addWidget(image);
+    imageLabel = new QLabel();
+    imageLabel->setFixedSize(PREVIEW_IMAGE_ORIGINAL_WIDTH,
+                             PREVIEW_IMAGE_ORIGINAL_HEIGHT);
+    imageLabel->setAlignment(Qt::AlignCenter);
+    lay->addWidget(imageLabel);
 
     QLabel *label = new QLabel();
     QFont font;
@@ -62,6 +38,37 @@ WelcomeScreenProjectWidget::WelcomeScreenProjectWidget(const QString &title,
     label->setText(title);
     label->setAlignment(Qt::AlignCenter);
     lay->addWidget(label);
+}
+
+void WelcomeScreenProjectWidget::loadImage() {
+    constexpr int imgW = PREVIEW_IMAGE_ORIGINAL_WIDTH;
+    constexpr int imgH = PREVIEW_IMAGE_ORIGINAL_HEIGHT;
+    QPixmap pixmap{PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT};
+    pixmap.setDevicePixelRatio(2);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(128, 128, 140, 50));
+    painter.drawRoundedRect(0, 0, imgW, imgH, 4, 4);
+
+    QImage img(imagePath);
+    if (isNew) {
+        constexpr int pw = 6;
+
+        painter.setBrush(palette().text());
+        painter.drawRect(imgW / 2 - pw / 2, imgH / 2 - pw * 2, pw, pw * 4);
+        painter.drawRect(imgW / 2 - pw * 2, imgH / 2 - pw / 2, pw * 4, pw);
+    } else if (img.isNull()) {
+        QIcon icon = QIcon::fromTheme("graphics");
+        QPixmap pixmap = icon.pixmap(QSize(64, 64), 2);
+        painter.drawPixmap(imgW / 2 - 32, imgH / 2 - 32, pixmap);
+    } else {
+        img.setDevicePixelRatio(2);
+        painter.drawImage(0, 0, img);
+    }
+
+    imageLabel->setPixmap(pixmap);
 }
 
 WelcomeScreenWidget::WelcomeScreenWidget(NewMainWindow *mainWindow,
@@ -86,16 +93,15 @@ WelcomeScreenWidget::WelcomeScreenWidget(NewMainWindow *mainWindow,
 
     FlowLayout *flowLayout = new FlowLayout(0, 0, 0);
     WelcomeScreenProjectWidget *newBtn =
-        new WelcomeScreenProjectWidget("Blank", true, QImage(), this);
+        new WelcomeScreenProjectWidget("Blank", true, QString(), this);
     connect(newBtn, &WelcomeScreenProjectWidget::clicked, this,
             &WelcomeScreenWidget::newProjectClicked);
     flowLayout->addWidget(newBtn);
 
     for (const auto &projectTemplate : projectTemplates) {
-        QImage img = QImage(projectTemplate.imagePath);
-
-        WelcomeScreenProjectWidget *btn = new WelcomeScreenProjectWidget(
-            projectTemplate.displayName, false, img, this);
+        WelcomeScreenProjectWidget *btn =
+            new WelcomeScreenProjectWidget(projectTemplate.displayName, false,
+                                           projectTemplate.imagePath, this);
         connect(btn, &WelcomeScreenProjectWidget::clicked, this,
                 [this, projectTemplate]() {
                     emit openClicked(projectTemplate.projectPath, true);
@@ -137,10 +143,8 @@ WelcomeScreenWidget::WelcomeScreenWidget(NewMainWindow *mainWindow,
                 continue;
             }
 
-            QImage img = QImage(imagePath);
-
             WelcomeScreenProjectWidget *btn = new WelcomeScreenProjectWidget(
-                fileInfo.completeBaseName(), false, img, this);
+                fileInfo.completeBaseName(), false, imagePath, this);
             connect(btn, &WelcomeScreenProjectWidget::clicked, this,
                     [this, path]() { emit openClicked(path, false); });
             flowLayout->addWidget(btn);

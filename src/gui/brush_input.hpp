@@ -34,6 +34,7 @@ class BrushInput : public QWidget {
     ColorButton *color1;
     ColorButton *color2;
     QSpinBox *angleInput;
+    QDoubleSpinBox *sizeInput;
     QPushButton *changeButton;
     QMenu *typeMenu;
 };

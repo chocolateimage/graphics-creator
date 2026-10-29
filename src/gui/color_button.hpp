@@ -1,6 +1,8 @@
 #pragma once
 #include <QPushButton>
 
+class QMimeData;
+
 class ColorButton : public QPushButton {
     Q_OBJECT
   public:
@@ -15,10 +17,16 @@ class ColorButton : public QPushButton {
   protected:
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 
   private slots:
     void openColorDialog();
 
   private:
+    QColor colorFromMime(const QMimeData *mimeData);
+    QString hexTransparency();
     QColor currentColor;
+    QPointF dragStartPosition;
 };

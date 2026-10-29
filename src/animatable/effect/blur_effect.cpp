@@ -1,7 +1,6 @@
 #include "blur_effect.hpp"
 #include "math.hpp"
 #include <QDebug>
-#include <QElapsedTimer>
 
 BlurEffect::BlurEffect() {
     radius.setMin(0);

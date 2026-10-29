@@ -37,6 +37,7 @@ template <> inline Brush lerp(const Brush &a, const Brush &b, float value) {
         .color1 = lerp(a.color1, b.color1, value),
         .color2 = lerp(a.color2, b.color2, value),
         .angle = lerp(a.angle, b.angle, value),
+        .size = lerp(a.size, b.size, value),
     };
 }
 
@@ -45,8 +46,10 @@ inline PathPoint lerp(const PathPoint &a, const PathPoint &b, float value) {
     return {
         .x = lerp(a.x, b.x, value),
         .y = lerp(a.y, b.y, value),
-        .curveX = lerp(a.curveX, b.curveX, value),
-        .curveY = lerp(a.curveY, b.curveY, value),
+        .controlX1 = lerp(a.controlX1, b.controlX1, value),
+        .controlY1 = lerp(a.controlY1, b.controlY1, value),
+        .controlX2 = lerp(a.controlX2, b.controlX2, value),
+        .controlY2 = lerp(a.controlY2, b.controlY2, value),
     };
 }
 
@@ -90,6 +93,9 @@ template <> inline QJsonValue serializeAnyValue(const Brush &value) {
     }
     obj["color1"] = serializeAnyValue(value.color1);
     obj["color2"] = serializeAnyValue(value.color2);
+    if (value.size != 1) {
+        obj["size"] = value.size;
+    }
     return obj;
 }
 
@@ -215,8 +221,10 @@ template <> inline QJsonValue serializeAnyValue(const Path &value) {
         QJsonObject pointObj;
         pointObj["x"] = point.x;
         pointObj["y"] = point.y;
-        pointObj["curveX"] = point.curveX;
-        pointObj["curveY"] = point.curveY;
+        pointObj["controlX1"] = point.controlX1;
+        pointObj["controlY1"] = point.controlY1;
+        pointObj["controlX2"] = point.controlX2;
+        pointObj["controlY2"] = point.controlY2;
         pointsArray.append(pointObj);
     }
     obj["points"] = pointsArray;
@@ -273,7 +281,8 @@ template <> inline Brush deserializeAnyValue(const QJsonValue &value) {
     return Brush{.brushType = (Brush::Type)obj["type"].toInt(0),
                  .color1 = deserializeAnyValue<Color>(obj["color1"]),
                  .color2 = deserializeAnyValue<Color>(obj["color2"]),
-                 .angle = obj["angle"].toDouble(0)};
+                 .angle = obj["angle"].toDouble(0),
+                 .size = obj["size"].toDouble(1)};
 }
 
 template <> inline Easing deserializeAnyValue(const QJsonValue &value) {
@@ -337,6 +346,9 @@ template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
         } else {
             span.fontSize = lastSpan->fontSize;
         }
+        if (span.fontSize <= 0) {
+            span.fontSize = 1;
+        }
         span.antialiased = spanObj["aa"].toBool(true);
         span.newLine = spanObj["nl"].toBool(false);
         spans.spans.append(span);
@@ -363,8 +375,10 @@ template <> inline Path deserializeAnyValue(const QJsonValue &value) {
         PathPoint pathPoint;
         pathPoint.x = pointObj["x"].toInt();
         pathPoint.y = pointObj["y"].toInt();
-        pathPoint.curveX = pointObj["curveX"].toInt();
-        pathPoint.curveY = pointObj["curveY"].toInt();
+        pathPoint.controlX1 = pointObj["controlX1"].toInt();
+        pathPoint.controlY1 = pointObj["controlY1"].toInt();
+        pathPoint.controlX2 = pointObj["controlX2"].toInt();
+        pathPoint.controlY2 = pointObj["controlY2"].toInt();
         path.points.append(pathPoint);
     }
     return path;

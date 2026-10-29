@@ -46,19 +46,21 @@ void PathElementRender::prepare() {
         auto &point = path.points[i];
         auto &lastPoint = path.points[i - 1];
         QPoint actualPoint = QPoint(point.x, point.y);
-        QPoint c1 = QPoint(lastPoint.x + lastPoint.curveX,
-                           lastPoint.y + lastPoint.curveY);
-        QPoint c2 = QPoint(point.x - point.curveX, point.y - point.curveY);
+        QPoint c1 = QPoint(lastPoint.x + lastPoint.controlX1,
+                           lastPoint.y + lastPoint.controlY1);
+        QPoint c2 =
+            QPoint(point.x + point.controlX2, point.y + point.controlY2);
         painterPath.cubicTo(c1, c2, actualPoint);
     }
 
     if (path.closed) {
         auto &firstPoint = path.points.first();
         auto &lastPoint = path.points.last();
-        painterPath.cubicTo(
-            lastPoint.x + lastPoint.curveX, lastPoint.y + lastPoint.curveY,
-            firstPoint.x - firstPoint.curveX, firstPoint.y - firstPoint.curveY,
-            firstPoint.x, firstPoint.y);
+        painterPath.cubicTo(lastPoint.x + lastPoint.controlX1,
+                            lastPoint.y + lastPoint.controlY1,
+                            firstPoint.x + firstPoint.controlX2,
+                            firstPoint.y + firstPoint.controlY2, firstPoint.x,
+                            firstPoint.y);
     }
 
     rect = painterPath.boundingRect().toRect().adjusted(

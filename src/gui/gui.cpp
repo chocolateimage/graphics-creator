@@ -31,7 +31,6 @@
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDoubleSpinBox>
-#include <QElapsedTimer>
 #include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -612,6 +611,9 @@ NewMainWindow::NewMainWindow(const QString &dataPath)
 
     QMenu *helpMenu = menuBar->addMenu("Help");
 
+    QAction *documentationAction = helpMenu->addAction("Documentation");
+    connect(documentationAction, &QAction::triggered, this,
+            &NewMainWindow::openDocumentation);
     QAction *aboutAction = helpMenu->addAction("About");
     connect(aboutAction, &QAction::triggered, this, &NewMainWindow::about);
     QAction *aboutQtAction = helpMenu->addAction("About Qt");
@@ -638,8 +640,6 @@ NewMainWindow::NewMainWindow(const QString &dataPath)
     clipboardContentsChanged();
     elementSelectionChanged({});
     playbackStateChanged(false);
-
-    rerender(false);
 }
 
 void NewMainWindow::openPlugins() {
@@ -749,14 +749,33 @@ void NewMainWindow::importClicked() {
     }
 }
 
+void NewMainWindow::openDocumentation() {
+    QDesktopServices::openUrl(
+        QUrl("https://graphicscreator.chocolateimage.me/"));
+}
+
 void NewMainWindow::about() {
-    QMessageBox::about(this, "About",
-                       "Graphics Creator v" + VERSION +
-                           "<br><br><a "
-                           "href=\"https://github.com/chocolateimage/"
-                           "graphics-creator\">Source code</a> | <a "
-                           "href=\"https://github.com/chocolateimage/"
-                           "graphics-creator/issues\">Report issue</a>");
+    QString description = "Graphics Creator v" + VERSION + "<br><br>";
+
+    QStringList supportedFeatures;
+    if (__builtin_cpu_supports("avx2")) {
+        supportedFeatures += "AVX2";
+    }
+    if (supportedFeatures.isEmpty()) {
+        supportedFeatures.append("None");
+    }
+
+    description +=
+        "Supported used CPU features: " + supportedFeatures.join(", ") +
+        "<br><br>";
+
+    description += "<a "
+                   "href=\"https://github.com/chocolateimage/"
+                   "graphics-creator\">Source code</a> | <a "
+                   "href=\"https://github.com/chocolateimage/"
+                   "graphics-creator/issues\">Report issue</a>";
+
+    QMessageBox::about(this, "About", description);
 }
 
 void NewMainWindow::aboutQt() { QMessageBox::aboutQt(this); }
@@ -1335,18 +1354,21 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
     }
 
     QJsonObject sceneObject = rootObject["scene"].toObject();
-    newProject(sceneObject["width"].toInt(), sceneObject["height"].toInt(),
-               sceneObject["frameRate"].toDouble(),
-               sceneObject["durationFrames"].toInt());
+    newProject(std::max(1, sceneObject["width"].toInt()),
+               std::max(1, sceneObject["height"].toInt()),
+               std::max(0.1, sceneObject["frameRate"].toDouble()),
+               std::max(1, sceneObject["durationFrames"].toInt()));
     int newFrame = sceneObject["currentFrame"].toInt();
-
-    for (auto elementValue : sceneObject["elements"].toArray()) {
-        QJsonObject elementObj = elementValue.toObject();
-        Element *element = loadElementFromJson(elementObj);
-        if (!element) {
-            continue;
+    {
+        QSignalBlocker block1(scene);
+        for (auto elementValue : sceneObject["elements"].toArray()) {
+            QJsonObject elementObj = elementValue.toObject();
+            Element *element = loadElementFromJson(elementObj);
+            if (!element) {
+                continue;
+            }
+            scene->addElement(element);
         }
-        scene->addElement(element);
     }
 
     inProgressTasks.clear();

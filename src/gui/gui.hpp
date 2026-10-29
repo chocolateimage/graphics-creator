@@ -6,7 +6,6 @@
 #include <QChronoTimer>
 #include <QComboBox>
 #include <QDialog>
-#include <QElapsedTimer>
 #include <QFormLayout>
 #include <QLabel>
 #include <QMainWindow>
@@ -144,6 +143,7 @@ class NewMainWindow : public QMainWindow {
     void ungroupSlot();
     void aboutQt();
     void about();
+    void openDocumentation();
     void importClicked();
     void openPlugins();
 

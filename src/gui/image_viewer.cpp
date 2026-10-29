@@ -524,6 +524,10 @@ void ImageViewer::paintSnapVisualRect(QPainter &painter,
 }
 
 void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     const QMimeData *mimeData = event->mimeData();
     if (scene && mimeData->hasUrls() && !mimeData->urls().isEmpty()) {
         QUrl url = mimeData->urls().first();
@@ -553,6 +557,10 @@ void ImageViewer::dragEnterEvent(QDragEnterEvent *event) {
 }
 
 void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     const QMimeData *mimeData = event->mimeData();
     if (isDroppingImage) {
         dropImageCursor = viewportToPixel(event->position());
@@ -595,6 +603,10 @@ void ImageViewer::dragMoveEvent(QDragMoveEvent *event) {
 }
 
 void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     if (isDroppingImage) {
         isDroppingImage = false;
         dropImagePreview = QImage();
@@ -611,6 +623,10 @@ void ImageViewer::dragLeaveEvent(QDragLeaveEvent *event) {
 }
 
 void ImageViewer::dropEvent(QDropEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     const QMimeData *mimeData = event->mimeData();
     if (isDroppingImage) {
         ImageElement *imageElement = new ImageElement();
@@ -751,6 +767,10 @@ Element *ImageViewer::elementAtPos(const QPoint &pos) {
 }
 
 void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     QPointF current = event->position();
     QPoint pixelPos = viewportToPixel(current);
 
@@ -819,8 +839,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent *event) {
         int targetX = resizeX * resizeMode.moveX + startResizeRect.x();
         int targetY = resizeY * resizeMode.moveY + startResizeRect.y();
         if (centered) {
-            targetX = startResizeRect.x() - resizeX / 2;
-            targetY = startResizeRect.y() - resizeY / 2;
+            targetX = startResizeRect.x() - ((resizeX / 2) * resizeMode.sizeX);
+            targetY = startResizeRect.y() - ((resizeY / 2) * resizeMode.sizeY);
         }
 
         if (resizeElement->x.get(frameInfo) != targetX) {
@@ -1139,6 +1159,10 @@ void ImageViewer::clampMovePos() {
 }
 
 void ImageViewer::mousePressEvent(QMouseEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     if (isPicking) {
         if (event->button() == Qt::LeftButton) {
             if (pickType == PickType::Point) {
@@ -1340,6 +1364,10 @@ class MoveResizeElementCommand : public QUndoCommand {
 };
 
 void ImageViewer::mouseReleaseEvent(QMouseEvent *event) {
+    if (image.isNull()) {
+        return;
+    }
+
     if (editor) {
         if (editor->mouseReleaseEvent(viewportToPixel(event->position()),
                                       event)) {

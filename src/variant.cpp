@@ -20,20 +20,27 @@ QBrush Brush::toQBrush(const QRect &rect) const {
         return QBrush(color1.toQColor());
     case Brush::Type::LinearGradient: {
         QLinearGradient linearGradient;
+        double rad = qDegreesToRadians(angle);
+        double radCos = std::cos(rad);
+        double radSin = std::sin(rad);
+        double radius = (rect.width() * std::abs(radCos) +
+                         rect.height() * std::abs(radSin)) /
+                        2.;
+        QPointF offset{radius * radCos, radius * radSin};
         linearGradient.setColorAt(0, color1.toQColor());
         linearGradient.setColorAt(1, color2.toQColor());
-        linearGradient.setStart(rect.x(), rect.y());
-        linearGradient.setFinalStop(rect.x() + rect.width(),
-                                    rect.y() + rect.height());
+        linearGradient.setStart(rect.center() - offset);
+        linearGradient.setFinalStop(rect.center() + offset);
         return linearGradient;
     }
     case Brush::Type::RadialGradient: {
-        QRadialGradient radialGradient;
+        if (size <= 0.001) {
+            return QBrush(color2.toQColor());
+        }
+        QRadialGradient radialGradient(
+            rect.center(), std::max(rect.width(), rect.height()) * size / 2.);
         radialGradient.setColorAt(0, color1.toQColor());
         radialGradient.setColorAt(1, color2.toQColor());
-        radialGradient.setCenter(rect.x() + rect.width() / 2.,
-                                 rect.y() + rect.height() / 2.);
-        radialGradient.setRadius(rect.width());
         return radialGradient;
     }
     }

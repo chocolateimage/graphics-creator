@@ -22,11 +22,24 @@ BrushInput::BrushInput(QWidget *parent) : QWidget(parent) {
     angleInput->setSuffix("°");
     angleInput->setMinimum(0);
     angleInput->setMaximum(360);
+    angleInput->setToolTip("Angle");
     connect(angleInput, &QSpinBox::valueChanged, this,
             &BrushInput::_valueChanged);
     connect(angleInput, &QSpinBox::editingFinished, this,
             &BrushInput::editingFinished);
     lay->addWidget(angleInput);
+
+    sizeInput = new DraggableDoubleSpinBox(this);
+    sizeInput->setDecimals(1);
+    sizeInput->setSuffix("%");
+    sizeInput->setMinimum(0);
+    sizeInput->setMaximum(10000);
+    sizeInput->setToolTip("Size");
+    connect(sizeInput, &QDoubleSpinBox::valueChanged, this,
+            &BrushInput::_valueChanged);
+    connect(sizeInput, &QDoubleSpinBox::editingFinished, this,
+            &BrushInput::editingFinished);
+    lay->addWidget(sizeInput);
 
     typeMenu = new QMenu(this);
 
@@ -61,6 +74,8 @@ void BrushInput::updateType() {
                        brushType == Brush::RadialGradient);
 
     angleInput->setVisible(brushType == Brush::LinearGradient);
+
+    sizeInput->setVisible(brushType == Brush::RadialGradient);
 }
 
 void BrushInput::showMenu() {
@@ -93,6 +108,7 @@ void BrushInput::setValue(Brush value) {
     color1->setColor(value.color1.toQColor());
     color2->setColor(value.color2.toQColor());
     angleInput->setValue(value.angle);
+    sizeInput->setValue(value.size * 100);
     updateType();
 }
 
@@ -110,6 +126,7 @@ Brush BrushInput::value() {
     color = color2->color();
     brush.color2 = {color.red(), color.green(), color.blue(), color.alpha()};
     brush.angle = angleInput->value();
+    brush.size = sizeInput->value() / 100.;
 
     return brush;
 }

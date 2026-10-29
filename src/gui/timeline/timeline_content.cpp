@@ -82,8 +82,8 @@ void TimelineContentWidget::paintElement(QPainter &painter, Element *element,
         secondsToPixels(element->durationFrames /
                         timelineWidget->scene->frameRate),
         OBJECT_TRACK_HEIGHT};
-    // TODO: IMPORTANT: fix element rect order in groups
-    elementRects.append(rect);
+
+    elementData.append({rect, element});
     painter.drawRect(rect);
     *yPos += OBJECT_TRACK_HEIGHT;
 
@@ -232,7 +232,7 @@ void TimelineContentWidget::paintEvent(QPaintEvent *) {
 
     // --- Elements ---
     keyframeData.clear();
-    elementRects.clear();
+    elementData.clear();
 
     for (auto element : timelineWidget->scene->elements) {
         if (element->hasParent())
@@ -349,26 +349,24 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
 
         QPointF shiftedPos =
             event->position() - QPointF{TIMELINE_START_OFFSET, 0};
-        for (int i = 0; i < elementRects.length(); i++) {
-            const auto &elementRect = elementRects[i];
-            if (QRectF(elementRect.x() - 12, elementRect.y(), 24,
-                       elementRect.height())
+        for (const auto &data : elementData) {
+            if (QRectF(data.rect.x() - 12, data.rect.y(), 24,
+                       data.rect.height())
                     .contains(shiftedPos)) {
                 isResizingElements = true;
                 isResizingOut = false;
             }
-            if (QRectF(elementRect.x() + elementRect.width() - 12,
-                       elementRect.y(), 24, elementRect.height())
+            if (QRectF(data.rect.x() + data.rect.width() - 12, data.rect.y(),
+                       24, data.rect.height())
                     .contains(shiftedPos)) {
                 isResizingElements = true;
                 isResizingOut = true;
             }
 
-            if (elementRect.contains(shiftedPos) || isResizingElements) {
-                Element *element = timelineWidget->scene->elements[i];
+            if (data.rect.contains(shiftedPos) || isResizingElements) {
                 if (!timelineWidget->scene->selectedElements.contains(
-                        element)) {
-                    timelineWidget->scene->selectElements({element});
+                        data.element)) {
+                    timelineWidget->scene->selectElements({data.element});
                 }
                 startMousePosition = event->position().x();
                 startElementMove.clear();
@@ -580,12 +578,11 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
 void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
     setCursor(Qt::CursorShape::ArrowCursor);
     QPointF shiftedPos = event->position() - QPointF{TIMELINE_START_OFFSET, 0};
-    for (const auto &elementRect : elementRects) {
-        if (QRectF(elementRect.x() - 12, elementRect.y(), 24,
-                   elementRect.height())
+    for (const auto &data : elementData) {
+        if (QRectF(data.rect.x() - 12, data.rect.y(), 24, data.rect.height())
                 .contains(shiftedPos) ||
-            QRectF(elementRect.x() + elementRect.width() - 12, elementRect.y(),
-                   24, elementRect.height())
+            QRectF(data.rect.x() + data.rect.width() - 12, data.rect.y(), 24,
+                   data.rect.height())
                 .contains(shiftedPos)) {
             setCursor(Qt::CursorShape::SizeHorCursor);
         }

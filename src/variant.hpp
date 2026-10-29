@@ -106,6 +106,8 @@ struct Brush {
     Color color1;
     Color color2;
     double angle{0};
+    // For radial gradient how scaled the radius is
+    double size{1};
 
     QBrush toQBrush(const QRect &rect) const;
 
@@ -121,8 +123,10 @@ struct Brush {
 struct PathPoint {
     int x{0};
     int y{0};
-    int curveX{0};
-    int curveY{0};
+    int controlX1{0};
+    int controlY1{0};
+    int controlX2{0};
+    int controlY2{0};
 };
 
 struct Path {

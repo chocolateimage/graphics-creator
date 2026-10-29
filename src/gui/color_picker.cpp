@@ -107,6 +107,8 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
     spinA->setFixedHeight(fieldHeight);
     lineHex->setFixedHeight(fieldHeight);
 
+    spinH->setSuffix("°");
+
     QLabel *r = new QLabel("R");
     r->setStyleSheet("color: #ff4e4e");
     formLay->addRow(r, spinR);
@@ -123,7 +125,19 @@ ColorPickerDialog::ColorPickerDialog(const QColor &color, QWidget *parent)
     formLay->addItem(new QSpacerItem(1, 4));
     formLay->addRow("A", spinA);
     formLay->addItem(new QSpacerItem(1, 4));
-    formLay->addRow("#", lineHex);
+
+    QHBoxLayout *hexLayout = new QHBoxLayout();
+    hexLayout->setContentsMargins(0, 0, 0, 0);
+    lineHex->setFixedWidth(64);
+    hexLayout->addWidget(lineHex);
+    QPushButton *pickButton = new QPushButton();
+    pickButton->setIcon(QIcon::fromTheme("color-picker"));
+    pickButton->setAutoDefault(false);
+    connect(pickButton, &QPushButton::clicked, this,
+            &ColorPickerDialog::pickColor);
+    hexLayout->addWidget(pickButton);
+
+    formLay->addRow("#", hexLayout);
     lay2->addLayout(formLay);
 
     lay->addLayout(lay2);
@@ -185,6 +199,39 @@ void ColorPickerDialog::hexUpdated(const QString &newHex) {
     QColor color("#" + newHex);
     color.setAlpha(currentColor.alpha());
     setColor(color);
+}
+
+void ColorPickerDialog::pickColor() {
+    colorDialog = new QColorDialog(this);
+    colorDialog->setOption(QColorDialog::NoButtons, true);
+    colorDialog->setOption(QColorDialog::DontUseNativeDialog, true);
+    colorDialogButton = colorDialog->findChild<QPushButton *>();
+#ifdef Q_OS_WIN
+    colorDialogButton->installEventFilter(this);
+#endif
+    colorDialogButton->click();
+
+#ifndef Q_OS_WIN
+    connect(colorDialog, &QColorDialog::currentColorChanged, this,
+            [this](const QColor &color) {
+                setColor(color);
+                colorDialog->deleteLater();
+                colorDialog = nullptr;
+            });
+#endif
+}
+
+bool ColorPickerDialog::eventFilter(QObject *object, QEvent *event) {
+    if (object == colorDialogButton) {
+        if (event->type() == QEvent::EnabledChange) {
+            if (colorDialogButton->isEnabled()) {
+                setColor(colorDialog->currentColor());
+                colorDialog->deleteLater();
+                colorDialog = nullptr;
+            }
+        }
+    }
+    return QDialog::eventFilter(object, event);
 }
 
 ColorFieldWidget::ColorFieldWidget(ColorPickerDialog *picker) : picker(picker) {

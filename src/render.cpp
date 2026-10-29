@@ -18,7 +18,10 @@ ImageData::~ImageData() { delete[] data; }
 VideoData::VideoData(const std::string &path) {
     qDebug() << "Creating video";
 
-    if (avformat_open_input(&fmtCtx, path.c_str(), nullptr, nullptr) < 0) {
+    AVDictionary *options{nullptr};
+    av_dict_set(&options, "protocol_whitelist", "file", 0);
+
+    if (avformat_open_input(&fmtCtx, path.c_str(), nullptr, &options) < 0) {
         error = true;
         return;
     }
@@ -196,6 +199,9 @@ std::shared_ptr<ImageData> Loader::loadImage(const std::string &path) {
 
     QImage img(QString::fromStdString(path));
     img = img.convertToFormat(QImage::Format_ARGB32);
+    if (img.isNull()) {
+        return nullptr;
+    }
 
     std::shared_ptr<ImageData> data = std::make_shared<ImageData>();
     data->width = img.width();
@@ -384,8 +390,7 @@ RenderedElement::RenderedElement(ElementRender *element) : element(element) {
         element->id, this);
 
     elementRect = element->getRenderBox();
-    elementValues = new uint32_t[elementRect.w * elementRect.h];
-    memset(elementValues, 0, elementRect.w * elementRect.h * 4);
+    elementValues = new uint32_t[elementRect.w * elementRect.h]();
 
     finalRect = elementRect;
     finalValues = elementValues;
@@ -394,6 +399,8 @@ RenderedElement::RenderedElement(ElementRender *element) : element(element) {
 
     if (!success) {
         delete[] elementValues;
+        elementValues = nullptr;
+        finalValues = nullptr;
         hasError = true;
         return;
     }
@@ -426,10 +433,14 @@ RenderedElement::RenderedElement(ElementRender *element) : element(element) {
 }
 
 RenderedElement::~RenderedElement() {
-    if (elementValues != finalValues) {
+    element->renderThread->currentFrameTask->allRenderingElements.erase(
+        element->id);
+    if (elementValues != finalValues && finalValues) {
         delete[] finalValues;
     }
-    delete[] elementValues;
+    if (elementValues) {
+        delete[] elementValues;
+    }
 }
 
 void FrameTask::render(RenderThread &renderThread) {

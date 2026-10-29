@@ -1,4 +1,5 @@
 #pragma once
+#include "variant.hpp"
 #include <cmath>
 #include <cstdint>
 
@@ -41,6 +42,10 @@ inline constexpr uint32_t makePixel(RGBA rgba) {
     return (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b;
 }
 
+inline constexpr uint32_t makePixel(Color color) {
+    return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
+}
+
 inline constexpr int pixelIndex(int x, int y, int stride) {
     return y * stride + x;
 }
@@ -62,9 +67,9 @@ inline constexpr double saturate(double x) {
     return std::max(std::min(x, 1.), 0.);
 }
 
-static double length(double x, double y) { return std::sqrt(x * x + y * y); }
+inline double length(double x, double y) { return std::sqrt(x * x + y * y); }
 
-static double distance(double x1, double y1, double x2, double y2) {
+inline double distance(double x1, double y1, double x2, double y2) {
     return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
@@ -77,13 +82,13 @@ inline constexpr double smoothstep(double from, double to, double x) {
     return x * x * (3 - 2 * x);
 }
 
-static double linear(double x) { return x; }
+inline double linear(double x) { return x; }
 
-static double easeInQuad(double x) { return x * x; }
+inline double easeInQuad(double x) { return x * x; }
 
-static double easeOutQuad(double x) { return 1 - (1 - x) * (1 - x); }
+inline double easeOutQuad(double x) { return 1 - (1 - x) * (1 - x); }
 
-static double easeInOutQuad(double x) {
+inline double easeInOutQuad(double x) {
     if (x < 0.5) {
         return 2 * x * x;
     } else {
@@ -91,11 +96,11 @@ static double easeInOutQuad(double x) {
     }
 }
 
-static double easeInCubic(double x) { return x * x * x; }
+inline double easeInCubic(double x) { return x * x * x; }
 
-static double easeOutCubic(double x) { return 1 - std::pow((1 - x), 3); }
+inline double easeOutCubic(double x) { return 1 - std::pow((1 - x), 3); }
 
-static double easeInOutCubic(double x) {
+inline double easeInOutCubic(double x) {
     if (x < 0.5) {
         return 4 * x * x * x;
     } else {
@@ -103,11 +108,11 @@ static double easeInOutCubic(double x) {
     }
 }
 
-static double easeInQuart(double x) { return x * x * x * x; }
+inline double easeInQuart(double x) { return x * x * x * x; }
 
-static double easeOutQuart(double x) { return 1 - std::pow((1 - x), 4); }
+inline double easeOutQuart(double x) { return 1 - std::pow((1 - x), 4); }
 
-static double easeInOutQuart(double x) {
+inline double easeInOutQuart(double x) {
     if (x < 0.5) {
         return 8 * x * x * x * x;
     } else {
@@ -115,11 +120,11 @@ static double easeInOutQuart(double x) {
     }
 }
 
-static double easeInQuint(double x) { return x * x * x * x * x; }
+inline double easeInQuint(double x) { return x * x * x * x * x; }
 
-static double easeOutQuint(double x) { return 1 - std::pow((1 - x), 5); }
+inline double easeOutQuint(double x) { return 1 - std::pow((1 - x), 5); }
 
-static double easeInOutQuint(double x) {
+inline double easeInOutQuint(double x) {
     if (x < 0.5) {
         return 16 * x * x * x * x * x;
     } else {
@@ -127,27 +132,27 @@ static double easeInOutQuint(double x) {
     }
 }
 
-static double easeInSine(double x) { return 1 - std::cos((x * M_PI) / 2); }
+inline double easeInSine(double x) { return 1 - std::cos((x * M_PI) / 2); }
 
-static double easeOutSine(double x) { return std::sin((x * M_PI) / 2); }
+inline double easeOutSine(double x) { return std::sin((x * M_PI) / 2); }
 
-static double easeInOutSine(double x) { return -(std::cos(M_PI * x) - 1) / 2; }
+inline double easeInOutSine(double x) { return -(std::cos(M_PI * x) - 1) / 2; }
 
-static double easeInExpo(double x) {
+inline double easeInExpo(double x) {
     if (x == 0) {
         return x;
     }
     return std::pow(2, (10 * x - 10));
 }
 
-static double easeOutExpo(double x) {
+inline double easeOutExpo(double x) {
     if (x == 1) {
         return x;
     }
     return 1 - std::pow(2, (-10 * x));
 }
 
-static double easeInOutExpo(double x) {
+inline double easeInOutExpo(double x) {
     if (x == 0 || x == 1) {
         return x;
     }
@@ -159,11 +164,11 @@ static double easeInOutExpo(double x) {
     }
 }
 
-static double easeInCirc(double x) { return 1 - sqrt(1 - std::pow(x, 2)); }
+inline double easeInCirc(double x) { return 1 - sqrt(1 - std::pow(x, 2)); }
 
-static double easeOutCirc(double x) { return sqrt(1 - std::pow((x - 1), 2)); }
+inline double easeOutCirc(double x) { return sqrt(1 - std::pow((x - 1), 2)); }
 
-static double easeInOutCirc(double x) {
+inline double easeInOutCirc(double x) {
     if (x < 0.5) {
         return (1 - sqrt(1 - std::pow((2 * x), 2))) / 2;
     } else {
@@ -171,15 +176,15 @@ static double easeInOutCirc(double x) {
     }
 }
 
-static double easeInBack(double x) {
+inline double easeInBack(double x) {
     return 2.70158 * x * x * x - 1.70158 * x * x;
 }
 
-static double easeOutBack(double x) {
+inline double easeOutBack(double x) {
     return 1 + 2.70158 * std::pow((x - 1), 3) + 1.70158 * std::pow((x - 1), 2);
 }
 
-static double easeInOutBack(double x) {
+inline double easeInOutBack(double x) {
     if (x < 0.5) {
         return (std::pow((2 * x), 2) * ((2.5949095 + 1) * 2 * x - 2.5949095)) /
                2;
@@ -191,7 +196,7 @@ static double easeInOutBack(double x) {
     }
 }
 
-static double easeInElastic(double x) {
+inline double easeInElastic(double x) {
     if (x == 0 || x == 1) {
         return x;
     }
@@ -199,7 +204,7 @@ static double easeInElastic(double x) {
            std::sin((x * 10 - 10.75) * 2.0943951023931953);
 }
 
-static double easeOutElastic(double x) {
+inline double easeOutElastic(double x) {
     if (x == 0 || x == 1) {
         return x;
     }
@@ -208,7 +213,7 @@ static double easeOutElastic(double x) {
            1;
 }
 
-static double easeInOutElastic(double x) {
+inline double easeInOutElastic(double x) {
     if (x == 0 || x == 1) {
         return x;
     }
@@ -224,7 +229,7 @@ static double easeInOutElastic(double x) {
     }
 }
 
-static double easeOutBounce(double x) {
+inline double easeOutBounce(double x) {
     double n1 = 7.5625;
     double d1 = 2.75;
 
@@ -242,9 +247,9 @@ static double easeOutBounce(double x) {
     }
 }
 
-static double easeInBounce(double x) { return 1 - easeOutBounce(1 - x); }
+inline double easeInBounce(double x) { return 1 - easeOutBounce(1 - x); }
 
-static double easeInOutBounce(double x) {
+inline double easeInOutBounce(double x) {
     if (x < 0.5) {
         return (1 - easeOutBounce(1 - 2 * x)) / 2;
     } else {
@@ -252,7 +257,7 @@ static double easeInOutBounce(double x) {
     }
 }
 
-static RGBA over(double r1, double g1, double b1, double a1, double r2,
+inline RGBA over(double r1, double g1, double b1, double a1, double r2,
                  double g2, double b2, double a2) {
     a1 = a1 / 255.;
     a2 = a2 / 255.;
@@ -268,12 +273,12 @@ static RGBA over(double r1, double g1, double b1, double a1, double r2,
             (uint8_t)(a * 255.)};
 }
 
-static constexpr RGBA extractRGBA(uint32_t num) {
+inline constexpr RGBA extractRGBA(uint32_t num) {
     return {(uint8_t)(num >> 16), (uint8_t)(num >> 8), (uint8_t)num,
             (uint8_t)(num >> 24)};
 }
 
-static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
+inline constexpr uint32_t over(uint32_t num1, uint32_t num2) {
     if (num2 >> 24 == 255 || num1 >> 24 == 0)
         return num2;
     auto [r2, g2, b2, a2] = extractRGBA(num2);
@@ -284,7 +289,7 @@ static constexpr uint32_t over(uint32_t num1, uint32_t num2) {
     return makePixel(r3, g3, b3, a3);
 }
 
-static inline double srgbToLinear(double x) {
+inline double srgbToLinear(double x) {
     if (x < 0.04045) {
         return x * 0.0773993808;
     }
@@ -292,7 +297,7 @@ static inline double srgbToLinear(double x) {
     return std::pow(x * 0.9478672986 + 0.0521327014, 2.4);
 }
 
-static inline double linearToSrgb(double x) {
+inline double linearToSrgb(double x) {
     if (x < 0.0031308) {
         return x * 12.92;
     }
@@ -300,7 +305,7 @@ static inline double linearToSrgb(double x) {
     return 1.055 * std::pow(x, 0.41666) - 0.055;
 }
 
-static OKLAB rgbToOklab(double r, double g, double b) {
+inline OKLAB rgbToOklab(double r, double g, double b) {
     r = srgbToLinear(r / 255.);
     g = srgbToLinear(g / 255.);
     b = srgbToLinear(b / 255.);
@@ -316,7 +321,7 @@ static OKLAB rgbToOklab(double r, double g, double b) {
             l * 0.0259040371 + m * 0.7827717662 + s * -0.8086757660};
 }
 
-static RGB oklabToRgb(double L, double a, double b) {
+inline RGB oklabToRgb(double L, double a, double b) {
     double l = L + a * 0.3963377774 + b * 0.2158037573;
     double m = L + a * -0.1055613458 + b * -0.0638541728;
     double s = L + a * -0.0894841775 + b * -1.2914855480;
@@ -332,7 +337,7 @@ static RGB oklabToRgb(double L, double a, double b) {
     return {(uint8_t)r, (uint8_t)g, (uint8_t)b};
 }
 
-static RGBA mixColor(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1, uint8_t r2,
+inline RGBA mixColor(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t a1, uint8_t r2,
                      uint8_t g2, uint8_t b2, uint8_t a2, double x) {
     auto [l1, oa1, ob1] = rgbToOklab(r1, g1, b1);
     auto [l2, oa2, ob2] = rgbToOklab(r2, g2, b2);

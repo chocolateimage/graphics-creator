@@ -11,10 +11,6 @@
 class RenderThread;
 class Scene;
 
-static constexpr uint32_t makePixel(Color color) {
-    return (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
-}
-
 class Element : public Animatable {
     Q_OBJECT
   public:

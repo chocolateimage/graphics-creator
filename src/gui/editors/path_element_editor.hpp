@@ -9,6 +9,8 @@ class PathElementEditor : public Editor {
         Move,
         ControlPointFrom,
         ControlPointTo,
+        ControlPointBothFrom,
+        ControlPointBothTo,
     };
 
   public:

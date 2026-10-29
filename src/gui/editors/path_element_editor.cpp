@@ -2,6 +2,7 @@
 #include "gui/gui.hpp"
 #include "gui/image_viewer.hpp"
 #include <QApplication>
+#include <QMenu>
 #include <QPalette>
 #include <QWidget>
 
@@ -48,6 +49,12 @@ void PathElementEditor::paint(QPainter &painter) {
 
     FrameInfo frameInfo{scene->currentFrame};
     Path path = pathElement->path.get(frameInfo);
+    for (auto pointIndex : selectedPathPoints) {
+        if (pointIndex >= path.points.length()) {
+            selectedPathPoints.clear();
+            break;
+        }
+    }
 
     painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
 
@@ -74,22 +81,28 @@ void PathElementEditor::paint(QPainter &painter) {
     painter.setBrush(Qt::NoBrush);
     for (auto pointIndex : selectedPathPoints) {
         auto &point = path.points[pointIndex];
-        if (point.curveX == 0 && point.curveY == 0)
+        if (point.controlX1 == 0 && point.controlY1 == 0 &&
+            point.controlX2 == 0 && point.controlY2 == 0)
             continue;
 
         QPoint fromPoint =
             imageViewer
-                ->pixelToViewport(QPointF(point.x - point.curveX + offsetX,
-                                          point.y - point.curveY + offsetY))
+                ->pixelToViewport(QPointF(point.x + point.controlX2 + offsetX,
+                                          point.y + point.controlY2 + offsetY))
+                .toPoint();
+        QPoint pointPoint =
+            imageViewer
+                ->pixelToViewport(QPointF(point.x + offsetX, point.y + offsetY))
                 .toPoint();
         QPoint toPoint =
             imageViewer
-                ->pixelToViewport(QPointF(point.x + point.curveX + offsetX,
-                                          point.y + point.curveY + offsetY))
+                ->pixelToViewport(QPointF(point.x + point.controlX1 + offsetX,
+                                          point.y + point.controlY1 + offsetY))
                 .toPoint();
 
         painter.setPen(QPen(palette.accent(), 2));
-        painter.drawLine(fromPoint, toPoint);
+        painter.drawLine(fromPoint, pointPoint);
+        painter.drawLine(toPoint, pointPoint);
 
         painter.setPen(QPen(palette.accent(), 6));
         painter.drawPoint(fromPoint);
@@ -111,9 +124,18 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         if (hoveringControlPointIndex != -1) {
             selectedPathPoints.clear();
             selectedPathPoints.append(hoveringControlPointIndex);
-            currentHold = hoveringControlPointIsFrom
-                              ? HoldType::ControlPointFrom
-                              : HoldType::ControlPointTo;
+            PathPoint &point = path.points[hoveringControlPointIndex];
+            bool isSymmetric = point.controlX1 == -point.controlX2 &&
+                               point.controlY1 == -point.controlY2;
+            if (keyboardModifiers.testFlag(Qt::AltModifier) || !isSymmetric) {
+                currentHold = hoveringControlPointIsFrom
+                                  ? HoldType::ControlPointFrom
+                                  : HoldType::ControlPointTo;
+            } else {
+                currentHold = hoveringControlPointIsFrom
+                                  ? HoldType::ControlPointBothFrom
+                                  : HoldType::ControlPointBothTo;
+            }
 
             beginHold(pos);
 
@@ -122,6 +144,8 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         }
 
         if (hoveringPointIndex != -1) {
+            PathPoint &point = path.points[hoveringPointIndex];
+
             if (isClosingPath) {
                 path.closed = true;
                 pathElement->path.set(path, frameInfo);
@@ -142,8 +166,13 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
                 }
             }
 
-            if (keyboardModifiers.testFlag(Qt::AltModifier)) {
-                currentHold = HoldType::ControlPointTo;
+            bool hasNoControlPoints =
+                point.controlX1 == 0 && point.controlX2 == 0 &&
+                point.controlY1 == 0 && point.controlY2 == 0;
+
+            if (keyboardModifiers.testFlag(Qt::AltModifier) &&
+                hasNoControlPoints) {
+                currentHold = HoldType::ControlPointBothTo;
             } else {
                 currentHold = HoldType::Move;
             }
@@ -154,16 +183,78 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
             return true;
         }
 
-        path.points.append(PathPoint{pos.x(), pos.y()});
+        int insertIndex = path.points.length();
+        if (!selectedPathPoints.isEmpty()) {
+            insertIndex = selectedPathPoints.first() + 1;
+        }
+
+        path.points.insert(insertIndex, PathPoint{pos.x(), pos.y()});
         selectedPathPoints.clear();
-        selectedPathPoints.append(path.points.length() - 1);
+        selectedPathPoints.append(insertIndex);
         pathElement->path.set(path, frameInfo);
 
-        currentHold = HoldType::ControlPointTo;
+        currentHold = HoldType::ControlPointBothTo;
         beginHold(pos);
         return true;
     } else if (event->button() == Qt::MouseButton::RightButton) {
-        emit closeEditor();
+        if (hoveringPointIndex != -1) {
+            Path path = pathElement->path.get(frameInfo);
+            selectedPathPoints.clear();
+            selectedPathPoints.append(hoveringPointIndex);
+            repaintParent();
+
+            PathPoint &point = path.points[hoveringPointIndex];
+
+            QMenu menu;
+
+            bool isSymmetric = point.controlX1 == -point.controlX2 &&
+                               point.controlY1 == -point.controlY2;
+            bool hasNoControlPoints =
+                point.controlX1 == 0 && point.controlX2 == 0 &&
+                point.controlY1 == 0 && point.controlY2 == 0;
+
+            QAction *makeSymmetric = nullptr;
+            QAction *removeControlPoints = nullptr;
+            if (!isSymmetric) {
+                makeSymmetric = menu.addAction(
+                    QIcon::fromTheme("node-type-symmetric"), "Make symmetric");
+            }
+            if (!hasNoControlPoints) {
+                removeControlPoints =
+                    menu.addAction(QIcon::fromTheme("format-node-corner"),
+                                   "Remove control points");
+            }
+
+            if (!menu.actions().isEmpty()) {
+                menu.addSeparator();
+            }
+
+            QAction *removeAction =
+                menu.addAction(QIcon::fromTheme("delete"), "Remove point");
+            removeAction->setShortcut(QKeySequence("Delete"));
+
+            QAction *triggered = menu.exec(QCursor::pos());
+            if (triggered == removeAction) {
+                path.points.removeAt(hoveringPointIndex);
+                selectedPathPoints.clear();
+                pathElement->path.set(path, frameInfo);
+                repaintParent();
+            } else if (triggered == makeSymmetric) {
+                point.controlX2 = -point.controlX1;
+                point.controlY2 = -point.controlY1;
+                pathElement->path.set(path, frameInfo);
+                repaintParent();
+            } else if (triggered == removeControlPoints) {
+                point.controlX1 = 0;
+                point.controlY1 = 0;
+                point.controlX2 = 0;
+                point.controlY2 = 0;
+                pathElement->path.set(path, frameInfo);
+                repaintParent();
+            }
+        } else {
+            emit closeEditor();
+        }
         return true;
     }
 
@@ -185,11 +276,19 @@ void PathElementEditor::beginHold(const QPoint &pos) {
         }
         break;
     }
-    case HoldType::ControlPointFrom:
+    case HoldType::ControlPointFrom: {
+        for (int pointIndex : selectedPathPoints) {
+            const auto &point = path.points[pointIndex];
+            startHoldPositions.append(QPoint(point.controlX2, point.controlY2));
+        }
+        break;
+    }
+    case HoldType::ControlPointBothFrom:
+    case HoldType::ControlPointBothTo:
     case HoldType::ControlPointTo: {
         for (int pointIndex : selectedPathPoints) {
             const auto &point = path.points[pointIndex];
-            startHoldPositions.append(QPoint(point.curveX, point.curveY));
+            startHoldPositions.append(QPoint(point.controlX1, point.controlY1));
         }
         break;
     }
@@ -225,11 +324,21 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
                 point.x = startPosition.x() + moved.x();
                 point.y = startPosition.y() + moved.y();
             } else if (currentHold == HoldType::ControlPointFrom) {
-                point.curveX = startPosition.x() - moved.x();
-                point.curveY = startPosition.y() - moved.y();
+                point.controlX2 = startPosition.x() + moved.x();
+                point.controlY2 = startPosition.y() + moved.y();
             } else if (currentHold == HoldType::ControlPointTo) {
-                point.curveX = startPosition.x() + moved.x();
-                point.curveY = startPosition.y() + moved.y();
+                point.controlX1 = startPosition.x() + moved.x();
+                point.controlY1 = startPosition.y() + moved.y();
+            } else if (currentHold == HoldType::ControlPointBothFrom) {
+                point.controlX1 = startPosition.x() - moved.x();
+                point.controlY1 = startPosition.y() - moved.y();
+                point.controlX2 = -point.controlX1;
+                point.controlY2 = -point.controlY1;
+            } else if (currentHold == HoldType::ControlPointBothTo) {
+                point.controlX1 = startPosition.x() + moved.x();
+                point.controlY1 = startPosition.y() + moved.y();
+                point.controlX2 = -point.controlX1;
+                point.controlY2 = -point.controlY1;
             }
 
             index++;
@@ -242,8 +351,10 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
     hoveringControlPointIndex = -1;
     isClosingPath = false;
 
-    int index = 0;
+    int index = -1;
     for (const auto &point : path.points) {
+        index++;
+
         if ((imageViewer->pixelToViewport(QPoint(point.x, point.y) + offset) -
              viewportPos)
                 .manhattanLength() < 12) {
@@ -252,22 +363,26 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
             break;
         }
 
-        if (point.curveX == 0 && point.curveY == 0) {
-            index++;
+        if (point.controlX1 == 0 && point.controlY1 == 0 &&
+            point.controlX2 == 0 && point.controlY2 == 0) {
             continue;
         }
 
+        if (!selectedPathPoints.contains(index))
+            continue;
+
         QPoint fromPoint =
             imageViewer
-                ->pixelToViewport(
-                    QPointF(point.x - point.curveX, point.y - point.curveY) +
-                    offset)
+                ->pixelToViewport(QPointF(point.x + point.controlX2,
+                                          point.y + point.controlY2) +
+                                  offset)
                 .toPoint();
-        QPoint toPoint = imageViewer
-                             ->pixelToViewport(QPointF(point.x + point.curveX,
-                                                       point.y + point.curveY) +
-                                               offset)
-                             .toPoint();
+        QPoint toPoint =
+            imageViewer
+                ->pixelToViewport(QPointF(point.x + point.controlX1,
+                                          point.y + point.controlY1) +
+                                  offset)
+                .toPoint();
         bool hoveringFromPoint =
             (fromPoint - viewportPos).manhattanLength() < 12;
         bool hoveringToPoint = (toPoint - viewportPos).manhattanLength() < 12;
@@ -277,7 +392,6 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
             hoveringControlPointIsFrom = hoveringFromPoint;
             break;
         }
-        index++;
     }
 
     if (hoveringPointIndex != -1) {
