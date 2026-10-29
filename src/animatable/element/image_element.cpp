@@ -20,6 +20,10 @@ bool ImageElementRender::render(uint32_t *target) {
     QString path = QString::fromStdString(this->path);
     if (scaled && path.endsWith(".svg")) {
         QSvgRenderer renderer(path);
+        if (!renderer.isValid()) {
+            return false;
+        }
+
         QImage image(w, h, QImage::Format_ARGB32);
         image.fill(Qt::transparent);
         QPainter painter(&image);
@@ -35,6 +39,10 @@ bool ImageElementRender::render(uint32_t *target) {
     }
 
     auto imageData = globalLoader.loadImage(this->path);
+    if (!imageData) {
+        return false;
+    }
+
     int iw = imageData->width;
     int ih = imageData->height;
     int tw = std::min(w, imageData->width);

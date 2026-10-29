@@ -150,8 +150,8 @@ class RenderedElement {
     ElementRender *element;
 
     Rect elementRect;
-    uint32_t *__restrict__ elementValues;
-    uint32_t *__restrict__ finalValues;
+    uint32_t *__restrict__ elementValues{nullptr};
+    uint32_t *__restrict__ finalValues{nullptr};
     Rect finalRect;
     bool hasError{false};
 };

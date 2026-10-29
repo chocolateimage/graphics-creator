@@ -1339,9 +1339,10 @@ bool NewMainWindow::loadFrom(const QJsonDocument &document) {
     }
 
     QJsonObject sceneObject = rootObject["scene"].toObject();
-    newProject(sceneObject["width"].toInt(), sceneObject["height"].toInt(),
-               sceneObject["frameRate"].toDouble(),
-               sceneObject["durationFrames"].toInt());
+    newProject(std::max(1, sceneObject["width"].toInt()),
+               std::max(1, sceneObject["height"].toInt()),
+               std::max(0.1, sceneObject["frameRate"].toDouble()),
+               std::max(1, sceneObject["durationFrames"].toInt()));
     int newFrame = sceneObject["currentFrame"].toInt();
     {
         QSignalBlocker block1(scene);
