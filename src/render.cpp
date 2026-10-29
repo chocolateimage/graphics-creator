@@ -18,7 +18,10 @@ ImageData::~ImageData() { delete[] data; }
 VideoData::VideoData(const std::string &path) {
     qDebug() << "Creating video";
 
-    if (avformat_open_input(&fmtCtx, path.c_str(), nullptr, nullptr) < 0) {
+    AVDictionary *options{nullptr};
+    av_dict_set(&options, "protocol_whitelist", "file", 0);
+
+    if (avformat_open_input(&fmtCtx, path.c_str(), nullptr, &options) < 0) {
         error = true;
         return;
     }
