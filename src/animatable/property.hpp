@@ -335,6 +335,9 @@ template <> inline TextSpans deserializeAnyValue(const QJsonValue &value) {
         } else {
             span.fontSize = lastSpan->fontSize;
         }
+        if (span.fontSize <= 0) {
+            span.fontSize = 1;
+        }
         span.antialiased = spanObj["aa"].toBool(true);
         span.newLine = spanObj["nl"].toBool(false);
         spans.spans.append(span);
