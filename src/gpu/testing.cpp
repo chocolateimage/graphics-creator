@@ -1,12 +1,19 @@
 #include "gpu/vk_mem_alloc.h"
-#include "math.hpp"
 #include <QColorSpace>
 #include <QDebug>
 #include <QFile>
 #include <QImage>
 #include <QThread>
-#include <string>
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
+
+#define VK_CHECK_ERROR(result)                                                 \
+    {                                                                          \
+        if (result != 0) {                                                     \
+            qInfo() << "Vulkan result" << result << "at" << __FILE__ << "line" \
+                    << __LINE__;                                               \
+            abort();                                                           \
+        }                                                                      \
+    }
 
 int main(int argc, char **argv) {
     qInfo() << "Init";
@@ -20,61 +27,77 @@ int main(int argc, char **argv) {
     if (radius > 500)
         radius = 500;
 
-    vk::ApplicationInfo appInfo;
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Testing Stuff";
     appInfo.applicationVersion = 1;
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VK_API_VERSION_1_3;
 
     std::vector<const char *> layerNames = {"VK_LAYER_KHRONOS_validation"};
 
-    vk::InstanceCreateInfo instanceCreateInfo;
+    VkInstanceCreateInfo instanceCreateInfo{};
+    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.setPEnabledLayerNames(layerNames);
+    instanceCreateInfo.enabledLayerCount = layerNames.size();
+    instanceCreateInfo.ppEnabledLayerNames = layerNames.data();
 
-    vk::Instance instance = vk::createInstance(instanceCreateInfo);
+    VkInstance instance;
+    VK_CHECK_ERROR(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
     qInfo() << "Instance created";
 
-    std::vector<vk::PhysicalDevice> physicalDevices =
-        instance.enumeratePhysicalDevices();
+    uint32_t physicalDeviceCount;
+    VK_CHECK_ERROR(
+        vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr));
+    std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+    VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount,
+                                              physicalDevices.data()));
 
-    vk::PhysicalDevice firstDevice;
-    uint32_t queueFamilyIndex = 1;
+    VkPhysicalDevice physicalDevice;
+    uint32_t queueFamilyIndex = 0;
 
     for (auto device : physicalDevices) {
         qInfo() << "Device";
-        auto properties = device.getProperties();
-        qInfo() << "  Device ID" << properties.deviceID;
-        qInfo() << "  Device Name" << properties.deviceName.data();
+        VkPhysicalDeviceProperties2 properties{};
+        properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        vkGetPhysicalDeviceProperties2(device, &properties);
+        qInfo() << "  Device ID" << properties.properties.deviceID;
+        qInfo() << "  Device Name" << properties.properties.deviceName;
 
-        auto queueFamilyProperties = device.getQueueFamilyProperties();
+        uint32_t queueFamilyPropertyCount;
+        vkGetPhysicalDeviceQueueFamilyProperties2(
+            device, &queueFamilyPropertyCount, nullptr);
+        std::vector<VkQueueFamilyProperties2> queueFamilyProperties;
+        vkGetPhysicalDeviceQueueFamilyProperties2(
+            device, &queueFamilyPropertyCount, queueFamilyProperties.data());
 
-        // for (size_t i = 0; i < queueFamilyProperties.size(); i++) {
-        //     if (queueFamilyProperties[i].queueFlags &
-        //         vk::QueueFlagBits::eCompute) {
-        //         queueFamilyIndex = i;
-        //         break;
-        //     }
-        // }
-
-        firstDevice = device;
-        break;
+        for (size_t i = 0; i < queueFamilyProperties.size(); i++) {
+            if (queueFamilyProperties[i].queueFamilyProperties.queueFlags &
+                VK_QUEUE_COMPUTE_BIT) {
+                queueFamilyIndex = i;
+                break;
+            }
+        }
     }
+    physicalDevice = physicalDevices[0];
 
     std::vector<float> priorities = {.5};
 
-    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    vk::DeviceQueueCreateInfo queueCreateInfo;
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
     queueCreateInfo.pQueuePriorities = priorities.data();
-    queueCreateInfos.push_back(queueCreateInfo);
 
-    vk::DeviceCreateInfo deviceCreateInfo;
-    deviceCreateInfo.setQueueCreateInfos(queueCreateInfos);
+    VkDeviceCreateInfo deviceCreateInfo{};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
 
     qInfo() << "Creating device";
 
-    auto device = firstDevice.createDevice(deviceCreateInfo);
+    VkDevice device;
+    VK_CHECK_ERROR(
+        vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
 
     qInfo() << "Device created";
 
@@ -87,9 +110,9 @@ int main(int argc, char **argv) {
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.instance = instance;
     allocatorCreateInfo.device = device;
-    allocatorCreateInfo.physicalDevice = firstDevice;
+    allocatorCreateInfo.physicalDevice = physicalDevice;
     allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
+    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
     VmaAllocator allocator;
     VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &allocator);
     if (result != 0) {
@@ -99,18 +122,25 @@ int main(int argc, char **argv) {
 
     qInfo() << "Allocator created";
 
-    auto queue = device.getQueue(queueFamilyIndex, 0);
+    VkQueue queue;
+    vkGetDeviceQueue(device, queueFamilyIndex, 0, &queue);
 
-    vk::CommandPoolCreateInfo commandPoolCreateInfo;
+    VkCommandPoolCreateInfo commandPoolCreateInfo{};
+    commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex;
-    auto commandPool = device.createCommandPool(commandPoolCreateInfo);
+    VkCommandPool commandPool;
+    VK_CHECK_ERROR(vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr,
+                                       &commandPool));
 
-    vk::CommandBufferAllocateInfo cmdBufAllocInfo{};
+    VkCommandBufferAllocateInfo cmdBufAllocInfo{};
+    cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cmdBufAllocInfo.commandPool = commandPool;
     cmdBufAllocInfo.commandBufferCount = 1;
-    cmdBufAllocInfo.level = vk::CommandBufferLevel::ePrimary;
+    cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-    auto cmdBuffers = device.allocateCommandBuffers(cmdBufAllocInfo);
+    std::vector<VkCommandBuffer> cmdBuffers(1);
+    VK_CHECK_ERROR(
+        vkAllocateCommandBuffers(device, &cmdBufAllocInfo, cmdBuffers.data()));
 
     qInfo() << "Create shader";
     QFile file("testshader.comp.spv");
@@ -120,12 +150,17 @@ int main(int argc, char **argv) {
     }
     QByteArray shaderCode = file.readAll();
 
-    vk::ShaderModuleCreateInfo shaderCreateInfo{};
+    VkShaderModuleCreateInfo shaderCreateInfo{};
+    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shaderCreateInfo.codeSize = shaderCode.size();
     shaderCreateInfo.pCode = (uint32_t *)shaderCode.data();
-    auto shaderModule = device.createShaderModule(shaderCreateInfo);
+    VkShaderModule shaderModule;
+    VK_CHECK_ERROR(vkCreateShaderModule(device, &shaderCreateInfo, nullptr,
+                                        &shaderModule));
 
-    vk::PipelineCacheCreateInfo pipelineCacheCreateInfo;
+    VkPipelineCacheCreateInfo pipelineCacheCreateInfo{};
+    pipelineCacheCreateInfo.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
     QByteArray loadedPipelineCacheData;
     {
         QFile file("pipeline_cache.bin");
@@ -139,78 +174,104 @@ int main(int argc, char **argv) {
                 loadedPipelineCacheData.data();
         }
     }
-    vk::PipelineCache pipelineCache =
-        device.createPipelineCache(pipelineCacheCreateInfo);
+    VkPipelineCache pipelineCache;
+    VK_CHECK_ERROR(vkCreatePipelineCache(device, &pipelineCacheCreateInfo,
+                                         nullptr, &pipelineCache));
 
     qInfo() << "Creating pipeline";
 
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings(2);
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings(2);
     layoutBindings[0].binding = 0;
     layoutBindings[0].descriptorCount = 1;
-    layoutBindings[0].descriptorType = vk::DescriptorType::eStorageImage;
-    layoutBindings[0].stageFlags = vk::ShaderStageFlagBits::eCompute;
+    layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    layoutBindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     layoutBindings[1].binding = 1;
     layoutBindings[1].descriptorCount = 1;
     layoutBindings[1].descriptorType =
-        vk::DescriptorType::eCombinedImageSampler;
-    layoutBindings[1].stageFlags = vk::ShaderStageFlagBits::eCompute;
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    layoutBindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-    vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
-    descriptorSetLayoutCreateInfo.setBindings(layoutBindings);
-    auto descriptorSetLayouts =
-        device.createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
+    descriptorSetLayoutCreateInfo.sType =
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    descriptorSetLayoutCreateInfo.bindingCount = layoutBindings.size();
+    descriptorSetLayoutCreateInfo.pBindings = layoutBindings.data();
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts(1);
+    VK_CHECK_ERROR(
+        vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo,
+                                    nullptr, descriptorSetLayouts.data()));
 
-    vk::PushConstantRange range;
+    VkPushConstantRange range{};
     range.offset = 0;
     range.size = sizeof(float);
-    range.stageFlags = vk::ShaderStageFlagBits::eCompute;
+    range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-    vk::PipelineLayoutCreateInfo layoutCreateInfo;
-    layoutCreateInfo.setSetLayouts(descriptorSetLayouts);
-    layoutCreateInfo.setPushConstantRanges(range);
-    auto pipelineLayout = device.createPipelineLayout(layoutCreateInfo);
+    VkPipelineLayoutCreateInfo layoutCreateInfo{};
+    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutCreateInfo.setLayoutCount = descriptorSetLayouts.size();
+    layoutCreateInfo.pSetLayouts = descriptorSetLayouts.data();
+    layoutCreateInfo.pushConstantRangeCount = 1;
+    layoutCreateInfo.pPushConstantRanges = &range;
+    VkPipelineLayout pipelineLayout;
+    VK_CHECK_ERROR(vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr,
+                                          &pipelineLayout));
 
-    vk::ComputePipelineCreateInfo pipelineCreateInfo{};
+    VkComputePipelineCreateInfo pipelineCreateInfo{};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineCreateInfo.basePipelineIndex = -1;
     pipelineCreateInfo.basePipelineHandle = nullptr;
-    pipelineCreateInfo.stage.stage = vk::ShaderStageFlagBits::eCompute;
+    pipelineCreateInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    pipelineCreateInfo.stage.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     pipelineCreateInfo.stage.module = shaderModule;
     pipelineCreateInfo.stage.pName = "main";
     pipelineCreateInfo.layout = pipelineLayout;
 
-    vk::Pipeline pipeline =
-        device.createComputePipeline(pipelineCache, pipelineCreateInfo).value;
+    VkPipeline pipeline;
+    vkCreateComputePipelines(device, pipelineCache, 1, &pipelineCreateInfo,
+                             nullptr, &pipeline);
 
     qInfo() << "Saving cache";
     {
-        auto savedPipelineCacheData =
-            device.getPipelineCacheData(pipelineCache);
-        qInfo() << "Pipeline cache size" << savedPipelineCacheData.size();
+        size_t savedSize;
+        VK_CHECK_ERROR(
+            vkGetPipelineCacheData(device, pipelineCache, &savedSize, nullptr));
+        char *savedData = new char[savedSize];
+        VK_CHECK_ERROR(vkGetPipelineCacheData(device, pipelineCache, &savedSize,
+                                              savedData));
+        qInfo() << "Pipeline cache size" << savedSize;
         QFile file("pipeline_cache.bin");
         if (file.open(QFile::WriteOnly)) {
-            file.write((char *)savedPipelineCacheData.data(),
-                       savedPipelineCacheData.size());
+            file.write(savedData, savedSize);
         } else {
             qInfo() << "Could not write pipeline cache file";
         }
+        delete[] savedData;
     }
 
     qInfo() << "Creating descriptor set";
-    std::vector<vk::DescriptorPoolSize> descriptorPoolSizes(2);
-    descriptorPoolSizes[0].type = vk::DescriptorType::eStorageImage;
+    std::vector<VkDescriptorPoolSize> descriptorPoolSizes(2);
+    descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     descriptorPoolSizes[0].descriptorCount = 1;
-    descriptorPoolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
+    descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorPoolSizes[1].descriptorCount = 1;
-    vk::DescriptorPoolCreateInfo descriptorPoolInfo;
+    VkDescriptorPoolCreateInfo descriptorPoolInfo{};
+    descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     descriptorPoolInfo.maxSets = 1;
-    descriptorPoolInfo.setPoolSizes(descriptorPoolSizes);
-    vk::DescriptorPool descriptorPool =
-        device.createDescriptorPool(descriptorPoolInfo);
+    descriptorPoolInfo.poolSizeCount = descriptorPoolSizes.size();
+    descriptorPoolInfo.pPoolSizes = descriptorPoolSizes.data();
+    VkDescriptorPool descriptorPool;
+    VK_CHECK_ERROR(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr,
+                                          &descriptorPool));
 
-    vk::DescriptorSetAllocateInfo descriptorSetInfo;
-    descriptorSetInfo.setSetLayouts(descriptorSetLayouts);
+    VkDescriptorSetAllocateInfo descriptorSetInfo{};
+    descriptorSetInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    descriptorSetInfo.descriptorSetCount = descriptorSetLayouts.size();
+    descriptorSetInfo.pSetLayouts = descriptorSetLayouts.data();
     descriptorSetInfo.descriptorPool = descriptorPool;
-    auto descriptorSets = device.allocateDescriptorSets(descriptorSetInfo);
+    std::vector<VkDescriptorSet> descriptorSets(descriptorSetLayouts.size());
+    VK_CHECK_ERROR(vkAllocateDescriptorSets(device, &descriptorSetInfo,
+                                            descriptorSets.data()));
 
     qInfo() << "Creating images";
 
@@ -228,25 +289,28 @@ int main(int argc, char **argv) {
     VmaAllocation stagingBufferAlloc;
 
     {
-        vk::ImageCreateInfo imageCreateInfo{};
-        imageCreateInfo.imageType = vk::ImageType::e2D;
-        imageCreateInfo.format = vk::Format::eR8G8B8A8Unorm;
-        imageCreateInfo.usage = vk::ImageUsageFlagBits::eStorage |
-                                vk::ImageUsageFlagBits::eTransferSrc;
-        imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+        VkImageCreateInfo imageCreateInfo{};
+        imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCreateInfo.usage =
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCreateInfo.extent.width = width;
         imageCreateInfo.extent.height = height;
         imageCreateInfo.extent.depth = 1;
         imageCreateInfo.mipLevels = 1;
         imageCreateInfo.arrayLayers = 1;
-        imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
-        imageCreateInfo.setQueueFamilyIndices(queueFamilyIndex);
+        imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCreateInfo.pQueueFamilyIndices = &queueFamilyIndex;
+        imageCreateInfo.queueFamilyIndexCount = 1;
+        imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         VmaAllocationCreateInfo allocationCreateInfo{};
         allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
         result =
-            vmaCreateImage(allocator, imageCreateInfo, &allocationCreateInfo,
+            vmaCreateImage(allocator, &imageCreateInfo, &allocationCreateInfo,
                            &outputImg, &outputImgAlloc, nullptr);
         if (result != 0) {
             qInfo() << "vmaCreateImage Error" << result;
@@ -255,25 +319,28 @@ int main(int argc, char **argv) {
     }
 
     {
-        vk::ImageCreateInfo imageCreateInfo{};
-        imageCreateInfo.imageType = vk::ImageType::e2D;
-        imageCreateInfo.format = vk::Format::eR8G8B8A8Unorm;
-        imageCreateInfo.usage = vk::ImageUsageFlagBits::eSampled |
-                                vk::ImageUsageFlagBits::eTransferDst;
-        imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+        VkImageCreateInfo imageCreateInfo{};
+        imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCreateInfo.usage =
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCreateInfo.extent.width = width;
         imageCreateInfo.extent.height = height;
         imageCreateInfo.extent.depth = 1;
         imageCreateInfo.mipLevels = 1;
         imageCreateInfo.arrayLayers = 1;
-        imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
-        imageCreateInfo.setQueueFamilyIndices(queueFamilyIndex);
+        imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCreateInfo.queueFamilyIndexCount = 1;
+        imageCreateInfo.pQueueFamilyIndices = &queueFamilyIndex;
+        imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         VmaAllocationCreateInfo allocationCreateInfo{};
         allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
         result =
-            vmaCreateImage(allocator, imageCreateInfo, &allocationCreateInfo,
+            vmaCreateImage(allocator, &imageCreateInfo, &allocationCreateInfo,
                            &inputImg, &inputImgAlloc, nullptr);
         if (result != 0) {
             qInfo() << "vmaCreateImage Error" << result;
@@ -282,99 +349,103 @@ int main(int argc, char **argv) {
     }
 
     {
-        vk::BufferCreateInfo stagingBufferInfo;
+        VkBufferCreateInfo stagingBufferInfo{};
+        stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         stagingBufferInfo.size = width * height * 4;
-        stagingBufferInfo.sharingMode = vk::SharingMode::eExclusive;
-        stagingBufferInfo.usage = vk::BufferUsageFlagBits::eTransferSrc |
-                                  vk::BufferUsageFlagBits::eTransferDst;
+        stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        stagingBufferInfo.usage =
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         VmaAllocationCreateInfo allocationCreateInfo{};
         allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
         allocationCreateInfo.flags =
             VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-        result =
-            vmaCreateBuffer(allocator, stagingBufferInfo, &allocationCreateInfo,
-                            &stagingBuffer, &stagingBufferAlloc, nullptr);
+        result = vmaCreateBuffer(allocator, &stagingBufferInfo,
+                                 &allocationCreateInfo, &stagingBuffer,
+                                 &stagingBufferAlloc, nullptr);
         if (result != 0) {
             qInfo() << "vmaCreateBuffer Error" << result;
             return 1;
         }
     }
 
-    // float *bufferData1;
-
-    // result = vmaMapMemory(allocator, allocation1, (void **)&bufferData1);
-    // if (result != 0) {
-    //     qInfo() << "vmaMapMemory Error" << result;
-    //     return 1;
-    // }
-
-    // qInfo() << "writing data";
-    // for (uint64_t i = 0; i < bufferSize; i++) {
-    //     bufferData1[i] = i;
-    //     bufferData2[i] = i * 2;
-    // }
-
     qInfo() << "creating image views";
-    vk::ImageViewCreateInfo imageViewCreateInfoOutput;
-    imageViewCreateInfoOutput.image = outputImg;
-    imageViewCreateInfoOutput.viewType = vk::ImageViewType::e2D;
-    imageViewCreateInfoOutput.format = vk::Format::eR8G8B8A8Unorm;
-    imageViewCreateInfoOutput.subresourceRange.aspectMask =
-        vk::ImageAspectFlagBits::eColor;
-    imageViewCreateInfoOutput.subresourceRange.baseArrayLayer = 0;
-    imageViewCreateInfoOutput.subresourceRange.baseMipLevel = 0;
-    imageViewCreateInfoOutput.subresourceRange.layerCount = 1;
-    imageViewCreateInfoOutput.subresourceRange.levelCount = 1;
-    vk::ImageView outputImageView =
-        device.createImageView(imageViewCreateInfoOutput);
+    VkImageView outputImageView;
+    {
+        VkImageViewCreateInfo imageViewCreateInfoOutput{};
+        imageViewCreateInfoOutput.sType =
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfoOutput.image = outputImg;
+        imageViewCreateInfoOutput.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfoOutput.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageViewCreateInfoOutput.subresourceRange.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfoOutput.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfoOutput.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfoOutput.subresourceRange.layerCount = 1;
+        imageViewCreateInfoOutput.subresourceRange.levelCount = 1;
+        vkCreateImageView(device, &imageViewCreateInfoOutput, nullptr,
+                          &outputImageView);
+    }
 
-    vk::ImageViewCreateInfo imageViewCreateInfoInput;
-    imageViewCreateInfoInput.image = inputImg;
-    imageViewCreateInfoInput.viewType = vk::ImageViewType::e2D;
-    imageViewCreateInfoInput.format = vk::Format::eR8G8B8A8Unorm;
-    imageViewCreateInfoInput.subresourceRange.aspectMask =
-        vk::ImageAspectFlagBits::eColor;
-    imageViewCreateInfoInput.subresourceRange.baseArrayLayer = 0;
-    imageViewCreateInfoInput.subresourceRange.baseMipLevel = 0;
-    imageViewCreateInfoInput.subresourceRange.layerCount = 1;
-    imageViewCreateInfoInput.subresourceRange.levelCount = 1;
-    vk::ImageView inputImageView =
-        device.createImageView(imageViewCreateInfoInput);
+    VkImageView inputImageView;
+    {
+        VkImageViewCreateInfo imageViewCreateInfoInput{};
+        imageViewCreateInfoInput.sType =
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfoInput.image = inputImg;
+        imageViewCreateInfoInput.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfoInput.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageViewCreateInfoInput.subresourceRange.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfoInput.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfoInput.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfoInput.subresourceRange.layerCount = 1;
+        imageViewCreateInfoInput.subresourceRange.levelCount = 1;
+        VK_CHECK_ERROR(vkCreateImageView(device, &imageViewCreateInfoInput,
+                                         nullptr, &inputImageView));
+    }
 
-    vk::SamplerCreateInfo sampleInfo;
-    sampleInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-    sampleInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-    sampleInfo.unnormalizedCoordinates = true;
-    vk::Sampler sampler = device.createSampler(sampleInfo);
+    VkSampler sampler;
+    {
+        VkSamplerCreateInfo sampleInfo{};
+        sampleInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampleInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampleInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampleInfo.unnormalizedCoordinates = true;
+        VK_CHECK_ERROR(vkCreateSampler(device, &sampleInfo, nullptr, &sampler));
+    }
 
-    std::vector<vk::DescriptorImageInfo> descriptorImageInfos(2);
+    std::vector<VkDescriptorImageInfo> descriptorImageInfos(2);
     descriptorImageInfos[0].sampler = nullptr;
-    descriptorImageInfos[0].imageLayout = vk::ImageLayout::eGeneral;
+    descriptorImageInfos[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     descriptorImageInfos[0].imageView = outputImageView;
 
     descriptorImageInfos[1].sampler = sampler;
-    descriptorImageInfos[1].imageLayout = vk::ImageLayout::eGeneral;
+    descriptorImageInfos[1].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     descriptorImageInfos[1].imageView = inputImageView;
 
     qInfo() << "Update descriptor sets";
-    std::vector<vk::WriteDescriptorSet> writeDescriptorSets(2);
+    std::vector<VkWriteDescriptorSet> writeDescriptorSets(2);
     {
+        writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType =
-            vk::DescriptorType::eStorageImage;
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         writeDescriptorSets[0].descriptorCount = 1;
         writeDescriptorSets[0].dstSet = descriptorSets[0];
         writeDescriptorSets[0].dstBinding = 0;
         writeDescriptorSets[0].pImageInfo = &descriptorImageInfos[0];
     }
     {
+        writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[1].descriptorType =
-            vk::DescriptorType::eCombinedImageSampler;
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptorSets[1].descriptorCount = 1;
         writeDescriptorSets[1].dstSet = descriptorSets[0];
         writeDescriptorSets[1].dstBinding = 1;
         writeDescriptorSets[1].pImageInfo = &descriptorImageInfos[1];
     }
-    device.updateDescriptorSets(writeDescriptorSets, {});
+    vkUpdateDescriptorSets(device, writeDescriptorSets.size(),
+                           writeDescriptorSets.data(), 0, nullptr);
 
     qInfo() << "Mapping memory";
     uint8_t *imageData;
@@ -403,123 +474,149 @@ int main(int argc, char **argv) {
     vmaFlushAllocation(allocator, stagingBufferAlloc, 0, VK_WHOLE_SIZE);
 
     qInfo() << "Recording";
-    vk::CommandBufferBeginInfo beginInfo;
     {
-        cmdBuffers[0].begin(beginInfo);
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        vkBeginCommandBuffer(cmdBuffers[0], &beginInfo);
 
         {
-            vk::ImageMemoryBarrier barrier;
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             barrier.image = inputImg;
-            barrier.subresourceRange =
-                imageViewCreateInfoInput.subresourceRange;
-            barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier.srcAccessMask = vk::AccessFlagBits::eNone;
-            barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-            barrier.oldLayout = vk::ImageLayout::eUndefined;
-            barrier.newLayout = vk::ImageLayout::eGeneral;
-            cmdBuffers[0].pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
-                                          vk::PipelineStageFlagBits::eTransfer,
-                                          {}, {}, {}, barrier);
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.layerCount = 1;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.srcAccessMask = VK_ACCESS_NONE;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+            vkCmdPipelineBarrier(cmdBuffers[0],
+                                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+                                 0, nullptr, 1, &barrier);
         }
 
         {
-            vk::BufferImageCopy bufferImageCopy;
+            VkBufferImageCopy bufferImageCopy{};
             bufferImageCopy.imageSubresource.aspectMask =
-                vk::ImageAspectFlagBits::eColor;
+                VK_IMAGE_ASPECT_COLOR_BIT;
             bufferImageCopy.imageSubresource.baseArrayLayer = 0;
             bufferImageCopy.imageSubresource.layerCount = 1;
             bufferImageCopy.imageSubresource.mipLevel = 0;
-            bufferImageCopy.imageExtent = vk::Extent3D{1920, 1080, 1};
+            bufferImageCopy.imageExtent = VkExtent3D{1920, 1080, 1};
             bufferImageCopy.bufferRowLength = 1920;
             bufferImageCopy.bufferImageHeight = 1080;
-            cmdBuffers[0].copyBufferToImage(stagingBuffer, inputImg,
-                                            vk::ImageLayout::eGeneral,
-                                            bufferImageCopy);
+            vkCmdCopyBufferToImage(cmdBuffers[0], stagingBuffer, inputImg,
+                                   VK_IMAGE_LAYOUT_GENERAL, 1,
+                                   &bufferImageCopy);
         }
 
         {
-            vk::ImageMemoryBarrier barrier;
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             barrier.image = outputImg;
-            barrier.subresourceRange =
-                imageViewCreateInfoOutput.subresourceRange;
-            barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier.srcAccessMask = vk::AccessFlagBits::eNone;
-            barrier.dstAccessMask = vk::AccessFlagBits::eShaderWrite;
-            barrier.oldLayout = vk::ImageLayout::eUndefined;
-            barrier.newLayout = vk::ImageLayout::eGeneral;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.layerCount = 1;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.srcAccessMask = VK_ACCESS_NONE;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-            vk::ImageMemoryBarrier barrier2;
+            VkImageMemoryBarrier barrier2{};
+            barrier2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             barrier2.image = inputImg;
-            barrier2.subresourceRange =
-                imageViewCreateInfoInput.subresourceRange;
-            barrier2.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier2.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier2.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-            barrier2.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-            barrier2.oldLayout = vk::ImageLayout::eGeneral;
-            barrier2.newLayout = vk::ImageLayout::eGeneral;
+            barrier2.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier2.subresourceRange.baseArrayLayer = 0;
+            barrier2.subresourceRange.baseMipLevel = 0;
+            barrier2.subresourceRange.layerCount = 1;
+            barrier2.subresourceRange.levelCount = 1;
+            barrier2.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier2.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier2.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier2.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+            barrier2.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-            cmdBuffers[0].pipelineBarrier(
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eComputeShader, {}, {}, {},
-                {barrier, barrier2});
+            std::vector<VkImageMemoryBarrier> barriers{barrier, barrier2};
+
+            vkCmdPipelineBarrier(cmdBuffers[0], VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                                 nullptr, 0, nullptr, barriers.size(),
+                                 barriers.data());
         }
 
-        cmdBuffers[0].bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
-        cmdBuffers[0].bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                         pipelineLayout, 0, descriptorSets, {});
-        cmdBuffers[0].pushConstants(pipelineLayout,
-                                    vk::ShaderStageFlagBits::eCompute, 0,
-                                    sizeof(float), &radius);
+        vkCmdBindPipeline(cmdBuffers[0], VK_PIPELINE_BIND_POINT_COMPUTE,
+                          pipeline);
+        vkCmdBindDescriptorSets(cmdBuffers[0], VK_PIPELINE_BIND_POINT_COMPUTE,
+                                pipelineLayout, 0, descriptorSets.size(),
+                                descriptorSets.data(), 0, nullptr);
+        vkCmdPushConstants(cmdBuffers[0], pipelineLayout,
+                           VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float),
+                           &radius);
 
-        cmdBuffers[0].dispatch(std::ceil(1920. / 8.), std::ceil(1080. / 8.), 1);
+        vkCmdDispatch(cmdBuffers[0], std::ceil(1920. / 8.),
+                      std::ceil(1080. / 8.), 1);
 
         {
-            vk::ImageMemoryBarrier barrier;
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             barrier.image = outputImg;
-            barrier.subresourceRange =
-                imageViewCreateInfoOutput.subresourceRange;
-            barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-            barrier.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
-            barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-            barrier.oldLayout = vk::ImageLayout::eGeneral;
-            barrier.newLayout = vk::ImageLayout::eGeneral;
-            cmdBuffers[0].pipelineBarrier(
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::PipelineStageFlagBits::eTransfer, {}, {}, {}, barrier);
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.layerCount = 1;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+            vkCmdPipelineBarrier(cmdBuffers[0],
+                                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+                                 0, nullptr, 1, &barrier);
         }
 
         {
-            vk::BufferImageCopy bufferImageCopy;
+            VkBufferImageCopy bufferImageCopy{};
             bufferImageCopy.imageSubresource.aspectMask =
-                vk::ImageAspectFlagBits::eColor;
+                VK_IMAGE_ASPECT_COLOR_BIT;
             bufferImageCopy.imageSubresource.baseArrayLayer = 0;
             bufferImageCopy.imageSubresource.layerCount = 1;
             bufferImageCopy.imageSubresource.mipLevel = 0;
-            bufferImageCopy.imageExtent = vk::Extent3D{1920, 1080, 1};
+            bufferImageCopy.imageExtent = VkExtent3D{1920, 1080, 1};
             bufferImageCopy.bufferRowLength = 1920;
             bufferImageCopy.bufferImageHeight = 1080;
-            cmdBuffers[0].copyImageToBuffer(outputImg,
-                                            vk::ImageLayout::eGeneral,
-                                            stagingBuffer, bufferImageCopy);
+            vkCmdCopyImageToBuffer(cmdBuffers[0], outputImg,
+                                   VK_IMAGE_LAYOUT_GENERAL, stagingBuffer, 1,
+                                   &bufferImageCopy);
         }
 
-        cmdBuffers[0].end();
+        vkEndCommandBuffer(cmdBuffers[0]);
     }
 
     qInfo() << "Submitting";
 
-    vk::SubmitInfo submitInfo;
-    submitInfo.setCommandBuffers(cmdBuffers);
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = cmdBuffers.size();
+    submitInfo.pCommandBuffers = cmdBuffers.data();
     // submitInfo.setSignalSemaphores(sem);
     // vk::Fence f;
-    queue.submit(submitInfo);
+    vkQueueSubmit(queue, 1, &submitInfo, nullptr);
 
     qInfo() << "Waiting";
-    queue.waitIdle();
+    vkQueueWaitIdle(queue);
 
     qInfo() << "Writing";
     vmaInvalidateAllocation(allocator, stagingBufferAlloc, 0, VK_WHOLE_SIZE);
@@ -543,23 +640,25 @@ int main(int argc, char **argv) {
     qInfo() << "Freeing";
     vmaUnmapMemory(allocator, stagingBufferAlloc);
 
-    device.destroySampler(sampler);
-    device.destroyImageView(inputImageView);
-    device.destroyImageView(outputImageView);
+    vkDestroySampler(device, sampler, nullptr);
+    vkDestroyImageView(device, inputImageView, nullptr);
+    vkDestroyImageView(device, outputImageView, nullptr);
     vmaDestroyImage(allocator, inputImg, inputImgAlloc);
     vmaDestroyImage(allocator, outputImg, outputImgAlloc);
     vmaDestroyBuffer(allocator, stagingBuffer, stagingBufferAlloc);
     vmaDestroyAllocator(allocator);
 
-    device.destroyPipelineCache(pipelineCache);
-    device.destroyDescriptorSetLayout(descriptorSetLayouts);
-    device.destroyDescriptorPool(descriptorPool);
-    device.destroyPipelineLayout(pipelineLayout);
-    device.destroyPipeline(pipeline);
-    device.destroyShaderModule(shaderModule);
-    device.destroyCommandPool(commandPool);
-    device.destroy();
-    instance.destroy();
+    vkDestroyPipelineCache(device, pipelineCache, nullptr);
+    for (auto layout : descriptorSetLayouts) {
+        vkDestroyDescriptorSetLayout(device, layout, nullptr);
+    }
+    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyPipeline(device, pipeline, nullptr);
+    vkDestroyShaderModule(device, shaderModule, nullptr);
+    vkDestroyCommandPool(device, commandPool, nullptr);
+    vkDestroyDevice(device, nullptr);
+    vkDestroyInstance(instance, nullptr);
 
     qInfo() << "Finish";
     return 0;
