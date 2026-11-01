@@ -24,7 +24,7 @@ find_package(Fontconfig REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg Network)
 find_package(KF6 REQUIRED IconThemes WidgetsAddons ColorScheme ConfigWidgets)
 find_package(qtadvanceddocking-qt6 REQUIRED)
-find_package(Vulkan REQUIRED)
+find_package(volk REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 
@@ -92,7 +92,7 @@ target_link_libraries(
     KF6::ColorScheme KF6::ConfigWidgets KF6::IconThemes KF6::WidgetsAddons
     FFmpeg::FFmpeg
     harfbuzz Freetype::Freetype Fontconfig::Fontconfig
-    Vulkan::Vulkan
+    volk::volk
 )
 target_compile_options(graphics-creator PRIVATE -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter)
 

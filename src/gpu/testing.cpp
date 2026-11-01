@@ -1,10 +1,12 @@
+// clang-format off
+#include <volk.h>
 #include "gpu/vk_mem_alloc.h"
+// clang-format on
 #include <QColorSpace>
 #include <QDebug>
 #include <QFile>
 #include <QImage>
 #include <QThread>
-#include <vulkan/vulkan.h>
 
 #define VK_CHECK_ERROR(result)                                                 \
     {                                                                          \
@@ -27,6 +29,8 @@ int main(int argc, char **argv) {
     if (radius > 500)
         radius = 500;
 
+    volkInitialize();
+
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Testing Stuff";
@@ -43,6 +47,8 @@ int main(int argc, char **argv) {
 
     VkInstance instance;
     VK_CHECK_ERROR(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+
+    volkLoadInstance(instance);
     qInfo() << "Instance created";
 
     uint32_t physicalDeviceCount;
@@ -98,14 +104,13 @@ int main(int argc, char **argv) {
     VkDevice device;
     VK_CHECK_ERROR(
         vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
+    volkLoadDevice(device);
 
     qInfo() << "Device created";
 
     qInfo() << "Creating allocator";
 
     VmaVulkanFunctions vulkanFunctions{};
-    vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-    vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
 
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.instance = instance;
@@ -113,6 +118,8 @@ int main(int argc, char **argv) {
     allocatorCreateInfo.physicalDevice = physicalDevice;
     allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
     allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+    vmaImportVulkanFunctionsFromVolk(&allocatorCreateInfo, &vulkanFunctions);
+
     VmaAllocator allocator;
     VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &allocator);
     if (result != 0) {
