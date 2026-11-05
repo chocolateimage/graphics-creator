@@ -29,4 +29,7 @@ class TimelineElementButton : public QPushButton {
     QPoint dragStartPosition;
     QLabel *objectNameLabel;
     QPushButton *visibilityButton;
+
+    void copyKeyframes();
+    void replacePasteKeyframes();
 };

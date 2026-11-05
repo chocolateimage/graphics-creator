@@ -26,6 +26,8 @@ class Animatable : public QObject {
     virtual AnimatableRender *toRender(const FrameInfo &frameInfo);
     virtual QJsonObject serialize();
     virtual void deserialize(const QJsonObject &obj);
+    virtual QJsonObject serializeAnimatable();
+    virtual void deserializeAnimatable(const QJsonObject &obj);
 
     virtual void _propertyUpdated(PropertyBase *property);
     virtual void _propertyIsAnimatingUpdated(PropertyBase *property);

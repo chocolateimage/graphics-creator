@@ -38,6 +38,21 @@ QJsonObject Animatable::serialize() {
     return obj;
 }
 
+QJsonObject Animatable::serializeAnimatable() {
+    QJsonObject obj;
+    QJsonObject propertiesObject;
+    for (auto property : properties) {
+        if (!property->isAnimating) {
+            continue;
+        }
+
+        propertiesObject[QString::fromStdString(property->name)] =
+            property->serialize();
+    }
+    obj["properties"] = propertiesObject;
+    return obj;
+}
+
 void Animatable::deserialize(const QJsonObject &obj) {
     setObjectName(obj["name"].toString());
     QJsonObject propertiesObj = obj["properties"].toObject();
@@ -49,5 +64,19 @@ void Animatable::deserialize(const QJsonObject &obj) {
 
         QJsonObject propertyObj = propertiesObj[key].toObject();
         property->deserialize(propertyObj);
+    }
+}
+
+void Animatable::deserializeAnimatable(const QJsonObject &obj) {
+    QJsonObject propertiesObj = obj["properties"].toObject();
+    for (auto property : properties) {
+        QString key = QString::fromStdString(property->name);
+        if (!propertiesObj.contains(key)) {
+            continue;
+        }
+
+        QJsonObject propertyObj = propertiesObj[key].toObject();
+        property->deserialize(propertyObj);
+        _propertyUpdated(property);
     }
 }

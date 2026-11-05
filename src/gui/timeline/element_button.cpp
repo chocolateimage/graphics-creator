@@ -2,8 +2,10 @@
 #include "animatable/element/group_element.hpp"
 #include "timeline.hpp"
 #include <QApplication>
+#include <QClipboard>
 #include <QDrag>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QMouseEvent>
 
@@ -92,6 +94,35 @@ void TimelineElementButton::visibilityUpdated() {
     }
 }
 
+void TimelineElementButton::copyKeyframes() {
+    QClipboard *clipboard = QApplication::clipboard();
+    QJsonObject object;
+    object["type"] = "elementKeyframes";
+    // TODO: implement serializeAnimatable for effects
+    object["element"] = element->serializeAnimatable();
+
+    QJsonDocument doc;
+    doc.setObject(object);
+    clipboard->setText(doc.toJson());
+}
+
+void TimelineElementButton::replacePasteKeyframes() {
+    QClipboard *clipboard = QApplication::clipboard();
+    QString str = clipboard->text();
+    QJsonDocument doc = QJsonDocument::fromJson(str.toUtf8());
+    QJsonObject obj = doc.object();
+    if (obj["type"] != "elementKeyframes") {
+        QMessageBox::critical(nullptr, "Error", "Invalid clipboard format");
+        return;
+    }
+
+    QList<Element *> elements = timelineWidget->scene->selectedElements;
+
+    for (auto element : elements) {
+        element->deserializeAnimatable(obj["element"].toObject());
+    }
+}
+
 void TimelineElementButton::elementNameChanged(const QString &objectName) {
     objectNameLabel->setText(objectName);
 }
@@ -124,19 +155,43 @@ void TimelineElementButton::mousePressEvent(QMouseEvent *event) {
         dragStartPosition = event->pos();
     }
     if (event->button() == Qt::RightButton) {
+        if (!timelineWidget->scene->selectedElements.contains(element)) {
+            clickedSlot();
+        }
+
         QMenu menu;
+
         QAction *ungroupAction = nullptr;
         GroupElement *groupElement = dynamic_cast<GroupElement *>(element);
         if (groupElement) {
             ungroupAction = menu.addAction("Ungroup");
             ungroupAction->setIcon(QIcon::fromTheme("object-ungroup"));
         }
-        if (groupElement) { // if check is temporary until more actions exist
-            QAction *action = menu.exec(QCursor::pos());
 
-            if (action == ungroupAction) {
-                groupElement->ungroup();
+        QAction *copyAction = menu.addAction(QIcon::fromTheme("edit-copy"),
+                                             "Copy all keyframes to clipboard");
+
+        QClipboard *clipboard = QApplication::clipboard();
+        const QMimeData *mimeData = clipboard->mimeData();
+        QAction *pasteAction =
+            menu.addAction(QIcon::fromTheme("edit-paste"),
+                           "Replace all keyframes from clipboard");
+        pasteAction->setDisabled(true);
+        if (mimeData->hasText()) {
+            if (mimeData->text().startsWith('{')) {
+                pasteAction->setDisabled(false);
             }
+        }
+
+        QAction *action = menu.exec(QCursor::pos());
+
+        if (action == nullptr) {
+        } else if (action == ungroupAction) {
+            groupElement->ungroup();
+        } else if (action == copyAction) {
+            copyKeyframes();
+        } else if (action == pasteAction) {
+            replacePasteKeyframes();
         }
     }
 
