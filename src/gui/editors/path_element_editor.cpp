@@ -104,9 +104,10 @@ void PathElementEditor::paint(QPainter &painter) {
         painter.drawLine(fromPoint, pointPoint);
         painter.drawLine(toPoint, pointPoint);
 
-        painter.setPen(QPen(palette.accent(), 6));
-        painter.drawPoint(fromPoint);
-        painter.drawPoint(toPoint);
+        painter.setPen(QPen(palette.accent(), 2));
+        painter.setBrush(palette.base());
+        painter.drawEllipse(fromPoint, 4, 4);
+        painter.drawEllipse(toPoint, 4, 4);
     }
 }
 
