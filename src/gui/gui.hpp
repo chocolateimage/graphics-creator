@@ -61,6 +61,8 @@ class VideoSettingsDialog : public QDialog {
 
 class NewMainWindow : public QMainWindow {
   public:
+    static NewMainWindow *instance();
+
     NewMainWindow(const QString &dataPath);
     ~NewMainWindow();
 
@@ -177,6 +179,9 @@ class NewMainWindow : public QMainWindow {
     QLabel *statusText;
 
     QTimer lastRenderDelayTimer;
+
+  private:
+    static NewMainWindow *_instance;
 
   protected:
     void showEvent(QShowEvent *event) override;

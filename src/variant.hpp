@@ -38,6 +38,13 @@ struct Color {
 
 struct Vector2DInt {
     int x, y;
+
+    bool operator==(const Vector2DInt &other) const {
+        return x == other.x && y == other.y;
+    }
+    bool operator!=(const Vector2DInt &other) const {
+        return !operator==(other);
+    }
 };
 
 struct Vector2DFloat {
@@ -59,6 +66,12 @@ struct Vector2DFloat {
     Vector2DFloat operator*(float value) const {
         return {x * value, y * value};
     }
+    bool operator==(const Vector2DFloat &other) const {
+        return x == other.x && y == other.y;
+    }
+    bool operator!=(const Vector2DFloat &other) const {
+        return !operator==(other);
+    }
 };
 
 struct Font {
@@ -68,12 +81,23 @@ struct Font {
     std::string pattern;
 
     static Font fromPattern(const std::string &str);
+
+    bool operator==(const Font &other) const {
+        return path == other.path && index == other.index &&
+               displayName == other.displayName && pattern == other.pattern;
+    }
+    bool operator!=(const Font &other) const { return !operator==(other); }
 };
 
 struct Easing {
     std::string easingCurve;
 
     std::function<double(double)> toFunction();
+
+    bool operator==(const Easing &other) const {
+        return easingCurve == other.easingCurve;
+    }
+    bool operator!=(const Easing &other) const { return !operator==(other); }
 };
 
 struct Rect {
@@ -92,6 +116,11 @@ struct Rect {
     static Rect fromQRect(const QRect &qrect) {
         return {qrect.x(), qrect.y(), qrect.width(), qrect.height()};
     }
+
+    bool operator==(const Rect &other) const {
+        return x == other.x && y == other.y && w == other.w && h == other.h;
+    }
+    bool operator!=(const Rect &other) const { return !operator==(other); }
 };
 
 struct Brush {
@@ -126,11 +155,33 @@ struct PathPoint {
     int controlY1{0};
     int controlX2{0};
     int controlY2{0};
+
+    bool operator==(const PathPoint &other) const {
+        return x == other.x && y == other.y && controlX1 == other.controlX1 &&
+               controlY1 == other.controlY1 && controlX2 == other.controlX2 &&
+               controlY2 == other.controlY2;
+    }
+    bool operator!=(const PathPoint &other) const { return !operator==(other); }
 };
 
 struct Path {
     QList<PathPoint> points;
     bool closed = false;
+
+    bool operator==(const Path &other) const {
+        if (points.length() != other.points.length())
+            return false;
+        if (closed != other.closed)
+            return false;
+
+        for (int i = 0; i < points.length(); i++) {
+            if (points[i] != other.points[i])
+                return false;
+        }
+
+        return true;
+    }
+    bool operator!=(const Path &other) const { return !operator==(other); }
 };
 
 class TextSpan {
@@ -151,12 +202,34 @@ class TextSpan {
     FT_Stroker_LineJoin strokeLineJoin{FT_STROKER_LINEJOIN_ROUND};
 
     StrokeInfo strokeInfo() const;
+
+    bool operator==(const TextSpan &other) const {
+        return font == other.font && fontSize == other.fontSize &&
+               text == other.text && fill == other.fill &&
+               newLine == other.newLine && antialiased == other.antialiased &&
+               strokeWidth == other.strokeWidth && stroke == other.stroke &&
+               strokeLineJoin == other.strokeLineJoin;
+    }
+    bool operator!=(const TextSpan &other) const { return !operator==(other); }
 };
 
 class TextSpans {
   public:
     TextSpans() {}
     QList<TextSpan> spans;
+
+    bool operator==(const TextSpans &other) const {
+        if (spans.length() != other.spans.length())
+            return false;
+
+        for (int i = 0; i < spans.length(); i++) {
+            if (spans[i] != other.spans[i])
+                return false;
+        }
+
+        return true;
+    }
+    bool operator!=(const TextSpans &other) const { return !operator==(other); }
 };
 
 class ElementSelection {
@@ -169,6 +242,13 @@ class ElementSelection {
     ElementSelection() {}
     QString elementId;
     FrameType frameType{Final};
+
+    bool operator==(const ElementSelection &other) const {
+        return elementId == other.elementId && frameType == other.frameType;
+    }
+    bool operator!=(const ElementSelection &other) const {
+        return !operator==(other);
+    }
 };
 
 Brush::Type getBrushTypeFromString(const std::string &str);

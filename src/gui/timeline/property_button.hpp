@@ -13,6 +13,7 @@ class TimelinePropertyButton : public QPushButton {
                                     bool showEdit);
 
   private slots:
+    void resetClicked();
     void toggleAnimationClicked();
     void addAnimationClicked();
     void previousKeyframeClicked();
@@ -26,6 +27,8 @@ class TimelinePropertyButton : public QPushButton {
     void overlayUpdate();
 
   private:
+    bool showEdit;
+
     TimelineWidget *timelineWidget;
     PropertyBase *property;
     Scene *scene;
@@ -35,6 +38,9 @@ class TimelinePropertyButton : public QPushButton {
     QPushButton *previousButton;
     QPushButton *keyframeButton;
     QPushButton *nextButton;
+
+    QWidget *resetButtonSpacing{nullptr};
+    QPushButton *resetButton{nullptr};
 
     QWidget *overlayWidget{nullptr};
     float overlayOpacity{0};

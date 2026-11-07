@@ -15,6 +15,39 @@
 #include <QSlider>
 #include <QToolButton>
 
+static std::vector<std::string> EASING_NAMES = {"",
+
+                                                "easeInQuad",
+                                                "easeOutQuad",
+                                                "easeInOutQuad",
+                                                "easeInCubic",
+                                                "easeOutCubic",
+                                                "easeInOutCubic",
+                                                "easeInQuart",
+                                                "easeOutQuart",
+                                                "easeInOutQuart",
+                                                "easeInQuint",
+                                                "easeOutQuint",
+                                                "easeInOutQuint",
+                                                "easeInSine",
+                                                "easeOutSine",
+                                                "easeInOutSine",
+                                                "easeInExpo",
+                                                "easeOutExpo",
+                                                "easeInOutExpo",
+                                                "easeInCirc",
+                                                "easeOutCirc",
+                                                "easeInOutCirc",
+                                                "easeInBack",
+                                                "easeOutBack",
+                                                "easeInOutBack",
+                                                "easeInElastic",
+                                                "easeOutElastic",
+                                                "easeInOutElastic",
+                                                "easeInBounce",
+                                                "easeOutBounce",
+                                                "easeInOutBounce"};
+
 PropertyToggleAnimationButton::PropertyToggleAnimationButton(
     Mode mode, bool completelyFlat, Scene *scene, PropertyBase *property,
     QWidget *parent)
@@ -147,6 +180,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             widget = input;
         } else if (!propertyTyped->enumList.empty()) {
             auto input = new QComboBox(this);
+            inputComboBox1 = input;
             for (const auto &item : propertyTyped->enumList) {
                 input->addItem(QString::fromStdString(item));
             }
@@ -177,6 +211,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         }
     } else if (variantType == VariantTypeEnum::Double) {
         auto input = new DraggableDoubleSpinBox(this);
+        inputDoubleSpinBox1 = input;
 
         auto propertyTyped = (Property<double> *)property;
         if (propertyTyped->hasMin) {
@@ -322,38 +357,6 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
                 });
         widget = input;
     } else if (variantType == VariantTypeEnum::Easing) {
-        std::vector<std::string> names = {"",
-
-                                          "easeInQuad",
-                                          "easeOutQuad",
-                                          "easeInOutQuad",
-                                          "easeInCubic",
-                                          "easeOutCubic",
-                                          "easeInOutCubic",
-                                          "easeInQuart",
-                                          "easeOutQuart",
-                                          "easeInOutQuart",
-                                          "easeInQuint",
-                                          "easeOutQuint",
-                                          "easeInOutQuint",
-                                          "easeInSine",
-                                          "easeOutSine",
-                                          "easeInOutSine",
-                                          "easeInExpo",
-                                          "easeOutExpo",
-                                          "easeInOutExpo",
-                                          "easeInCirc",
-                                          "easeOutCirc",
-                                          "easeInOutCirc",
-                                          "easeInBack",
-                                          "easeOutBack",
-                                          "easeInOutBack",
-                                          "easeInElastic",
-                                          "easeOutElastic",
-                                          "easeInOutElastic",
-                                          "easeInBounce",
-                                          "easeOutBounce",
-                                          "easeInOutBounce"};
 
         QStringList displayNames = {
             "Linear/Constant",
@@ -367,14 +370,15 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             "Elastic In",      "Elastic Out",  "Elastic In Out", "Bounce In",
             "Bounce Out",      "Bounce In Out"};
         auto input = new QComboBox(this);
+        inputComboBox1 = input;
         input->view()->setMinimumWidth(150);
 
-        for (size_t i = 0; i < names.size(); i++) {
+        for (size_t i = 0; i < EASING_NAMES.size(); i++) {
             QPixmap pixmap(24, 24);
             pixmap.fill(Qt::transparent);
             QPainter pixmapPainter(&pixmap);
             pixmapPainter.setPen(Qt::NoPen);
-            auto function = Easing{names[i]}.toFunction();
+            auto function = Easing{EASING_NAMES[i]}.toFunction();
             for (int x = 0; x < pixmap.width(); x++) {
                 double xValue = function((double)x / (pixmap.width() - 1));
                 pixmapPainter.setBrush(palette().text());
@@ -392,13 +396,14 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         }
 
         auto value = variant.get<Easing>();
-        input->setCurrentIndex(
-            std::find(names.begin(), names.end(), value.easingCurve) -
-            names.begin());
+        input->setCurrentIndex(std::find(EASING_NAMES.begin(),
+                                         EASING_NAMES.end(),
+                                         value.easingCurve) -
+                               EASING_NAMES.begin());
         connect(input, &QComboBox::currentIndexChanged, this,
-                [this, names](int index) {
+                [this](int index) {
                     beginEditing();
-                    set(Easing{names[index]});
+                    set(Easing{EASING_NAMES[index]});
                     finishEditing();
                 });
         widget = input;
@@ -493,11 +498,40 @@ void PropertyEdit::propertyUpdated(PropertyBase *updatedProperty) {
 
     auto variant = property->toVariant({scene->currentFrame});
     auto variantType = variant.type();
-    if (variant.type() == VariantTypeEnum::Int) {
+
+    switch (variantType) {
+    case VariantTypeEnum::Int: {
         if (inputSpinBox1) {
             QSignalBlocker blocker(inputSpinBox1);
             inputSpinBox1->setValue(variant.get<int>());
+        } else if (inputComboBox1) {
+            QSignalBlocker blocker(inputComboBox1);
+            inputComboBox1->setCurrentIndex(variant.get<int>());
+        } else {
+            assert(false);
         }
+    } break;
+    case VariantTypeEnum::Double: {
+        if (inputDoubleSpinBox1) {
+            QSignalBlocker blocker(inputDoubleSpinBox1);
+            inputDoubleSpinBox1->setValue(variant.get<double>());
+        } else {
+            assert(false);
+        }
+    } break;
+    case VariantTypeEnum::Easing: {
+        if (inputComboBox1) {
+            QSignalBlocker blocker(inputComboBox1);
+            inputComboBox1->setCurrentIndex(
+                std::find(EASING_NAMES.begin(), EASING_NAMES.end(),
+                          variant.get<Easing>().easingCurve) -
+                EASING_NAMES.begin());
+        } else {
+            assert(false);
+        }
+    } break;
+    default: {
+    } break;
     }
 }
 

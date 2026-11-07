@@ -11,7 +11,8 @@ TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
                                                TimelineWidget *timelineWidget,
                                                QPushButton *elementButton,
                                                int indent, bool showEdit)
-    : timelineWidget(timelineWidget), property(property), scene(scene) {
+    : showEdit(showEdit), timelineWidget(timelineWidget), property(property),
+      scene(scene) {
     this->setObjectName("property");
     QString background = "transparent";
     QString backgroundSelected = "rgba(128,128,128,0.1)";
@@ -59,6 +60,19 @@ TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
     }
 
     if (showEdit) {
+        resetButtonSpacing = new QWidget();
+        resetButtonSpacing->setFixedSize(16, 16);
+        propertyLayout->addWidget(resetButtonSpacing);
+
+        resetButton = new QPushButton();
+        resetButton->hide();
+        resetButton->setFlat(true);
+        resetButton->setIcon(QIcon::fromTheme("edit-reset"));
+        resetButton->setFixedSize(16, 16);
+        connect(resetButton, &QPushButton::clicked, this,
+                &TimelinePropertyButton::resetClicked);
+        propertyLayout->addWidget(resetButton);
+
         PropertyEdit *edit = new PropertyEdit(property, scene, this);
         edit->setFixedHeight(PROPERTY_TRACK_HEIGHT);
         propertyLayout->addWidget(edit);
@@ -115,6 +129,30 @@ TimelinePropertyButton::TimelinePropertyButton(PropertyBase *property,
             &TimelinePropertyButton::updateKeyframe);
 }
 
+class ResetUndoCommand : public QUndoCommand {
+  public:
+    ResetUndoCommand(PropertyBase *property, FrameInfo frameInfo)
+        : property(property), frameInfo(frameInfo) {};
+
+    PropertyBase *property;
+    QJsonObject oldData;
+    FrameInfo frameInfo;
+
+    void undo() override {
+        property->deserialize(oldData);
+        property->animatable->_propertyUpdated(property);
+    }
+    void redo() override {
+        oldData = property->serialize();
+        property->resetToDefault(frameInfo);
+    }
+};
+
+void TimelinePropertyButton::resetClicked() {
+    scene->undoStack->push(
+        new ResetUndoCommand(property, {scene->currentFrame}));
+}
+
 void TimelinePropertyButton::addAnimationClicked() {
     TextElement *textElement = (TextElement *)property->animatable;
     TextAnimator *newAnimator = new TextAnimator(textElement);
@@ -158,17 +196,23 @@ void TimelinePropertyButton::nextKeyframeClicked() {
 void TimelinePropertyButton::updateKeyframe() {
     if (signalsBlocked())
         return;
-    if (!property->isAnimating)
-        return;
 
-    if (property->has(scene->currentFrame)) {
-        keyframeButton->setIcon(timelineWidget->keyframeYes);
-    } else {
-        keyframeButton->setIcon(timelineWidget->keyframeNo);
+    if (resetButton) {
+        bool isDefault = property->isDefault({scene->currentFrame});
+        resetButtonSpacing->setVisible(isDefault);
+        resetButton->setVisible(!isDefault);
     }
 
-    previousButton->setEnabled(property->hasBefore(scene->currentFrame));
-    nextButton->setEnabled(property->hasAfter(scene->currentFrame));
+    if (property->isAnimating) {
+        if (property->has(scene->currentFrame)) {
+            keyframeButton->setIcon(timelineWidget->keyframeYes);
+        } else {
+            keyframeButton->setIcon(timelineWidget->keyframeNo);
+        }
+
+        previousButton->setEnabled(property->hasBefore(scene->currentFrame));
+        nextButton->setEnabled(property->hasAfter(scene->currentFrame));
+    }
 }
 
 void TimelinePropertyButton::propertyUpdated(PropertyBase *updatedProperty) {
@@ -177,11 +221,13 @@ void TimelinePropertyButton::propertyUpdated(PropertyBase *updatedProperty) {
     }
     updateKeyframe();
 
-    overlayOpacity = 0.2;
-    overlayTimer.start();
-    overlayUpdate();
-    overlayWidget->move(0, 0);
-    overlayWidget->resize(width(), height());
+    if (!showEdit) {
+        overlayOpacity = 0.2;
+        overlayTimer.start();
+        overlayUpdate();
+        overlayWidget->move(0, 0);
+        overlayWidget->resize(width(), height());
+    }
 }
 
 void TimelinePropertyButton::overlayUpdate() {

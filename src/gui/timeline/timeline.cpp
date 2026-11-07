@@ -138,7 +138,7 @@ TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
     timelineMainScrollArea->setWidget(timelineContent);
     splitter->addWidget(timelineMainScrollArea);
 
-    splitter->setSizes({300, 900});
+    splitter->setSizes({350, 560});
 
     lay->addWidget(splitter);
 

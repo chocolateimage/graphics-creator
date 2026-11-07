@@ -2,8 +2,11 @@
 #include "animatable/property.hpp"
 #include "scene.hpp"
 #include <QPushButton>
-#include <QSpinBox>
 #include <QWidget>
+
+class QComboBox;
+class QSpinBox;
+class QDoubleSpinBox;
 
 class PropertyToggleAnimationButton : public QPushButton {
     Q_OBJECT
@@ -44,6 +47,8 @@ class PropertyEdit : public QWidget {
     QJsonObject savedState;
 
     QSpinBox *inputSpinBox1{nullptr};
+    QDoubleSpinBox *inputDoubleSpinBox1{nullptr};
+    QComboBox *inputComboBox1{nullptr};
 
   private slots:
     void propertyUpdated(PropertyBase *updatedProperty);

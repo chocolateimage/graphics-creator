@@ -555,6 +555,9 @@ class PropertyBase {
     // does set(get(frameInfo), frameInfo)
     virtual void addToPosition(const FrameInfo &frameInfo) {}
 
+    virtual bool isDefault(const FrameInfo &frameInfo) { return false; }
+    virtual void resetToDefault(const FrameInfo &frameInfo) {}
+
     bool isAnimating{false};
     bool hidden{false};
     bool locked{false};
@@ -565,7 +568,7 @@ class PropertyBase {
 template <typename T> class Property : public PropertyBase {
   public:
     Property(Animatable *animatable, const std::string &name, T defaultValue)
-        : PropertyBase(name, animatable) {
+        : PropertyBase(name, animatable), defaultValue(defaultValue) {
         keyframes.push_back(new Keyframe<T>(this, 0, defaultValue));
         animatable->addProperty(this);
     }
@@ -755,10 +758,19 @@ template <typename T> class Property : public PropertyBase {
         animatable->_propertyUpdated(this);
     }
 
+    bool isDefault(const FrameInfo &frameInfo) override {
+        return get(frameInfo) == defaultValue;
+    }
+    void resetToDefault(const FrameInfo &frameInfo) override {
+        set(defaultValue, frameInfo);
+    }
+
     T min;
     bool hasMin{false};
     T max;
     bool hasMax{false};
+
+    T defaultValue;
 
     T lockValue;
 
