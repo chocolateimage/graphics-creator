@@ -429,6 +429,10 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         auto value = variant.get<ElementSelection>();
 
         auto inputElement = new QComboBox(this);
+        inputElement->setSizeAdjustPolicy(
+            QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon);
+        inputElement->setSizePolicy(QSizePolicy::Policy::Expanding,
+                                    QSizePolicy::Policy::Fixed);
         int index = 0;
         int selectedIndex = -1;
         for (auto element : scene->elements) {
@@ -445,6 +449,8 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         inputType->addItem("Source");
         inputType->addItem("Final");
         inputType->setCurrentIndex(value.frameType);
+        inputType->setSizePolicy(QSizePolicy::Policy::Minimum,
+                                 QSizePolicy::Policy::Fixed);
 
         layout->addWidget(inputElement);
         layout->addWidget(inputType);
