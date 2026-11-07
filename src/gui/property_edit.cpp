@@ -6,6 +6,7 @@
 #include "line.hpp"
 #include <KIconColors>
 #include <KIconLoader>
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QCheckBox>
 #include <QHBoxLayout>
@@ -366,6 +367,7 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             "Elastic In",      "Elastic Out",  "Elastic In Out", "Bounce In",
             "Bounce Out",      "Bounce In Out"};
         auto input = new QComboBox(this);
+        input->view()->setMinimumWidth(150);
 
         for (size_t i = 0; i < names.size(); i++) {
             QPixmap pixmap(24, 24);
@@ -374,15 +376,14 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
             pixmapPainter.setPen(Qt::NoPen);
             auto function = Easing{names[i]}.toFunction();
             for (int x = 0; x < pixmap.width(); x++) {
-                double xValue = function((double)x / pixmap.width());
-                if (xValue > 1 || xValue < 0) {
-                    pixmapPainter.setBrush(QColor(255, 100, 100));
-                } else {
-                    pixmapPainter.setBrush(palette().text());
+                double xValue = function((double)x / (pixmap.width() - 1));
+                pixmapPainter.setBrush(palette().text());
+                int xHeight = qRound(xValue * (pixmap.height() - 8));
+                if (xHeight == 0) {
+                    xHeight = 1;
                 }
-                int xHeight = xValue * pixmap.height();
-                pixmapPainter.drawRect(x, pixmap.height() - xHeight, 1,
-                                       xHeight);
+                int y = pixmap.height() - xHeight - 4;
+                pixmapPainter.drawRect(x, y, 1, xHeight);
             }
             pixmapPainter.end();
             QIcon previewIcon(pixmap);
