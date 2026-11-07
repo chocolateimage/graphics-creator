@@ -29,6 +29,12 @@ void PathElementEditor::passKeyEvent(QKeyEvent *keyEvent) {
         std::sort(selectedPathPoints.begin(), selectedPathPoints.end(),
                   [](int a, int b) { return a > b; });
         for (auto pointIndex : selectedPathPoints) {
+            if (hoveringControlPointIndex == pointIndex) {
+                hoveringControlPointIndex = -1;
+            }
+            if (hoveringPointIndex == pointIndex) {
+                hoveringPointIndex = -1;
+            }
             path.points.removeAt(pointIndex);
         }
         selectedPathPoints.clear();
