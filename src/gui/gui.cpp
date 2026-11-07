@@ -1514,6 +1514,8 @@ void NewMainWindow::taskCompleted(FrameTask *task) {
     SavedFrame savedFrame{
         .values = task->values,
         .id = task->id,
+        .width = task->width,
+        .height = task->height,
     };
     if (it != savedFrames.end()) {
         if (it->second.id > task->id) {
@@ -1698,9 +1700,10 @@ void NewMainWindow::updatePreview() {
         return;
     }
 
-    QImage img = QImage((uchar *)it->second.values, scene->width, scene->height,
-                        scene->width * 4, QImage::Format_ARGB32)
-                     .copy();
+    QImage img =
+        QImage((uchar *)it->second.values, it->second.width, it->second.height,
+               it->second.width * 4, QImage::Format_ARGB32)
+            .copy();
 
     scenePreviewWidget->updateImage(img);
 }

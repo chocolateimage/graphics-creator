@@ -22,6 +22,8 @@ class Element;
 struct SavedFrame {
     uint32_t *values;
     uint64_t id;
+    int width;
+    int height;
 };
 
 class FramePreviewThread : public QThread {
