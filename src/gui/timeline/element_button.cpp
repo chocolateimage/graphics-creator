@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDrag>
+#include <QHBoxLayout>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>

@@ -8,12 +8,16 @@
 #include "timeline_content.hpp"
 #include <QActionGroup>
 #include <QApplication>
+#include <QDoubleSpinBox>
 #include <QDragEnterEvent>
 #include <QMenu>
 #include <QMimeData>
 #include <QPainter>
+#include <QScrollArea>
 #include <QScrollBar>
+#include <QSlider>
 #include <QSplitter>
+#include <QVBoxLayout>
 
 TimelineWidget::TimelineWidget(Scene *scene, NewMainWindow *mainWindow,
                                QWidget *parent)

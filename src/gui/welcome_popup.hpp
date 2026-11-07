@@ -1,7 +1,7 @@
 #pragma once
-#include <QCheckBox>
 #include <QDialog>
 
+class QCheckBox;
 class NewMainWindow;
 
 class WelcomePopup : public QDialog {

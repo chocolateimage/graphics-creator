@@ -9,12 +9,14 @@
 #include "animatable/element/video_element.hpp"
 #include "color_picker.hpp"
 #include "effects_window.hpp"
+#include "image_viewer.hpp"
 #include "plugin_manager.hpp"
 #include "presets_window.hpp"
 #include "property_window.hpp"
 #include "render.hpp"
 #include "render_window.hpp"
 #include "shared.hpp"
+#include "timeline/timeline.hpp"
 #include "timeline/timeline_content.hpp"
 #include "variant.hpp"
 #include "welcome_popup.hpp"
@@ -34,6 +36,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeData>
@@ -46,6 +49,7 @@
 #include <QSettings>
 #include <QSplitter>
 #include <QStandardPaths>
+#include <QStatusBar>
 #include <QTemporaryFile>
 #include <QToolBar>
 #include <fontconfig/fontconfig.h>

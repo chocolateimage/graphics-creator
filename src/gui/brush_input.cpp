@@ -1,4 +1,5 @@
 #include "brush_input.hpp"
+#include "color_button.hpp"
 #include "draggable_spinbox.hpp"
 #include <QActionGroup>
 #include <QHBoxLayout>

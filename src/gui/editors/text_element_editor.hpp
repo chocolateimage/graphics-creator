@@ -4,13 +4,11 @@
 #include "gui/brush_input.hpp"
 #include "gui/fontcombobox.hpp"
 #include <DockWidget.h>
-#include <QCheckBox>
-#include <QKeyEvent>
-#include <QListWidget>
-#include <QObject>
-#include <QSpinBox>
 
+class QCheckBox;
+class QKeyEvent;
 class NewMainWindow;
+class QListWidget;
 
 class TextElementEditor : public Editor {
     Q_OBJECT

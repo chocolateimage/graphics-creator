@@ -1,27 +1,23 @@
 #pragma once
-#include "image_viewer.hpp"
-#include "render.hpp"
-#include "scene.hpp"
-#include "timeline/timeline.hpp"
 #include <DockManager.h>
-#include <QChronoTimer>
-#include <QComboBox>
 #include <QDialog>
-#include <QFormLayout>
-#include <QLabel>
 #include <QMainWindow>
 #include <QMutex>
-#include <QNetworkAccessManager>
-#include <QPushButton>
-#include <QStackedWidget>
-#include <QStatusBar>
 #include <QThread>
-#include <QToolButton>
-#include <QVBoxLayout>
-#include <QWidget>
+#include <QTimer>
 
+class ImageViewer;
+class FrameTask;
+class QNetworkAccessManager;
+class QStackedWidget;
+class TimelineWidget;
+class Scene;
+class QLabel;
+class QSpinBox;
+class QDoubleSpinBox;
 class NewMainWindow;
 class RenderWindow;
+class Element;
 
 struct SavedFrame {
     uint32_t *values;

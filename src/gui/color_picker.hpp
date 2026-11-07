@@ -1,11 +1,11 @@
 #include <QDialog>
-#include <QLineEdit>
-#include <QSpinBox>
 #include <QWidget>
 
 // TODO: palette
 
 class QColorDialog;
+class QSpinBox;
+class QLineEdit;
 
 class ColorPickerDialog : public QDialog {
     Q_OBJECT

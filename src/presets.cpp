@@ -4,6 +4,7 @@
 #include "animatable/effect/place_original_effect.hpp"
 #include "animatable/element/text_element.hpp"
 #include "gui/gui.hpp"
+#include "scene.hpp"
 
 QList<Preset *> presetList = {};
 

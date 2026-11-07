@@ -1,11 +1,6 @@
 #pragma once
 #include "scene.hpp"
 
-#include <QDoubleSpinBox>
-#include <QPushButton>
-#include <QScrollArea>
-#include <QSlider>
-#include <QVBoxLayout>
 #include <QWidget>
 
 constexpr double TIMELINE_HEADER_HEIGHT = 24;
@@ -19,6 +14,12 @@ static const QString ELEMENT_DRAG_MIME_TYPE =
 class NewMainWindow;
 class TimelineContentWidget;
 class TimelineElementButton;
+class QVBoxLayout;
+class QSlider;
+class QScrollArea;
+class QPushButton;
+class QDoubleSpinBox;
+class QFrame;
 
 class TimelineWidget : public QWidget {
   public:

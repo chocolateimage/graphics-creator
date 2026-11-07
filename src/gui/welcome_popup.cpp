@@ -1,5 +1,7 @@
 #include "welcome_popup.hpp"
 #include "gui.hpp"
+#include <QCheckBox>
+#include <QLabel>
 #include <QSettings>
 #include <QVBoxLayout>
 

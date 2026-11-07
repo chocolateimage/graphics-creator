@@ -1,10 +1,13 @@
 #pragma once
 
-#include "color_button.hpp"
 #include "variant.hpp"
 #include <QPushButton>
 #include <QSpinBox>
 #include <QWidget>
+
+class ColorButton;
+class QPushButton;
+class QSpinBox;
 
 class BrushInput : public QWidget {
     Q_OBJECT

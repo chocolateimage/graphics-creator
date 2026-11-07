@@ -1,8 +1,12 @@
 #include "text_element_editor.hpp"
 #include "gui/draggable_spinbox.hpp"
 #include "gui/gui.hpp"
+#include "gui/image_viewer.hpp"
 #include <QApplication>
+#include <QCheckBox>
 #include <QClipboard>
+#include <QFormLayout>
+#include <QListWidget>
 #include <QMessageBox>
 #include <QPainter>
 #include <QString>

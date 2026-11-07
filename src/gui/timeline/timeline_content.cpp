@@ -9,7 +9,9 @@
 #include <QApplication>
 #include <QMenu>
 #include <QPainter>
+#include <QScrollArea>
 #include <QScrollBar>
+#include <QSlider>
 #include <QVBoxLayout>
 
 TimelineContentWidget::TimelineContentWidget(TimelineWidget *timelineWidget,
