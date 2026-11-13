@@ -66,13 +66,14 @@ double TextAnimatorSelectorRender::percent(int character, int totalCharacters,
         break;
     }
     case Shape::Square: {
-        // TODO: smoothing on edges
-        if (thisValue < start) {
-            finalValue = 0;
-        } else if (thisValue > end) {
-            finalValue = 0;
-        } else {
+        double startIndex = total * start;
+        double endIndex = total * end;
+        if (index > (int)startIndex && index < (int)endIndex) {
             finalValue = 1;
+        } else if (index == (int)startIndex) {
+            finalValue = 1. - (startIndex - index);
+        } else if (index == (int)endIndex) {
+            finalValue = endIndex - index;
         }
         break;
     }
