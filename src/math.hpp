@@ -82,6 +82,14 @@ inline constexpr double smoothstep(double from, double to, double x) {
     return x * x * (3 - 2 * x);
 }
 
+inline double constant(double x) {
+    if (x >= 1) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 inline double linear(double x) { return x; }
 
 inline double easeInQuad(double x) { return x * x; }

@@ -3,6 +3,7 @@
 #include "animatable/element/text_element.hpp"
 #include "animatable/element/video_element.hpp"
 #include "gui/gui.hpp"
+#include "math.hpp"
 #include "scene.hpp"
 #include "timeline.hpp"
 #include <QActionGroup>
@@ -464,6 +465,8 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             QList<QString> typeNames = {
                 QStringLiteral("Linear"),
 
+                QStringLiteral("Constant"),
+
                 QStringLiteral("Sine In"),        QStringLiteral("Sine Out"),
                 QStringLiteral("Sine In Out"),
 
@@ -496,6 +499,8 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             };
             QList<QEasingCurve::Type> types = {
                 QEasingCurve::Linear,
+
+                QEasingCurve::Custom,
 
                 QEasingCurve::InSine,       QEasingCurve::OutSine,
                 QEasingCurve::InOutSine,
@@ -531,9 +536,14 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
             QActionGroup *group = new QActionGroup(easingMenu);
             for (int i = 0; i < types.size(); i++) {
                 QEasingCurve::Type type = types[i];
+                QString iconName = QStringLiteral("smooth");
+                if (i == 0) {
+                    iconName = QStringLiteral("linear");
+                } else if (i == 1) {
+                    iconName = QStringLiteral("discrete");
+                }
                 QAction *action = easingMenu->addAction(
-                    QIcon::fromTheme(i == 0 ? "linear" : "smooth"),
-                    typeNames[i]);
+                    QIcon::fromTheme(iconName), typeNames[i]);
                 action->setCheckable(true);
                 for (auto keyframe : selectedKeyframes) {
                     if (keyframe->easing.type() == type) {
@@ -542,7 +552,13 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
                 }
                 connect(action, &QAction::triggered, action, [this, type] {
                     for (auto keyframe : selectedKeyframes) {
-                        keyframe->easing = type;
+                        if (type == QEasingCurve::Custom) {
+                            QEasingCurve curve;
+                            curve.setCustomType(constant);
+                            keyframe->easing = curve;
+                        } else {
+                            keyframe->easing = type;
+                        }
                         keyframe->property->animatable->_propertyUpdated(
                             keyframe->property);
                     }

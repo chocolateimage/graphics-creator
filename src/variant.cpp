@@ -157,6 +157,7 @@ std::function<double(double)> Easing::toFunction() {
     if (easingCurve == "linear") {
         return linear;
     }
+    IF_EASING_CURVE(constant)
     IF_EASING_CURVE(easeInQuad)
     IF_EASING_CURVE(easeOutQuad)
     IF_EASING_CURVE(easeInOutQuad)

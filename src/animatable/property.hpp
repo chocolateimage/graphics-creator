@@ -1,6 +1,7 @@
 #pragma once
 #include "animatable.hpp"
 #include "frame_info.hpp"
+#include "math.hpp"
 #include "variant.hpp"
 #include <QDebug>
 #include <QEasingCurve>
@@ -734,8 +735,14 @@ template <typename T> class Property : public PropertyBase {
             Keyframe<T> *keyframe =
                 new Keyframe<T>(this, keyframeObj["frame"].toInt(0),
                                 deserializeAnyValue<T>(keyframeObj["value"]));
-            keyframe->easing = QEasingCurve(
-                (QEasingCurve::Type)(keyframeObj["easing"].toInt(0)));
+            int easingType = keyframeObj["easing"].toInt(0);
+            if (easingType == QEasingCurve::Custom) {
+                QEasingCurve curve;
+                curve.setCustomType(constant);
+                keyframe->easing = curve;
+            } else {
+                keyframe->easing = QEasingCurve((QEasingCurve::Type)easingType);
+            }
             keyframes.push_back(keyframe);
         }
 

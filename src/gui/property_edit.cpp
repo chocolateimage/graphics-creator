@@ -17,6 +17,8 @@
 
 static std::vector<std::string> EASING_NAMES = {"",
 
+                                                "constant",
+
                                                 "easeInQuad",
                                                 "easeOutQuad",
                                                 "easeInOutQuad",
@@ -361,6 +363,8 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         QStringList displayNames = {
             "Linear/Constant",
 
+            "Constant",
+
             "Quad In",         "Quad Out",     "Quad In Out",    "Cubic In",
             "Cubic Out",       "Cubic In Out", "Quart In",       "Quart Out",
             "Quart In Out",    "Quint In",     "Quint Out",      "Quint In Out",
@@ -374,25 +378,30 @@ PropertyEdit::PropertyEdit(PropertyBase *property, Scene *scene,
         input->view()->setMinimumWidth(150);
 
         for (size_t i = 0; i < EASING_NAMES.size(); i++) {
-            QPixmap pixmap(24, 24);
-            pixmap.fill(Qt::transparent);
-            QPainter pixmapPainter(&pixmap);
-            pixmapPainter.setPen(Qt::NoPen);
-            auto function = Easing{EASING_NAMES[i]}.toFunction();
-            for (int x = 0; x < pixmap.width(); x++) {
-                double xValue = function((double)x / (pixmap.width() - 1));
-                pixmapPainter.setBrush(palette().text());
-                int xHeight = qRound(xValue * (pixmap.height() - 8));
-                if (xHeight == 0) {
-                    xHeight = 1;
+            const auto &easingName = EASING_NAMES[i];
+            if (easingName == "constant") {
+                input->addItem(QIcon::fromTheme("discrete"), displayNames[i]);
+            } else {
+                QPixmap pixmap(24, 24);
+                pixmap.fill(Qt::transparent);
+                QPainter pixmapPainter(&pixmap);
+                pixmapPainter.setPen(Qt::NoPen);
+                auto function = Easing{easingName}.toFunction();
+                for (int x = 0; x < pixmap.width(); x++) {
+                    double xValue = function((double)x / (pixmap.width() - 1));
+                    pixmapPainter.setBrush(palette().text());
+                    int xHeight = qRound(xValue * (pixmap.height() - 8));
+                    if (xHeight == 0) {
+                        xHeight = 1;
+                    }
+                    int y = pixmap.height() - xHeight - 4;
+                    pixmapPainter.drawRect(x, y, 1, xHeight);
                 }
-                int y = pixmap.height() - xHeight - 4;
-                pixmapPainter.drawRect(x, y, 1, xHeight);
-            }
-            pixmapPainter.end();
-            QIcon previewIcon(pixmap);
+                pixmapPainter.end();
+                QIcon previewIcon(pixmap);
 
-            input->addItem(previewIcon, displayNames[i]);
+                input->addItem(previewIcon, displayNames[i]);
+            }
         }
 
         auto value = variant.get<Easing>();
