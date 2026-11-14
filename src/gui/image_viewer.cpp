@@ -190,6 +190,7 @@ ImageViewer::ImageViewer(Scene *scene, QWidget *parent)
 }
 
 void ImageViewer::elementEditModeChanged(Element *element, bool editMode) {
+    setStatusTip("");
     if (editor != nullptr) {
         delete editor;
         editor = nullptr;

@@ -414,6 +414,7 @@ bool TimelineWidget::eventFilter(QObject *obj, QEvent *event) {
                 oldEvent->pointingDevice());
             QApplication::sendEvent(timelineMainScrollArea->verticalScrollBar(),
                                     newEvent);
+            delete newEvent;
         }
         return true;
     }

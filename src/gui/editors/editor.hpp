@@ -20,6 +20,7 @@ class Editor : public QObject {
     QCursor cursor;
 
     void repaintParent();
+    void setStatusTip(const QString &message);
 
     virtual void passKeyEvent(QKeyEvent *keyEvent) {}
     virtual void passKeyReleaseEvent(QKeyEvent *keyEvent) {}

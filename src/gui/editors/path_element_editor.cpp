@@ -204,13 +204,17 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
         beginHold(pos);
         return true;
     } else if (event->button() == Qt::MouseButton::RightButton) {
-        if (hoveringPointIndex != -1) {
+        int pointIndex = hoveringPointIndex;
+        if (pointIndex == -1) {
+            pointIndex = hoveringControlPointIndex;
+        }
+        if (pointIndex != -1) {
             Path path = pathElement->path.get(frameInfo);
             selectedPathPoints.clear();
-            selectedPathPoints.append(hoveringPointIndex);
+            selectedPathPoints.append(pointIndex);
             repaintParent();
 
-            PathPoint &point = path.points[hoveringPointIndex];
+            PathPoint &point = path.points[pointIndex];
 
             QMenu menu;
 
@@ -242,7 +246,7 @@ bool PathElementEditor::mousePressEvent(const QPoint &pixelPosition,
 
             QAction *triggered = menu.exec(QCursor::pos());
             if (triggered == removeAction) {
-                path.points.removeAt(hoveringPointIndex);
+                path.points.removeAt(pointIndex);
                 selectedPathPoints.clear();
                 pathElement->path.set(path, frameInfo);
                 repaintParent();
@@ -311,7 +315,13 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
 
     Path path = pathElement->path.get(frameInfo);
 
+    setStatusTip(QStringLiteral(
+        "Click to create a point. Click and drag to move control points out."));
+
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
+        setStatusTip(
+            QStringLiteral("Hold shift to move in a single direction"));
+
         int index = 0;
 
         QPoint moved = pos - startHoldCursorPosition;
@@ -410,6 +420,34 @@ bool PathElementEditor::mouseMoveEvent(const QPoint &pixelPosition,
                  hoveringPointIndex == 0)) {
                 isClosingPath = true;
             }
+        }
+    }
+
+    if (hoveringControlPointIndex != -1) {
+        const auto &point = path.points[hoveringControlPointIndex];
+        bool isSymmetric = point.controlX1 == -point.controlX2 &&
+                           point.controlY1 == -point.controlY2;
+        if (isSymmetric) {
+            setStatusTip(QStringLiteral(
+                "Drag to move control points. Hold alt to only move "
+                "hovering control point."));
+        } else {
+            setStatusTip(QStringLiteral(
+                "Drag to move control point. Right click to make "
+                "control points symmetric."));
+        }
+    } else if (isClosingPath) {
+        setStatusTip("Click to close path");
+    } else if (hoveringPointIndex != -1) {
+        const auto &point = path.points[hoveringPointIndex];
+        if (point.controlX1 != 0 || point.controlX2 != 0 ||
+            point.controlY1 != 0 || point.controlY2 != 0) {
+            setStatusTip(QStringLiteral(
+                "Drag to move point. Right click for more options."));
+        } else {
+            setStatusTip(QStringLiteral(
+                "Drag to move point. Hold alt to drag out control "
+                "points instead. Right click for more options."));
         }
     }
 
