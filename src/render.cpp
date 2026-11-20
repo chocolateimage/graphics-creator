@@ -98,13 +98,16 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h, int scaleFlags) {
         return nullptr;
     }
 
-    if (lastSecond == seconds) {
+    if (lastTimestamp != 1 && timestamp >= lastTimestamp &&
+        timestamp < frame->duration) {
         return scaleCurrentFrame();
     }
     av_frame_unref(frame);
 
-    bool seek =
-        lastSecond == -1 || seconds <= lastSecond || seconds - lastSecond > 1;
+    bool seek = lastTimestamp == -1 || timestamp < lastTimestamp ||
+                timestamp - lastTimestamp > av_rescale_q(1 * AV_TIME_BASE,
+                                                         {1, AV_TIME_BASE},
+                                                         stream->time_base);
 
     if (seek) {
         if (av_seek_frame(fmtCtx, streamIndex, timestamp,
@@ -145,7 +148,7 @@ AVFrame *VideoData::getFrame(double seconds, int w, int h, int scaleFlags) {
             }
 
             if (decodeCtx->codec->type == AVMEDIA_TYPE_VIDEO) {
-                lastSecond = seconds;
+                lastTimestamp = frame->pts;
                 vdFrame = scaleCurrentFrame();
             } else {
                 qWarning() << "Non video frame";

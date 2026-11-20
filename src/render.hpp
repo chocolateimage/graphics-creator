@@ -40,7 +40,7 @@ class VideoData {
     AVFrame *scaleCurrentFrame();
 
     bool error{false};
-    double lastSecond{-1};
+    int64_t lastTimestamp{-1};
     int lastWidth;
     int lastHeight;
 
