@@ -60,6 +60,8 @@ class TimelineContentWidget : public QWidget {
     double startMousePosition;
     bool isResizingElements{false};
     bool isResizingOut{false};
+    Element *hoverResizeIn{nullptr};
+    Element *hoverResizeOut{nullptr};
     // Where the elements are located in the timeline
     QList<TimelineElementData> elementData;
 

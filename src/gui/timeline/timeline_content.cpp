@@ -88,6 +88,21 @@ void TimelineContentWidget::paintElement(QPainter &painter, Element *element,
 
     elementData.append({rect, element});
     painter.drawRect(rect);
+
+    if (hoverResizeIn == element ||
+        (isResizingElements && !isResizingOut &&
+         timelineWidget->scene->selectedElements.contains(element))) {
+        painter.setBrush(Qt::red);
+        painter.drawRect(QRectF{rect.x(), rect.y(), 4., rect.height()});
+    }
+    if (hoverResizeOut == element ||
+        (isResizingElements && isResizingOut &&
+         timelineWidget->scene->selectedElements.contains(element))) {
+        painter.setBrush(Qt::red);
+        painter.drawRect(
+            QRectF{rect.x() + rect.width() - 4., rect.y(), 4., rect.height()});
+    }
+
     *yPos += OBJECT_TRACK_HEIGHT;
 
     if (element->collapsed)
@@ -353,14 +368,13 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
         QPointF shiftedPos =
             event->position() - QPointF{TIMELINE_START_OFFSET, 0};
         for (const auto &data : elementData) {
-            if (QRectF(data.rect.x() - 12, data.rect.y(), 24,
-                       data.rect.height())
+            if (QRectF(data.rect.x() - 8, data.rect.y(), 16, data.rect.height())
                     .contains(shiftedPos)) {
                 isResizingElements = true;
                 isResizingOut = false;
             }
-            if (QRectF(data.rect.x() + data.rect.width() - 12, data.rect.y(),
-                       24, data.rect.height())
+            if (QRectF(data.rect.x() + data.rect.width() - 8, data.rect.y(), 16,
+                       data.rect.height())
                     .contains(shiftedPos)) {
                 isResizingElements = true;
                 isResizingOut = true;
@@ -596,15 +610,33 @@ void TimelineContentWidget::mousePressEvent(QMouseEvent *event) {
 void TimelineContentWidget::mouseMoveEvent(QMouseEvent *event) {
     setCursor(Qt::CursorShape::ArrowCursor);
     QPointF shiftedPos = event->position() - QPointF{TIMELINE_START_OFFSET, 0};
+
+    bool isHoveringResize = isResizingElements;
+    hoverResizeIn = nullptr;
+    hoverResizeOut = nullptr;
+
     for (const auto &data : elementData) {
-        if (QRectF(data.rect.x() - 12, data.rect.y(), 24, data.rect.height())
-                .contains(shiftedPos) ||
-            QRectF(data.rect.x() + data.rect.width() - 12, data.rect.y(), 24,
+        if (QRectF(data.rect.x() - 8, data.rect.y(), 16, data.rect.height())
+                .contains(shiftedPos)) {
+            isHoveringResize = true;
+            hoverResizeIn = data.element;
+            break;
+        }
+        if (QRectF(data.rect.x() + data.rect.width() - 8, data.rect.y(), 16,
                    data.rect.height())
                 .contains(shiftedPos)) {
-            setCursor(Qt::CursorShape::SizeHorCursor);
+            isHoveringResize = true;
+            hoverResizeOut = data.element;
+            break;
         }
     }
+
+    if (isHoveringResize) {
+        setCursor(Qt::CursorShape::SizeHorCursor);
+    }
+
+    update();
+
     if (event->buttons() & Qt::LeftButton) {
         if (mouseHeader) {
             timelineWidget->scene->setFrame(std::round(
