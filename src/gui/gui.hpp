@@ -87,6 +87,11 @@ class NewMainWindow : public QMainWindow {
     QAction *deleteAction;
     QAction *groupAction;
     QAction *ungroupAction;
+    QMenu *addKeyframesMenu;
+    QAction *addKeyframesPositionAction;
+    QAction *addKeyframesScaleAction;
+    QAction *addKeyframesRotationAction;
+    QAction *addKeyframesOpacityAction;
 
     QAction *renderAction;
     RenderWindow *renderWindow{nullptr};
@@ -144,6 +149,10 @@ class NewMainWindow : public QMainWindow {
     void openDocumentation();
     void importClicked();
     void openPlugins();
+    void addKeyframesPosition();
+    void addKeyframesScale();
+    void addKeyframesRotation();
+    void addKeyframesOpacity();
 
     QNetworkAccessManager *networkAccessManager;
 

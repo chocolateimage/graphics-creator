@@ -1,5 +1,8 @@
 #include "gui.hpp"
 #include "animatable/effect/effect_list.hpp"
+#include "animatable/effect/opacity_effect.hpp"
+#include "animatable/effect/rotation_effect.hpp"
+#include "animatable/effect/scale_effect.hpp"
 #include "animatable/element/ellipse_element.hpp"
 #include "animatable/element/group_element.hpp"
 #include "animatable/element/image_element.hpp"
@@ -396,6 +399,30 @@ NewMainWindow::NewMainWindow(const QString &dataPath)
     connect(ungroupAction, &QAction::triggered, this,
             &NewMainWindow::ungroupSlot);
 
+    editMenu->addSeparator();
+
+    addKeyframesMenu = editMenu->addMenu("Add keyframes");
+
+    addKeyframesPositionAction = addKeyframesMenu->addAction(
+        "Add/remove position keyframe", QKeySequence("Alt+Shift+P"));
+    connect(addKeyframesPositionAction, &QAction::triggered, this,
+            &NewMainWindow::addKeyframesPosition);
+
+    addKeyframesScaleAction = addKeyframesMenu->addAction(
+        "Add/remove scale keyframe", QKeySequence("Alt+Shift+S"));
+    connect(addKeyframesScaleAction, &QAction::triggered, this,
+            &NewMainWindow::addKeyframesScale);
+
+    addKeyframesRotationAction = addKeyframesMenu->addAction(
+        "Add/remove rotation keyframe", QKeySequence("Alt+Shift+R"));
+    connect(addKeyframesRotationAction, &QAction::triggered, this,
+            &NewMainWindow::addKeyframesRotation);
+
+    addKeyframesOpacityAction = addKeyframesMenu->addAction(
+        "Add/remove opacity keyframe", QKeySequence("Alt+Shift+T"));
+    connect(addKeyframesOpacityAction, &QAction::triggered, this,
+            &NewMainWindow::addKeyframesOpacity);
+
     videoMenu = menuBar->addMenu("Video");
 
     QAction *goToStartAction = videoMenu->addAction("Go to start");
@@ -640,6 +667,144 @@ void NewMainWindow::openPlugins() {
     PluginManagerDialog *pluginManagerDialog = new PluginManagerDialog(this);
     pluginManagerDialog->setAttribute(Qt::WA_DeleteOnClose);
     pluginManagerDialog->show();
+}
+
+void NewMainWindow::addKeyframesPosition() {
+    for (auto element : scene->selectedElements) {
+        bool shouldXBeRemoved = false;
+        bool shouldYBeRemoved = false;
+
+        if (!element->x.isAnimating) {
+            element->x.toggleAnimating({scene->currentFrame});
+        } else if (!element->x.has(scene->currentFrame)) {
+            element->x.addToPosition({scene->currentFrame});
+        } else {
+            shouldXBeRemoved = true;
+        }
+
+        if (!element->y.isAnimating) {
+            element->y.toggleAnimating({scene->currentFrame});
+        } else if (!element->y.has(scene->currentFrame)) {
+            element->y.addToPosition({scene->currentFrame});
+        } else {
+            shouldYBeRemoved = true;
+        }
+
+        if (shouldXBeRemoved && shouldYBeRemoved) {
+            element->x.remove(scene->currentFrame);
+            element->y.remove(scene->currentFrame);
+        }
+    }
+}
+void NewMainWindow::addKeyframesScale() {
+    for (auto element : scene->selectedElements) {
+        ScaleEffect *scaleEffect = nullptr;
+
+        int index = 0;
+        int rotationIndex = 0;
+        for (auto effect : element->effects) {
+            RotationEffect *cast = dynamic_cast<RotationEffect *>(effect);
+            ScaleEffect *scaleCast = dynamic_cast<ScaleEffect *>(effect);
+            if (scaleCast) {
+                scaleEffect = scaleCast;
+                break;
+            }
+            if (cast) {
+                rotationIndex = index;
+            }
+
+            index++;
+        }
+
+        if (!scaleEffect) {
+            scaleEffect = new ScaleEffect();
+            element->insertEffect(scaleEffect, rotationIndex);
+        }
+
+        bool shouldXBeRemoved = false;
+        bool shouldYBeRemoved = false;
+
+        if (!scaleEffect->scaleX.isAnimating) {
+            scaleEffect->scaleX.toggleAnimating({scene->currentFrame});
+        } else if (!scaleEffect->scaleX.has(scene->currentFrame)) {
+            scaleEffect->scaleX.addToPosition({scene->currentFrame});
+        } else {
+            shouldXBeRemoved = true;
+        }
+
+        if (!scaleEffect->scaleY.isAnimating) {
+            scaleEffect->scaleY.toggleAnimating({scene->currentFrame});
+        } else if (!scaleEffect->scaleY.has(scene->currentFrame)) {
+            scaleEffect->scaleY.addToPosition({scene->currentFrame});
+        } else {
+            shouldYBeRemoved = true;
+        }
+
+        if (shouldXBeRemoved && shouldYBeRemoved) {
+            scaleEffect->scaleX.remove(scene->currentFrame);
+            scaleEffect->scaleY.remove(scene->currentFrame);
+        }
+    }
+}
+void NewMainWindow::addKeyframesRotation() {
+    for (auto element : scene->selectedElements) {
+        RotationEffect *rotationEffect = nullptr;
+
+        int index = 0;
+        int scaleIndex = 0;
+        for (auto effect : element->effects) {
+            RotationEffect *cast = dynamic_cast<RotationEffect *>(effect);
+            ScaleEffect *scaleCast = dynamic_cast<ScaleEffect *>(effect);
+            if (cast) {
+                rotationEffect = cast;
+                break;
+            }
+            if (scaleCast) {
+                scaleIndex = index + 1;
+            }
+
+            index++;
+        }
+
+        if (!rotationEffect) {
+            rotationEffect = new RotationEffect();
+            element->insertEffect(rotationEffect, scaleIndex);
+        }
+
+        if (!rotationEffect->angle.isAnimating) {
+            rotationEffect->angle.toggleAnimating({scene->currentFrame});
+        } else if (!rotationEffect->angle.has(scene->currentFrame)) {
+            rotationEffect->angle.addToPosition({scene->currentFrame});
+        } else {
+            rotationEffect->angle.remove(scene->currentFrame);
+        }
+    }
+}
+void NewMainWindow::addKeyframesOpacity() {
+    for (auto element : scene->selectedElements) {
+        OpacityEffect *opacityEffect = nullptr;
+
+        for (auto effect : element->effects) {
+            OpacityEffect *cast = dynamic_cast<OpacityEffect *>(effect);
+            if (cast) {
+                opacityEffect = cast;
+                break;
+            }
+        }
+
+        if (!opacityEffect) {
+            opacityEffect = new OpacityEffect();
+            element->addEffect(opacityEffect);
+        }
+
+        if (!opacityEffect->opacity.isAnimating) {
+            opacityEffect->opacity.toggleAnimating({scene->currentFrame});
+        } else if (!opacityEffect->opacity.has(scene->currentFrame)) {
+            opacityEffect->opacity.addToPosition({scene->currentFrame});
+        } else {
+            opacityEffect->opacity.remove(scene->currentFrame);
+        }
+    }
 }
 
 void NewMainWindow::importClicked() {
@@ -1472,6 +1637,12 @@ void NewMainWindow::elementSelectionChanged(QList<Element *> elements) {
         }
     }
     ungroupAction->setEnabled(hasGroupElement);
+
+    addKeyframesMenu->setDisabled(elements.isEmpty());
+    addKeyframesPositionAction->setDisabled(elements.isEmpty());
+    addKeyframesScaleAction->setDisabled(elements.isEmpty());
+    addKeyframesRotationAction->setDisabled(elements.isEmpty());
+    addKeyframesOpacityAction->setDisabled(elements.isEmpty());
 }
 
 void NewMainWindow::deleteTriggered() {
